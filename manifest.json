@@ -1,0 +1,26 @@
+{
+  "name": "ClassMap — Seating Chart Maker",
+  "short_name": "ClassMap",
+  "description": "Create and manage classroom seating charts with drag-and-drop ease.",
+  "start_url": "/ClassMap/",
+  "scope": "/ClassMap/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#6366f1",
+  "orientation": "landscape",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
