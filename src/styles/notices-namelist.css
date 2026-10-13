@@ -1,0 +1,102 @@
+/* ── Rule violation banner (right side) ── */
+.violation-banner {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  width: 280px;
+  background: var(--surface);
+  border: 1.5px solid var(--amber);
+  border-radius: 16px;
+  padding: 16px 16px 14px 16px;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(16px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  box-shadow: 0 8px 28px rgba(245,166,35,0.22);
+  display: block;
+}
+.violation-banner.show {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateX(0);
+}
+.violation-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.violation-banner-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+}
+.violation-banner-close {
+  background: none;
+  border: none;
+  color: var(--amber);
+  font-size: 0.9rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 6px;
+  opacity: 0.75;
+  transition: opacity 0.1s, background 0.1s;
+}
+.violation-banner-close:hover { opacity: 1; background: rgba(245,166,35,0.15); }
+#violationBannerText {
+  font-size: 0.8rem;
+  line-height: 1.65;
+  color: var(--text);
+}
+#violationBannerText div {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+#violationBannerText div:last-child { border-bottom: none; }
+body.light .violation-banner { background: #fff; border-color: #f59e0b; box-shadow: 0 8px 28px rgba(245,158,11,0.18); }
+body.light .violation-banner-title { color: #92400e; }
+body.light .violation-banner-close { color: #92400e; }
+body.light #violationBannerText { color: #1a1d35; }
+
+/* ── Group kind dropdown, flag badge, Name list ── */
+.landing-header { position: relative; }
+.landing-header-actions { position: absolute; right: 40px; top: 34px; }
+.ld-group-kind {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
+  border-radius: 12px; font-size: 0.68rem; font-weight: 600; padding: 2px 4px;
+  font-family: 'Geist', sans-serif; cursor: pointer; outline: none;
+}
+.ld-group-kind:hover { border-color: var(--border2); color: var(--text); }
+.ld-new-kind { border-radius: 8px; padding: 5px 6px; font-size: 0.72rem; }
+.ld-flag {
+  color: var(--amber); font-size: 0.8rem; cursor: pointer; padding: 0 3px; flex-shrink: 0;
+  background: var(--amber-dim); border-radius: 4px; line-height: 1.3;
+}
+.ld-flag:hover { filter: brightness(1.2); }
+.namelist-modal { max-width: 660px; max-height: 88vh; display: flex; flex-direction: column; }
+.nl-summary { font-size: 0.74rem; color: var(--text3); margin: -6px 0 10px; }
+.nl-search {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; outline: none; font-family: 'Geist', sans-serif;
+}
+.nl-search:focus { border-color: var(--blue); }
+.nl-body { overflow-y: auto; flex: 1; min-height: 120px; margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; }
+.nl-section { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3);
+  padding: 8px 12px 4px; background: var(--surface2); position: sticky; top: 0; z-index: 1; }
+.nl-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+.nl-row:last-child { border-bottom: none; }
+.nl-name { font-weight: 600; color: var(--text); min-width: 90px; }
+.nl-info { flex: 1; color: var(--text2); font-size: 0.74rem; }
+.nl-chip { display: inline-block; border-radius: 10px; padding: 1px 8px; font-size: 0.68rem; font-weight: 700; margin-right: 6px; }
+.nl-chip.boys { background: rgba(79,142,247,0.18); color: #4f8ef7; }
+.nl-chip.girls { background: rgba(247,86,124,0.18); color: #f7567c; }
+.nl-chip.flag { background: var(--amber-dim); color: var(--amber); }
+.nl-chip.none { background: var(--surface3); color: var(--text3); }
+.nl-pin { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); border-radius: 6px; font-size: 0.72rem; padding: 3px 4px; outline: none; }
+.nl-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 0.75rem; padding: 2px 4px; }
+.nl-del:hover { color: var(--rose); }
+.nl-empty { padding: 22px; text-align: center; color: var(--text3); font-size: 0.78rem; line-height: 1.6; }

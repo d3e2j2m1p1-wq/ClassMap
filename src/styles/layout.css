@@ -1,0 +1,202 @@
+/* ══════════════════════════════
+   PANEL 3: LAYOUT
+══════════════════════════════ */
+#panel-layout {
+  flex-direction: column;
+}
+
+.layout-toolbar {
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tool-group {
+  display: flex;
+  gap: 2px;
+  background: var(--bg);
+  border-radius: var(--r);
+  padding: 3px;
+}
+
+.tool-btn {
+  font-family: 'Geist', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 5px 11px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.tool-btn:hover { color: var(--text); background: var(--surface2); }
+.tool-btn.active { background: var(--surface2); color: var(--text); box-shadow: var(--shadow-sm); }
+
+.tool-sep { width: 1px; background: var(--border); margin: 4px 4px; }
+
+.layout-canvas-wrap {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: 
+    radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0);
+  background-size: 28px 28px;
+}
+
+#layoutCanvas {
+  position: relative;
+  min-width: 900px;
+  min-height: 600px;
+  background: transparent;
+}
+
+.layout-image {
+  position: absolute;
+  top: 0; left: 0;
+  max-width: 100%;
+  pointer-events: none;
+  opacity: 0.5;
+  border-radius: 4px;
+}
+
+.drop-zone-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  pointer-events: none;
+}
+.drop-zone-hint.hidden { display: none; }
+.drop-zone-hint .hint-icon { font-size: 2.5rem; opacity: 0.3; }
+.drop-zone-hint p { font-size: 0.85rem; color: var(--text3); text-align: center; max-width: 300px; line-height: 1.6; }
+.drop-zone-hint strong { color: var(--text2); }
+
+/* Placed items on canvas */
+.canvas-item {
+  position: absolute;
+  cursor: move;
+  user-select: none;
+  transition: box-shadow 0.15s;
+}
+.canvas-item:hover { z-index: 10; }
+
+.canvas-seat {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--surface3);
+  border: 2px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem;
+  color: var(--text3);
+  transition: all 0.15s;
+}
+.canvas-seat:hover { border-color: var(--blue); color: var(--blue); }
+.canvas-seat.occupied {
+  background: var(--blue-dim);
+  border-color: var(--blue);
+  color: var(--blue);
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+
+.canvas-table {
+  background: var(--surface2);
+  border: 2px solid var(--border2);
+  border-radius: var(--r);
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 80px;
+  min-height: 60px;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.canvas-table::before {
+  content: attr(data-label);
+  position: absolute;
+  top: -9px; left: 8px;
+  font-size: 0.6rem;
+  color: var(--text3);
+  background: var(--surface2);
+  padding: 0 4px;
+}
+
+/* Free-form table (new system) */
+.canvas-table-free {
+  position: relative;
+  border-radius: 10px;
+  transition: border-color 0.15s;
+}
+.canvas-table-free:hover {
+  border-color: rgba(79,142,247,0.5) !important;
+}
+.canvas-table-free .table-seat-inner {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--surface3);
+  border: 2px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; color: var(--text3);
+  transition: all 0.12s;
+  cursor: move;
+}
+.canvas-table-free .table-seat-inner:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.canvas-teacher {
+  width: 48px; height: 48px;
+  border-radius: var(--r);
+  background: var(--amber-dim);
+  border: 2px solid var(--amber);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 0.6rem; color: var(--amber);
+  font-weight: 600; gap: 2px;
+  text-align: center;
+}
+
+.canvas-board {
+  height: 24px;
+  min-width: 120px;
+  background: var(--surface3);
+  border: 2px solid var(--border2);
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; color: var(--text3);
+  font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 0 12px;
+}
+
+.canvas-item .item-delete {
+  position: absolute;
+  top: -8px; right: -8px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--rose);
+  border: none;
+  color: #fff;
+  font-size: 0.6rem;
+  cursor: pointer;
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 20;
+}
+.canvas-item:hover .item-delete { display: flex; }

@@ -1,0 +1,8 @@
+// Cloudflare: serve the built site (dist/) as static files. No server code.
+{
+  "name": "classmap",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}

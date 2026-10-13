@@ -1,0 +1,31 @@
+/* ── Touch, pen and mouse support ── */
+.canvas-item, .seat-chip, .assign-table-wrap > div { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.chip-pill, .ld-student-row { touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.ld-student-row { cursor: grab; }
+.canvas-item.selected .item-delete { display: flex; }
+.table-seat-del { display: none; }
+.table-seat-wrap:hover .table-seat-del, .canvas-item.selected .table-seat-del { display: flex; }
+@media (pointer: coarse) {
+  .canvas-item .item-delete, .table-seat-del { width: 22px !important; height: 22px !important; font-size: 0.75rem !important; }
+  .chip-pill { padding: 6px 12px; font-size: 0.8rem; }
+}
+.drag-ghost {
+  position: fixed; left: 0; top: 0; pointer-events: none; z-index: 9999;
+  padding: 5px 12px; border-radius: 20px; background: var(--surface3);
+  border: 2px solid var(--blue); color: var(--text); font-size: 0.78rem; font-weight: 600;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35); transform: translate(-50%, -130%); white-space: nowrap;
+}
+.drag-source, .ld-dragging { opacity: 0.4; }
+.seat-chip.drop-target { border-color: var(--green) !important; transform: scale(1.12); z-index: 15; }
+.unplaced-wrap.drop-target { outline: 2px dashed var(--green); outline-offset: 4px; border-radius: 8px; }
+.chip-pill.selected-pill { outline: 2px solid var(--amber); outline-offset: 1px; color: var(--text); }
+.unplaced-hint { font-size: 0.68rem; color: var(--text3); margin: 2px 2px 6px; line-height: 1.4; }
+.seat-chip.selected-seat::after { content: none; display: none; }
+.seat-unseat-btn {
+  position: absolute; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--rose); color: #fff; border: none; padding: 0;
+  font-size: 0.65rem; font-weight: 700; cursor: pointer; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3); touch-action: manipulation;
+}
+@media (pointer: coarse) { .seat-unseat-btn { width: 26px; height: 26px; font-size: 0.8rem; } }

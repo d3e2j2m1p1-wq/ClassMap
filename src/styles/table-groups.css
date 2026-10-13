@@ -1,0 +1,49 @@
+/* ── Table tool dropdown (seats + groups) ── */
+.tool-dd { position: relative; display: flex; align-items: center; }
+.tool-dd .tool-dd-caret { padding: 5px 6px; margin-left: -2px; }
+.tool-badge { font-size: 0.64rem; color: var(--text3); font-weight: 500; }
+.tool-btn.active .tool-badge { color: var(--text2); }
+.tool-menu { display: none; position: absolute; top: 100%; left: 0; padding-top: 6px; z-index: 400; }
+@media (hover: hover) { .tool-dd:hover .tool-menu { display: block; } }
+.tool-dd.open .tool-menu { display: block; }
+.tool-dd.suppress .tool-menu { display: none !important; }
+.tm-inner {
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35); padding: 6px; min-width: 250px;
+}
+.tm-label { font-size: 0.66rem; color: var(--text3); padding: 6px 8px 4px; font-weight: 600; }
+.tm-row { display: flex; gap: 4px; padding: 0 6px 6px; }
+.tm-chip {
+  min-width: 30px; height: 28px; border-radius: 6px; border: 1px solid var(--border2);
+  background: var(--surface2); color: var(--text2); font-family: 'Geist', sans-serif;
+  font-size: 0.75rem; font-weight: 600; cursor: pointer;
+}
+.tm-chip:hover { color: var(--text); border-color: var(--blue); }
+.tm-chip.active { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
+.tm-item {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px; width: 100%;
+  padding: 7px 10px; border: none; border-radius: 6px; background: transparent; color: var(--text);
+  font-family: 'Geist', sans-serif; font-size: 0.78rem; cursor: pointer; text-align: left;
+}
+.tm-item small { font-size: 0.68rem; color: var(--text3); }
+.tm-item:hover { background: var(--surface2); }
+.tm-item.active { color: var(--blue); }
+.tm-item.active span::before { content: '✓ '; }
+.tm-sep { height: 1px; background: var(--border); margin: 5px 4px; }
+.float-menu { position: fixed; z-index: 1000; }
+@media (pointer: coarse) { .tm-item { padding: 10px 12px; } .tm-chip { height: 34px; min-width: 36px; } }
+
+/* ── Groups inside a table ── */
+.table-groups-btn {
+  position: absolute; top: -22px; left: 2px; z-index: 6;
+  font-family: 'Geist', sans-serif; font-size: 0.62rem; color: var(--text3);
+  background: transparent; border: 1px solid transparent; border-radius: 10px;
+  padding: 1px 7px; cursor: pointer; white-space: nowrap; touch-action: manipulation;
+}
+.table-groups-btn:hover, .canvas-item.selected .table-groups-btn { border-color: var(--border2); color: var(--text); background: var(--surface2); }
+@media (pointer: coarse) { .table-groups-btn { font-size: 0.72rem; padding: 3px 9px; top: -28px; } }
+.table-group-outline { position: absolute; border: 2px solid; border-radius: 32px; pointer-events: none; z-index: 0; }
+.table-group-tag {
+  position: absolute; top: -9px; left: 12px; font-size: 0.6rem; font-weight: 700;
+  background: var(--bg); padding: 0 3px; border-radius: 4px; line-height: 1.3;
+}

@@ -1,0 +1,168 @@
+/* ── SHARED ── */
+.scrollable {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.scrollable::-webkit-scrollbar { width: 4px; }
+.scrollable::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.chip-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-size: 0.73rem;
+  color: var(--text2);
+  cursor: grab;
+  margin: 2px;
+  user-select: none;
+  transition: all 0.12s;
+}
+.chip-pill:hover { border-color: var(--border2); color: var(--text); }
+.chip-pill.boy { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+.chip-pill.girl { border-color: var(--rose); color: var(--rose); background: var(--rose-dim); }
+
+/* ── MODALS ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 800;   /* above the landing page (500) */
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  transform: translateY(12px) scale(0.97);
+  transition: transform 0.2s;
+}
+.modal-overlay.open .modal { transform: translateY(0) scale(1); }
+
+.modal h3 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.2rem;
+  margin-bottom: 6px;
+}
+.modal p { font-size: 0.82rem; color: var(--text2); margin-bottom: 16px; line-height: 1.6; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: var(--r);
+  font-size: 0.8rem;
+  z-index: 1100;   /* above modals and the landing page */
+  opacity: 0;
+  transform: translateY(6px);
+  transition: all 0.2s;
+  pointer-events: none;
+  box-shadow: var(--shadow);
+  max-width: 300px;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── STAT PILLS ── */
+.stat-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.stat-pill {
+  font-size: 0.72rem;
+  color: var(--text2);
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.stat-pill span { color: var(--text); font-weight: 600; }
+
+/* ── EMPTY STATES ── */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text3);
+}
+.empty-state .es-icon { font-size: 2rem; margin-bottom: 8px; }
+.empty-state p { font-size: 0.8rem; line-height: 1.6; }
+
+/* ── Rotation handle ── */
+.rotate-handle {
+  position: absolute;
+  bottom: -32px; left: 50%;
+  transform: translateX(-50%);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 2px solid var(--blue);
+  display: none;
+  align-items: center; justify-content: center;
+  cursor: grab;
+  font-size: 1rem;
+  color: var(--blue);
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(79,142,247,0.3);
+  transition: background 0.15s, box-shadow 0.15s;
+  user-select: none;
+}
+.rotate-handle::before {
+  content: '';
+  position: absolute;
+  top: -8px; left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 10px;
+  background: var(--blue);
+  border-radius: 1px;
+  opacity: 0.5;
+}
+.rotate-handle:hover { background: var(--blue-dim); box-shadow: 0 2px 12px rgba(79,142,247,0.5); }
+.rotate-handle:active { cursor: grabbing; }
+.canvas-item.selected .rotate-handle,
+.canvas-item:hover .rotate-handle { display: flex; }
+
+/* ── Selected item ring ── */
+.canvas-item.selected > *:first-child {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+/* ── Assign seat selection ── */
+.seat-chip.selected-seat {
+  outline: 3px solid var(--amber) !important;
+  outline-offset: 2px;
+  transform: scale(1.12);
+  z-index: 15 !important;
+}
+
+/* ── Overflow seats tray (above table) ── */
+.overflow-tray {
+  position: absolute;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 200px;
+  padding: 4px;
+}
