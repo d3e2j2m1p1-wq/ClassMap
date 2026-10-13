@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClassMap — Seating Chart Maker</title>
+<meta name="description" content="ClassMap seating chart maker: add your class, build the room, and auto-assign seats that follow your rules. Free, works offline.">
+<link rel="canonical" href="https://classmap.dev/app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ClassMap">
+<meta property="og:url" content="https://classmap.dev/app/">
+<meta property="og:title" content="ClassMap — make a seating chart">
+<meta property="og:description" content="Free seating chart maker for teachers. Works offline; class lists stay on your device.">
+<meta property="og:image" content="https://classmap.dev/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="description" content="ClassMap helps teachers create and manage classroom seating charts with drag-and-drop ease.">
+<meta name="theme-color" content="#6366f1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ClassMap">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Shown only if the app fails to start (styled inline: the stylesheets may not have loaded) -->
+<div id="bootFail" style="display:none;position:fixed;inset:0;z-index:99999;background:#0f1117;color:#e8eaf2;font-family:system-ui,-apple-system,sans-serif;align-items:center;justify-content:center;text-align:center;padding:24px;">
+  <div>
+    <h1 style="font-size:20px;font-weight:600;margin:0 0 8px;">ClassMap couldn't start</h1>
+    <p style="color:#9aa1b9;margin:0 0 18px;font-size:15px;">Your classes are still saved on this device. Try reloading the page.</p>
+    <button onclick="location.reload()" style="background:#4f8ef7;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:15px;cursor:pointer;">Reload</button>
+  </div>
+</div>
+<script>setTimeout(function () { if (!window.__classmapStarted) { var b = document.getElementById('bootFail'); if (b) b.style.display = 'flex'; } }, 6000);</script>
+
+<!-- HEADER -->
+<header>
+  <div class="logo"><div class="logo-dot"></div>ClassMap</div>
+  <input type="text" class="class-name-input" id="classNameInput" placeholder="Period 1 — Science" value="">
+
+  <div class="header-spacer"></div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-panel="roster" onclick="switchPanel('roster',this)">Roster</button>
+    <button class="tab-btn" data-panel="rules" onclick="switchPanel('rules',this)">Rules</button>
+    <button class="tab-btn" data-panel="layout" onclick="switchPanel('layout',this)">Layout</button>
+    <button class="tab-btn" data-panel="assign" onclick="switchPanel('assign',this)">Assign</button>
+  </div>
+
+  <div class="header-actions">
+    <button class="hbtn hbtn-ghost hbtn-icon" id="undoBtn" onclick="undo()" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶</button>
+    <button class="hbtn hbtn-ghost hbtn-icon" id="redoBtn" onclick="redo()" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷</button>
+    <button class="hbtn hbtn-ghost" onclick="printChart()" title="Print this chart">🖨 Print</button>
+    <button class="hbtn hbtn-ghost" onclick="openPresent()" title="Show the chart full screen, for the projector">▶ Present</button>
+    <button class="hbtn hbtn-ghost" onclick="goHome()">🏠 Home</button>
+    <button class="hbtn hbtn-ghost hbtn-icon" onclick="toggleTheme()" id="themeBtn" title="Light / dark" aria-label="Switch light or dark theme">☀️</button>
+    <div class="tool-dd" id="moreDD" onmouseleave="this.classList.remove('suppress')">
+      <button class="hbtn hbtn-ghost hbtn-icon" onclick="toggleMoreMenu(event)" title="More" aria-label="More options">⋯</button>
+      <div class="tool-menu more-menu"><div class="tm-inner">
+        <button class="tm-item" onclick="manualSave();closeMoreMenu()"><span>💾 Save now</span><small>also saves automatically</small></button>
+        <button class="tm-item" onclick="exportData();closeMoreMenu()"><span>⬇ Export chart file</span></button>
+        <button class="tm-item" onclick="document.getElementById('importDataFile').click();closeMoreMenu()"><span>📂 Import chart file</span></button>
+      </div></div>
+    </div>
+    <input type="file" id="importDataFile" accept=".json,application/json" style="display:none" onchange="importDataFromFile(this)">
+  </div>
+</header>
+
+<!-- APP BODY -->
+<div class="app-body">
+
+  <!-- ══ PANEL 1: ROSTER ══ -->
+  <div class="panel active" id="panel-roster">
+    <div id="rosterEmptyState" style="display:none;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:14px;color:var(--text3);font-size:0.85rem;">
+      <div style="font-size:2.5rem;">👥</div>
+      <p style="margin:0;">No students in this class yet.</p>
+      <button class="btn btn-primary" onclick="goHomeToRoster()">+ Add Students</button>
+    </div>
+    <div id="rosterContent">
+    <div class="stat-row" id="rosterStats" style="padding:10px 20px;"></div>
+    <div class="roster-columns" id="rosterColumns"></div>
+    </div><!-- end rosterContent -->
+  </div>
+
+  <!-- ══ PANEL 2: RULES ══ -->
+  <div class="panel" id="panel-rules">
+    <div class="rules-grid">
+
+      <!-- Permanent Rules (read-only — managed at class level) -->
+      <div class="rules-card">
+        <h3>🔒 Permanent Rules <span class="rule-tag perm">Class-wide</span></h3>
+        <p class="desc">These rules are set at the class level and apply to every chart. <button class="inline-home-link" onclick="goHome()">Edit on home page →</button></p>
+        <div id="hardRulesList"></div>
+      </div>
+
+      <!-- Temp Notes -->
+      <div class="rules-card">
+        <h3>📋 Session Notes <span class="rule-tag temp">This chart only</span></h3>
+        <p class="desc">One-time notes for this specific seating arrangement. e.g. "Max is having issues with Jared — keep apart today."</p>
+        <textarea class="notes-textarea" id="sessionNotes" placeholder="Write any notes here...&#10;&#10;e.g. Keep Max away from Jared this week.&#10;Lily needs to be near the front (vision)."></textarea>
+
+        <div style="margin-top:16px;">
+          <h3 style="margin-bottom:4px;">⚡ Temporary Rules <span class="rule-tag temp">This chart only</span></h3>
+          <p class="desc" style="margin-bottom:8px;">These override or add to permanent rules just for this session.</p>
+          <div id="tempRulesList"></div>
+          <div class="rule-form">
+            <label>Rule type</label>
+            <select id="tempRuleType" onchange="updateTempFormFields()">
+              <option value="separate">Keep separate (this time)</option>
+              <option value="front">Near front (this time)</option>
+              <option value="near">Keep near (this time)</option>
+              <option value="partners">Same group (this time)</option>
+              <option value="back">Near back (this time)</option>
+            </select>
+            <div id="tempTwoStudents">
+              <div class="rule-form-row" style="margin-top:8px;">
+                <div>
+                  <label>Student A</label>
+                  <div id="tempStudA_wrap"></div>
+                </div>
+                <div class="and-label">and</div>
+                <div>
+                  <label>Student B</label>
+                  <div id="tempStudB_wrap"></div>
+                </div>
+              </div>
+            </div>
+            <div id="tempOneStudent" style="display:none;margin-top:8px;">
+              <label>Student</label>
+              <div id="tempStudSingle_wrap"></div>
+            </div>
+            <div style="margin-top:10px;">
+              <button class="btn btn-primary btn-sm" onclick="addTempRule()">Add Temp Rule</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grouping -->
+      <div class="rules-card" style="grid-column: 1 / -1;">
+        <h3>👥 Grouping & Tables</h3>
+        <p class="desc">Configure how students are grouped at tables. If your layout uses tables, students will be assigned respecting group size and group balance.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-top:4px;">
+          <div>
+            <label style="font-size:0.72rem;color:var(--text3);display:block;margin-bottom:5px;font-weight:500;">Tables</label>
+            <p style="font-size:0.75rem;color:var(--text2);line-height:1.5;margin:0;">Seats and groups per table are set from the <strong>Table</strong> tool in the Layout tab, or by clicking a table's label.</p>
+          </div>
+          <div>
+            <label style="font-size:0.72rem;color:var(--text3);display:block;margin-bottom:5px;font-weight:500;">Group balance</label>
+            <select id="genderBalance" onchange="document.getElementById('assignGenderBal').value=this.value" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'Geist',sans-serif;font-size:0.8rem;padding:6px 9px;outline:none;">
+              <option value="none">No preference</option>
+              <option value="mixed" selected>Mixed (equal boys/girls)</option>
+              <option value="same">Same group preferred</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.72rem;color:var(--text3);display:block;margin-bottom:5px;font-weight:500;">Seat fill order</label>
+            <select id="fillOrder" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'Geist',sans-serif;font-size:0.8rem;padding:6px 9px;outline:none;">
+              <option value="random">Random shuffle</option>
+              <option value="alpha">Alphabetical</option>
+              <option value="front-first">Front rows first</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══ PANEL 3: LAYOUT ══ -->
+  <div class="panel" id="panel-layout">
+    <div class="layout-toolbar">
+      <div class="tool-group">
+        <button class="tool-btn active" id="tool-pointer" onclick="setTool('pointer')">↖ Select</button>
+        <button class="tool-btn" id="tool-seat" onclick="setTool('seat')">⬤ Seat</button>
+        <div class="tool-dd" id="tableToolDD" onmouseleave="this.classList.remove('suppress')">
+          <button class="tool-btn" id="tool-table" onclick="setTool('table')" title="Place a table — hover for seats and groups">▬ Table <span class="tool-badge" id="tableToolBadge">4 · 1 group</span></button>
+          <button class="tool-btn tool-dd-caret" onclick="toggleTableToolMenu(event)" aria-label="Table seats and groups">▾</button>
+          <div class="tool-menu"><div class="tm-inner" id="tableToolMenu"></div></div>
+        </div>
+        <button class="tool-btn" id="tool-board" onclick="setTool('board')">▭ Board</button>
+        <button class="tool-btn" id="tool-teacher" onclick="setTool('teacher')">★ Teacher</button>
+      </div>
+      <div class="tool-sep"></div>
+      <div class="tool-group">
+        <button class="tool-btn" onclick="layoutUploadImg()">🖼 Upload Image</button>
+        <button class="tool-btn" onclick="clearLayout()">🗑 Clear</button>
+      </div>
+      <div class="tool-sep"></div>
+      <span style="font-size:0.72rem;color:var(--text3);padding:0 6px;" id="toolHint">Click to select items. Drag to move.</span>
+      <input type="file" id="layoutImgInput" accept="image/*,.pdf" style="display:none" onchange="handleLayoutImg(event)">
+    </div>
+
+    <div class="layout-canvas-wrap" id="layoutCanvasWrap">
+      <div id="layoutCanvas"></div>
+    </div>
+  </div>
+
+  <!-- ══ PANEL 4: ASSIGN ══ -->
+  <div class="panel" id="panel-assign" style="flex-direction:row;position:relative;">
+
+    <!-- Floating control panel -->
+    <div class="assign-float-panel" id="assignFloatPanel">
+      <div class="assign-float-header" onclick="toggleAssignPanel()">
+        <span class="assign-float-title">⚡ Auto-Assign</span>
+        <span class="assign-float-chevron" id="assignChevron">▲</span>
+      </div>
+      <div class="assign-float-body">
+        <div class="assign-float-inner">
+          <div class="control-group">
+            <label>Group balance</label>
+            <select id="assignGenderBal" onchange="document.getElementById('genderBalance').value=this.value">
+              <option value="none">No preference</option>
+              <option value="mixed" selected>Mixed groups</option>
+              <option value="same">Same group</option>
+            </select>
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text2);margin-bottom:8px;cursor:pointer;">
+            <input type="checkbox" id="assignKeep"> Keep students already seated
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text2);margin-bottom:8px;cursor:pointer;" title="Students who sat in the same group in this class's last 3 charts are split up when possible">
+            <input type="checkbox" id="assignAvoidRepeats" checked> Avoid partners from the last 3 charts
+          </label>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="autoAssign()">⚡ Auto-Assign</button>
+          <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;margin-top:6px;" onclick="clearAssignments()">Clear Assignments</button>
+          <div class="assign-stats-row" style="margin-top:10px;">
+            <div class="stat-pill">Seated <span id="assignSeated">0</span>/<span id="assignTotal">0</span></div>
+            <div class="stat-pill">Empty <span id="assignEmpty">0</span></div>
+          </div>
+          <div class="unplaced-wrap">
+            <h4>Unplaced Students</h4>
+            <p class="unplaced-hint">Tap a name, then tap a seat — or drag it. Tap a seated student for ✕ (unseat) and 📌 Pin (stays put when auto-assigning).</p>
+            <div class="unplaced-chips-float" id="unplacedChips"></div>
+          </div>
+          <div class="screenshot-tip">
+            📸 <strong>To share:</strong> collapse this panel, then screenshot
+            <span class="screenshot-shortcut">Win: <kbd>&#x229E;+Shift+S</kbd> &nbsp; Mac: <kbd>⌘+Shift+4</kbd></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-size canvas -->
+    <div class="assign-canvas-wrap" id="assignMain">
+      <div style="position:relative;min-width:900px;min-height:600px;" id="assignCanvas"></div>
+    </div>
+  </div>
+
+</div><!-- end app-body -->
+
+<!-- NAME LIST MODAL -->
+<div class="modal-overlay" id="nameListModal">
+  <div class="modal namelist-modal">
+    <h3>📖 Name list</h3>
+    <p>ClassMap learns from the students you sort by hand into Boys/Girls groups. Names seen as both are flagged ⚑ and are never sorted automatically.</p>
+    <div class="nl-summary" id="nlSummary"></div>
+    <input class="nl-search" id="nlSearch" placeholder="Search, or type a name to check it…" oninput="renderNameList()" autocomplete="off">
+    <div class="nl-body" id="nlBody"></div>
+    <div class="modal-actions" style="justify-content:space-between;flex-wrap:wrap;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="learnFromRosters()" title="Learn from students already sitting in Boys/Girls groups">Learn from my classes</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportNameList()">⬇ Export</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('nlImportFile').click()">📂 Import</button>
+      </div>
+      <button class="btn btn-primary" onclick="closeModal('nameListModal')">Done</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="nlImportFile" accept=".json,application/json" style="display:none" onchange="importNameListFile(this)">
+
+<!-- IMPORT DATA MODAL -->
+
+
+<!-- ════════════════════════════════
+     LANDING PAGE
+════════════════════════════════ -->
+<div id="landing-page">
+  <div class="landing-header">
+    <div class="landing-logo">
+      <div class="landing-logo-dot"></div>
+      ClassMap
+    </div>
+    <div class="landing-subtitle">Your classroom seating organizer</div>
+    <div class="landing-header-actions" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
+      <div id="syncArea" class="sync-area"></div>
+      <button class="btn btn-ghost btn-sm" onclick="exportEverything()" title="Download every class, chart and the name list as one file">⬇ Back up everything</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('restoreFile').click()" title="Add a class from an exported chart file, or restore a full backup">📂 Import file</button>
+      <button class="btn btn-ghost btn-sm" onclick="openNameList()" title="Names ClassMap has learned for automatic sorting">📖 Name list</button>
+    </div>
+    <input type="file" id="restoreFile" accept=".json,application/json" style="display:none" onchange="restoreEverything(this)">
+  </div>
+
+  <div class="backup-reminder" id="backupReminder" hidden>
+    <span class="br-text"></span>
+    <button type="button" class="br-btn" onclick="exportEverything()">Back up now</button>
+    <button type="button" class="br-later" onclick="snoozeBackupReminder()">Later</button>
+  </div>
+
+  <div class="landing-body">
+    <!-- Class list -->
+    <div class="landing-classes">
+      <div class="landing-section-header">
+        <span class="landing-section-title">Classes</span>
+      </div>
+      <div class="class-list" id="classList"></div>
+      <div class="add-class-form">
+        <input class="add-class-input" id="newClassInput" placeholder="New class name..." onkeydown="if(event.key==='Enter')addLandingClass()">
+        <button class="btn btn-primary btn-sm" onclick="addLandingClass()">Add</button>
+      </div>
+    </div>
+
+    <!-- Class detail panel — Charts / Roster / Rules tabs -->
+    <div class="landing-detail" id="landingDetail">
+      <div class="landing-detail-empty" id="landingDetailEmpty">
+        <div class="welcome">
+          <div class="ti">👋</div>
+          <h2>Welcome to ClassMap</h2>
+          <ol class="welcome-steps">
+            <li><b>Add a class</b> on the left and paste your roster.</li>
+            <li><b>Build the room</b> in Layout: tables, seats and the board.</li>
+            <li><b>Auto-assign</b> — ClassMap follows your rules and mixes groups.</li>
+          </ol>
+          <button class="btn btn-primary" onclick="createSampleClass()">Try a sample class</button>
+          <p class="welcome-note">Everything stays on this device.</p>
+        </div>
+        <div class="select-hint">
+          <div class="ti">🏫</div>
+          <p>Select a class to get started</p>
+        </div>
+      </div>
+
+      <div id="landingDetailContent" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+        <!-- Detail header -->
+        <div class="landing-detail-header">
+          <span class="landing-detail-classname" id="landingDetailClassName"></span>
+          <div class="landing-detail-tabs">
+            <button class="ld-tab active" data-tab="charts" onclick="switchLandingTab('charts',this)">📋 Charts</button>
+            <button class="ld-tab" data-tab="roster" onclick="switchLandingTab('roster',this)">👥 Roster</button>
+            <button class="ld-tab" data-tab="rules" onclick="switchLandingTab('rules',this)">📌 Rules</button>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="createNewChart()">+ New Chart</button>
+        </div>
+
+        <!-- Charts tab -->
+        <div class="ld-panel active" id="ldp-charts">
+          <div id="timelineContent" class="timeline-empty">
+            <div class="ti">📋</div>
+            <p>No seating charts yet.<br>Create one with the button above.</p>
+          </div>
+        </div>
+
+        <!-- Roster tab -->
+        <div class="ld-panel" id="ldp-roster">
+          <div class="ld-roster-wrap" id="ldRosterWrap">
+            <div class="ld-roster-info">This roster applies to all charts in this class.</div>
+            <div class="ld-roster-import">
+              <textarea id="ldRosterPaste" placeholder="Paste roster here — one name per line, or comma/tab separated. Formats like 'Last, First' are automatically parsed." rows="4"></textarea>
+              <div class="ld-roster-actions">
+                <button class="btn btn-primary btn-sm" onclick="ldParseRoster()">⚡ Parse Roster</button>
+                <button class="btn btn-ghost btn-sm" onclick="ldClearRoster()">Clear All</button>
+                <label class="gender-toggle-wrap" style="margin-left:auto;">
+                  Sort by group <input type="checkbox" id="ldGenderToggle" onchange="ldToggleGender()">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+            <div id="ldGroupManager"></div>
+            <div id="ldStudentCols" class="ld-student-cols"></div>
+          </div>
+        </div>
+
+        <!-- Rules tab -->
+        <div class="ld-panel" id="ldp-rules">
+          <div class="ld-rules-wrap" id="ldRulesWrap">
+            <div class="ld-roster-info">Permanent rules apply to every chart in this class.</div>
+            <div id="ldRulesList" class="ld-rules-list"></div>
+            <div class="ld-add-rule">
+              <select id="ldRuleType">
+                <option value="separate">Separate</option>
+                <option value="near">Keep Near</option>
+                <option value="partners">Same Group</option>
+                <option value="front">Front Row</option>
+                <option value="back">Back Row</option>
+                <option value="spread">Spread out a tag</option>
+                <option value="helper">Pair a tag with a helper</option>
+              </select>
+              <div id="ldRuleStudentA" class="ld-typeahead-wrap"></div>
+              <div id="ldRuleStudentB" class="ld-typeahead-wrap"></div>
+              <select id="ldRuleTagA" aria-label="Tag" style="display:none"></select>
+              <select id="ldRuleTagB" aria-label="Helper tag" style="display:none"></select>
+              <button class="btn btn-primary btn-sm" onclick="ldAddRule()">Add Rule</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="violation-banner" id="violationBanner">
+  <div class="violation-banner-header">
+    <span class="violation-banner-title">⚠️ Rule reminder</span>
+    <button class="violation-banner-close" onclick="closeViolationBanner()" title="Dismiss">✕</button>
+  </div>
+  <div id="violationBannerText"></div>
+</div>
+
+<script type="module" src="../src/main.js"></script>
+</body>
+</html>
