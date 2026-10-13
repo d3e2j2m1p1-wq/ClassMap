@@ -1,0 +1,5 @@
+# Search engines: index everything, and here's the list of pages
+User-agent: *
+Allow: /
+
+Sitemap: https://classmap.dev/sitemap.xml

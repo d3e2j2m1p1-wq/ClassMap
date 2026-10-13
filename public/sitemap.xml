@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Every public page. Add new pages here (e.g. guides) and update <lastmod> when a page changes. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://classmap.dev/</loc>
+    <lastmod>2026-10-13</lastmod>
+  </url>
+  <url>
+    <loc>https://classmap.dev/app/</loc>
+    <lastmod>2026-10-13</lastmod>
+  </url>
+  <url>
+    <loc>https://classmap.dev/privacy.html</loc>
+    <lastmod>2026-10-13</lastmod>
+  </url>
+</urlset>
