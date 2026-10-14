@@ -1,9 +1,16 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import { readdirSync, existsSync } from 'fs';
+
+// Every guide page: guides/<name>/index.html
+const guides = Object.fromEntries(
+  readdirSync(resolve(__dirname, 'guides'), { withFileTypes: true })
+    .filter(d => d.isDirectory() && existsSync(resolve(__dirname, 'guides', d.name, 'index.html')))
+    .map(d => ['guide-' + d.name, resolve(__dirname, 'guides', d.name, 'index.html')])
+);
 
 export default defineConfig({
-  // Relative paths, so the built site works in any folder:
-  // GitHub Pages (/ClassMap/) now, your own domain later.
+  // Relative paths, so the built site works in any folder
   base: './',
   build: {
     outDir: 'dist',
@@ -12,9 +19,11 @@ export default defineConfig({
     assetsInlineLimit: 0,
     rollupOptions: {
       input: {
-        home: resolve(__dirname, 'index.html'),        // public home page   →  /
-        app: resolve(__dirname, 'app/index.html'),      // the app            →  /app/
-        privacy: resolve(__dirname, 'privacy.html'),    // privacy policy     →  /privacy.html
+        home: resolve(__dirname, 'index.html'),              // public home page →  /
+        app: resolve(__dirname, 'app/index.html'),            // the app          →  /app/
+        privacy: resolve(__dirname, 'privacy/index.html'),    // privacy policy   →  /privacy/
+        guides: resolve(__dirname, 'guides/index.html'),      // guides list      →  /guides/
+        ...guides,                                            // each guide       →  /guides/<name>/
       },
     },
   },

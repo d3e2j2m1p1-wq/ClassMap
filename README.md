@@ -22,11 +22,12 @@ npm run preview             # serve dist/ locally to check the build
 |---|---|---|
 | `/` | `index.html` | public home page |
 | `/app/` | `app/index.html` | the app |
-| `/privacy.html` | `privacy.html` | privacy policy |
+| `/guides/` | `guides/index.html` | seating chart guides (one folder per guide) |
+| `/privacy/` | `privacy/index.html` | privacy policy |
 
 `public/` (copied as-is): `manifest.json` (installable app, opens `/app/`), `icons/`, `sw.js`.
 
-**Before going public:** replace the `TODO` contact email in `index.html` and `privacy.html`.
+**Before going public:** replace the `TODO` contact email in `index.html` and `privacy/index.html`.
 
 **Google sign-in / Drive sync** is optional and off until you add a client ID — see `GOOGLE_SETUP.md`.
 
@@ -56,7 +57,9 @@ your own domain later, with no changes.
 
 ```
 index.html                  public home page
-privacy.html                privacy policy
+privacy/index.html          privacy policy
+guides/                     seating chart guides (each guide: guides/<name>/index.html;
+                            new folders are built automatically — add them to public/sitemap.xml)
 app/index.html              the app's markup (header, tabs, panels, modals, home page)
 src/
   config.js                 Google client ID (from .env) and Drive file name

@@ -17,7 +17,7 @@ no server to run. Takes about 20 minutes.
 2. **Audience / User type:** **External**.
 3. **Contact email:** your email.
 4. **Branding:** app logo (`public/icons/icon-512.png`), **home page** = your site's address
-   (e.g. `https://YOURNAME.github.io/ClassMap/`), **privacy policy** = `…/privacy.html`.
+   (`https://classmap.dev/`), **privacy policy** = `https://classmap.dev/privacy/`.
 5. **Data access / Scopes → Add scopes:** choose
    - `.../auth/drive.file` — *See, edit, create and delete only the specific Google Drive files you use with this app*
    - `openid` and `.../auth/userinfo.email`
@@ -46,7 +46,7 @@ Google only accepts it from the origins you listed in step 4.
 
 ## 6. Going public (verification)
 In Testing mode only your test users can sign in. To let any teacher sign in:
-1. Fill in the `TODO` contact email in `index.html` and `privacy.html`.
+1. Fill in the `TODO` contact email in `index.html` and `privacy/index.html`.
 2. Verify your domain in Google Search Console (Google asks for this for the home page / privacy links).
    A custom domain is easiest; for `github.io` addresses follow Google's instructions for the property.
 3. OAuth consent screen → **Publish app** → submit for verification.
