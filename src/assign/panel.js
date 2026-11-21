@@ -3,6 +3,7 @@ import { placeStudent, pointerDrag, togglePin, unseatStudent } from './interacti
 import { cleanAssignments, getAllSeats } from './seats.js';
 import { esc, groupColor, initials, state } from '../core/state.js';
 import { isLightColor } from '../landing/roster.js';
+import { tagAbbr, tagSetting } from '../landing/tags.js';
 import { appendGroupOutlines } from '../layout/tableGroups.js';
 import { tableBBox } from '../layout/tables.js';
 import { markDirty } from '../storage/autosave.js';
@@ -165,6 +166,21 @@ export function makeAssignChip(seatId, x, y, relative) {
       if (store.selectedSeatId) focusSeat(seatId);
     }
     chip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tap(); } });
+
+    // Tag badge (editor only — Present and Print remove it)
+    if ((student.tags || []).length) {
+      const cls = store.landingData.classes.find(c => c.id === window._currentChartClassId);
+      const tags = student.tags;
+      const badge = document.createElement('div');
+      badge.className = 'seat-tag-badge' + (tags.every(t => tagSetting(cls, t).private) ? ' private' : '');
+      badge.textContent = tagAbbr(tags[0]) + (tags.length > 1 ? ' +' + (tags.length - 1) : '');
+      badge.style.left = (x + SEAT_SIZE - 12) + 'px';
+      badge.style.top = (y + SEAT_SIZE - 9) + 'px';
+      badge.setAttribute('aria-hidden', 'true');
+      chip.title = student.name + ' · ' + tags.join(', ') + (pinned ? ' (pinned)' : '') + ' — tap to select, drag to move';
+      chip.setAttribute('aria-label', student.name + ', tagged ' + tags.join(', ') + (pinned ? ', pinned' : '') + (store.selectedSeatId === seatId ? ', selected' : ''));
+      chip._extras.push(badge);
+    }
 
     // Pinned students keep their seat when auto-assigning
     if (pinned) {

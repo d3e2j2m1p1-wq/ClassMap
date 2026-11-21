@@ -194,3 +194,36 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .sync-email { font-size: 0.68rem; color: var(--text3); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sync-out { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 0.7rem; padding: 4px 6px; border-radius: 6px; }
 .sync-out:hover { color: var(--text); }
+
+/* ── Tag badges on seats (editor only) ── */
+.seat-tag-badge {
+  position: absolute; z-index: 15; pointer-events: none;
+  font-family: 'Geist', sans-serif; font-size: 0.55rem; font-weight: 700; line-height: 1;
+  padding: 2px 4px; border-radius: 6px; white-space: nowrap;
+  background: var(--amber); color: #1a1206; border: 1px solid var(--amber);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+}
+.seat-tag-badge.private { background: var(--surface); color: var(--amber); }
+.ld-tag-chip.private { background: var(--amber-dim); color: var(--amber); }
+.tm-hint { font-size: 0.7rem; color: var(--text3); padding: 6px 6px 2px; }
+
+/* ── Rules tab: tag settings ── */
+.ld-section-title { font-size: 0.8rem; font-weight: 600; color: var(--text2); margin: 10px 0 0; text-transform: uppercase; letter-spacing: 0.06em; }
+.ld-tag-settings { display: flex; flex-direction: column; gap: 6px; }
+.tag-set-empty { font-size: 0.8rem; color: var(--text3); padding: 4px 0; }
+.tag-set-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 8px 12px;
+  font-size: 0.8rem; color: var(--text);
+}
+.tag-set-name { display: flex; align-items: center; gap: 8px; min-width: 170px; }
+.tag-set-name .ld-tag-chip { font-size: 0.72rem; padding: 2px 8px; }
+.tag-set-count { color: var(--text3); font-size: 0.72rem; }
+.tag-set-field { display: flex; align-items: center; gap: 6px; color: var(--text2); }
+.tag-set-field select {
+  font-family: 'Geist', sans-serif; font-size: 0.78rem; padding: 4px 6px; border-radius: 6px;
+  background: var(--surface2); color: var(--text); border: 1px solid var(--border2);
+}
+.tag-set-check { display: flex; align-items: center; gap: 5px; color: var(--text2); cursor: pointer; }
+.tag-set-check input { accent-color: var(--blue); }
+@media print { .print-muted { color: #555; } }

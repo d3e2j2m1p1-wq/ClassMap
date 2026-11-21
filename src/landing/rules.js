@@ -3,7 +3,7 @@ import { esc } from '../core/state.js';
 import { showToast } from '../core/ui.js';
 import { saveLandingData } from '../storage/landingData.js';
 import { ruleSummary } from '../assign/rulesEngine.js';
-import { classTags, fillTagSelects, noTagsToast } from './tags.js';
+import { classTags, fillTagSelects, noTagsToast, renderTagSettings } from './tags.js';
 
 // ── Rules tab ──
 export function renderLdRules() {
@@ -28,6 +28,7 @@ export function renderLdRules() {
   initLdTypeahead('ldRuleStudentA', 'ldTaInputA');
   initLdTypeahead('ldRuleStudentB', 'ldTaInputB');
   fillTagSelects(cls);
+  renderTagSettings(cls);
   // Show/hide B field based on rule type
   ldUpdateRuleTypeFields();
   document.getElementById('ldRuleType').onchange = ldUpdateRuleTypeFields;

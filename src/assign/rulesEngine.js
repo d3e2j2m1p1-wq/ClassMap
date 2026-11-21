@@ -1,7 +1,8 @@
 import { SEAT_SIZE } from './panel.js';
 import { getAllSeats } from './seats.js';
 import { esc, state } from '../core/state.js';
-import { hasTag } from '../landing/tags.js';
+import { store } from '../core/store.js';
+import { classTags, hasTag, tagKey, tagSetting } from '../landing/tags.js';
 
 // ── Rule engine (shared by drag/drop warnings and auto-assign) ──
 export function resolveStudentId(nameOrId) {
@@ -28,8 +29,28 @@ export function getResolvedRules() {
       b: resolveStudentId(r.studentB || r.studB),
     }))
     .filter(r => r.a && (r.type === 'front' || r.type === 'back' || r.b));
+
+  // Tag settings (Rules tab → Tags). Placement is "soft": a tagged student who can't get a front seat
+  // without breaking a real rule (or sharing a group with another student who has the tag) sits a bit
+  // further back instead. "Spread out" is a normal rule.
+  const cls = store.landingData.classes.find(c => c.id === (window._currentChartClassId || store.activeClassId));
+  classTags({ students: state.students }).forEach(tag => {
+    const st = tagSetting(cls, tag);
+    const ids = tagged(tag);
+    if (!ids.length) return;
+    if (st.place) ids.forEach(id => {
+      if (!studentRules.some(r => r.a === id && r.type === st.place)) studentRules.push({ type: st.place, a: id, soft: true, tag });
+    });
+    if (st.spread && !tagRules.some(r => r.type === 'spread' && tagKey(r.tag) === tagKey(tag)))
+      tagRules.push({ type: 'spread', tag, ids, helpers: [] });
+  });
   return [...studentRules, ...tagRules];
 }
+
+// How bad a set of broken rules is: real rules count 1000, tag placement 1 — so auto-assign never
+// breaks a rule (or puts two "spread out" students together) just to move someone forward.
+export const HARD_WEIGHT = 1000;
+export const ruleCost = vios => vios.reduce((n, v) => n + (v.soft ? 1 : HARD_WEIGHT), 0);
 
 // One wording for a rule everywhere (rules lists, print): { label, text }
 export function ruleSummary(r) {
@@ -100,6 +121,29 @@ export function frontInfo(seats) {
   return info;
 }
 
+// How close each seat is to the teacher's desk: depth 0 (closest) … 1 (furthest). null = no desk.
+export const TEACHER_SIZE = 48;
+let _teacherCache = { seats: null, items: null, info: null };
+export function teacherInfo(seats) {
+  if (_teacherCache.seats === seats && _teacherCache.items === state.layoutItems) return _teacherCache.info;
+  const desks = state.layoutItems.filter(i => i.type === 'teacher');
+  let info = null;
+  if (desks.length && seats.length) {
+    const raw = {};
+    seats.forEach(s => {
+      const px = s.x + SEAT_SIZE / 2, py = s.y + SEAT_SIZE / 2;
+      raw[s.seatId] = Math.min(...desks.map(d => Math.hypot(px - (d.x + TEACHER_SIZE / 2), py - (d.y + TEACHER_SIZE / 2))));
+    });
+    const vals = Object.values(raw);
+    const min = Math.min(...vals), range = Math.max(...vals) - min;
+    const depth = {};
+    Object.keys(raw).forEach(k => { depth[k] = range > 0 ? (raw[k] - min) / range : 0; });
+    info = { raw, depth, range };
+  }
+  _teacherCache = { seats, items: state.layoutItems, info };
+  return info;
+}
+
 // Returns [{ type, ids:[...] }] for every rule that is currently broken
 export function evaluateRules(assign, seats, rules) {
   if (!seats.length) return [];
@@ -108,6 +152,7 @@ export function evaluateRules(assign, seats, rules) {
   const seatOf = {};
   Object.keys(assign).forEach(k => { if (seatById[k]) seatOf[assign[k]] = seatById[k]; });
   const fi = frontInfo(seats);
+  const ti = teacherInfo(seats);
 
   const out = [];
   rules.forEach(r => {
@@ -139,9 +184,11 @@ export function evaluateRules(assign, seats, rules) {
       const sb = seatOf[r.b];
       if (sb && !seatsArePartners(sa, sb)) out.push({ type: 'partners', ids: [r.a, r.b] });
     } else if (r.type === 'front') {
-      if (fi.range > 1 && fi.depth[sa.seatId] > 0.35) out.push({ type: 'front', ids: [r.a] });
+      if (fi.range > 1 && fi.depth[sa.seatId] > 0.35) out.push({ type: 'front', ids: [r.a], soft: r.soft, tag: r.tag });
     } else if (r.type === 'back') {
-      if (fi.range > 1 && fi.depth[sa.seatId] < 0.65) out.push({ type: 'back', ids: [r.a] });
+      if (fi.range > 1 && fi.depth[sa.seatId] < 0.65) out.push({ type: 'back', ids: [r.a], soft: r.soft, tag: r.tag });
+    } else if (r.type === 'teacher') {
+      if (ti && ti.range > 1 && ti.depth[sa.seatId] > 0.35) out.push({ type: 'teacher', ids: [r.a], soft: r.soft, tag: r.tag });
     }
   });
   return out;
@@ -155,7 +202,12 @@ export function violationMessage(v) {
   if (v.type === 'separate') return `⚠️ Rule: ${first(v.ids[0])} & ${first(v.ids[1])} should be separated`;
   if (v.type === 'near')     return `💡 Rule: ${first(v.ids[0])} & ${first(v.ids[1])} should be near each other`;
   if (v.type === 'partners') return `💡 Rule: ${first(v.ids[0])} & ${first(v.ids[1])} should be in the same group`;
+  if (v.soft) {
+    const where = v.type === 'front' ? 'toward the front' : v.type === 'back' ? 'toward the back' : "near the teacher's desk";
+    return `💡 “${v.tag}”: ${first(v.ids[0])} usually sits ${where}`;
+  }
   if (v.type === 'front')    return `⚠️ Rule: ${first(v.ids[0])} should sit in the front row`;
+  if (v.type === 'teacher')  return `⚠️ Rule: ${first(v.ids[0])} should sit near the teacher's desk`;
   if (v.type === 'spread')   return `💡 Rule: ${first(v.ids[0])} & ${first(v.ids[1])} are both “${v.tag}” — spread them out`;
   if (v.type === 'helper')   return `💡 Rule: ${first(v.ids[0])} (“${v.tag}”) needs a “${v.helperTag}” in their group`;
   return `⚠️ Rule: ${first(v.ids[0])} should sit in the back row`;

@@ -1,6 +1,6 @@
 import { store } from '../core/store.js';
 import { renderAssignPanel } from './panel.js';
-import { evaluateRules, frontInfo, getResolvedRules, seatsAreNeighbors } from './rulesEngine.js';
+import { evaluateRules, frontInfo, getResolvedRules, ruleCost, seatsAreNeighbors, teacherInfo } from './rulesEngine.js';
 import { cleanAssignments, getAllSeats } from './seats.js';
 import { getGenderGroups, state } from '../core/state.js';
 import { showToast } from '../core/ui.js';
@@ -48,6 +48,20 @@ export function autoAssign() {
     const key = s.podKey || s.seatId;
     (tableMap[key] = tableMap[key] || []).push(s);
   });
+  // Seats in a zone (front of the room, near the desk …) taken one per group in turn, so students
+  // placed there land in different groups first — e.g. four IEP students → four front tables, not one.
+  const groupKey = s => s.podKey || s.tableId || s.seatId;
+  const spreadOrder = (seats, inZone) => {
+    const zone = seats.filter(inZone), rest = seats.filter(s => !inZone(s));
+    const byGroup = new Map();
+    zone.forEach(s => { const k = groupKey(s); if (!byGroup.has(k)) byGroup.set(k, []); byGroup.get(k).push(s); });
+    const lists = [...byGroup.values()], out = [];
+    for (let i = 0; lists.some(l => l[i]); i++) lists.forEach(l => { if (l[i]) out.push(l[i]); });
+    return [...out, ...rest];
+  };
+  const ti = teacherInfo(allSeats);
+  const byDesk = ti ? [...allSeats].sort((a, b) => ti.raw[a.seatId] - ti.raw[b.seatId]) : [];
+
   const minRow = g => Math.min(...g.map(s => rowOf(s.seatId)));
   const minLat = g => Math.min(...g.map(s => fi.lat[s.seatId]));
   const tableGroups = Object.values(tableMap).sort((a, b) =>
@@ -66,18 +80,21 @@ export function autoAssign() {
     const seatedIds = new Set(Object.values(state.assignments));
     let pool = state.students.filter(s => !seatedIds.has(s.id));
 
-    // Front / back row students go first
-    const frontIds = new Set(rules.filter(r => r.type === 'front').map(r => r.a));
-    const backIds = new Set(rules.filter(r => r.type === 'back' && !frontIds.has(r.a)).map(r => r.a));
-    const frontStudents = shuffle(pool.filter(s => frontIds.has(s.id)));
-    const backStudents = shuffle(pool.filter(s => backIds.has(s.id)));
-    pool = pool.filter(s => !frontIds.has(s.id) && !backIds.has(s.id));
-
-    const freeSeats = () => sortedSeats.filter(s => !state.assignments[s.seatId]);
-    const frontSeats = freeSeats();
-    frontStudents.forEach((st, i) => { if (frontSeats[i]) state.assignments[frontSeats[i].seatId] = st.id; });
-    const backSeats = freeSeats().reverse();
-    backStudents.forEach((st, i) => { if (backSeats[i]) state.assignments[backSeats[i].seatId] = st.id; });
+    // Front / back row / near-the-desk students go first (real rules before tag placement)
+    const placed = new Set();
+    const isFree = s => !state.assignments[s.seatId];
+    // Students with a real rule of this type go before students who only have it from a tag
+    const seatList = (type, seats) => {
+      const mine = rules.filter(r => r.type === type && pool.some(s => s.id === r.a) && !placed.has(r.a));
+      const hard = shuffle([...new Set(mine.filter(r => !r.soft).map(r => r.a))]);
+      const soft = shuffle([...new Set(mine.filter(r => r.soft).map(r => r.a))].filter(id => !hard.includes(id)));
+      const free = seats.filter(isFree);
+      [...hard, ...soft].forEach((id, i) => { if (free[i]) { state.assignments[free[i].seatId] = id; placed.add(id); } });
+    };
+    seatList('front', spreadOrder(sortedSeats, s => fi.range <= 1 || fi.depth[s.seatId] <= 0.35));
+    seatList('back', spreadOrder([...sortedSeats].reverse(), s => fi.range > 1 && fi.depth[s.seatId] >= 0.65));
+    if (ti) seatList('teacher', spreadOrder(byDesk, s => ti.depth[s.seatId] <= 0.35));
+    pool = pool.filter(s => !placed.has(s.id));
 
     // Buckets per group (+ "_none" for ungrouped)
     const buckets = { _none: [] };
@@ -148,9 +165,10 @@ export function autoAssign() {
     }
 
     // Fix separate / near / front / back problems by swapping, then avoid repeat partners
-    const left = optimizeAssignments(allSeats, rules, locked);
+    optimizeAssignments(allSeats, rules, locked);
     const reps = reduceRepeats(allSeats, rules, locked, history, keyOf);
-    return { left, reps };
+    const vios = evaluateRules(state.assignments, allSeats, rules);
+    return { cost: ruleCost(vios), left: vios.filter(v => !v.soft).length, soft: vios.filter(v => v.soft).length, reps };
   };
 
   // Swapping can get stuck (e.g. moving A next to B would break a different rule both ways),
@@ -159,9 +177,9 @@ export function autoAssign() {
   let best = null;
   for (let attempt = 0; attempt < 8; attempt++) {
     state.assignments = { ...start };
-    const { left, reps } = fillAndFix();
-    if (!best || left < best.left || (left === best.left && reps < best.reps)) best = { left, reps, assignments: { ...state.assignments } };
-    if (!left && !reps) break;
+    const r = fillAndFix();
+    if (!best || r.cost < best.cost || (r.cost === best.cost && r.reps < best.reps)) best = { ...r, assignments: { ...state.assignments } };
+    if (!r.cost && !r.reps) break;
   }
   state.assignments = best.assignments;
   const remaining = best.left;
@@ -190,16 +208,18 @@ export function autoAssign() {
   if (unplaced) msg += ` ${unplaced} student${unplaced !== 1 ? 's' : ''} have no seat.`;
   if (remaining) msg += ` ${remaining} rule${remaining !== 1 ? 's' : ''} couldn't be satisfied.`;
   if (unmixed) msg += ` ${unmixed} group${unmixed !== 1 ? 's' : ''} couldn't be mixed.`;
+  if (best.soft) msg += ` ${best.soft} tagged student${best.soft !== 1 ? 's' : ''} couldn't get their usual spot.`;
+  if (!ti && rules.some(r => r.type === 'teacher')) msg += " Add the teacher's desk in Layout to seat tagged students near it.";
   if (best.reps) msg += ` ${best.reps} pair${best.reps !== 1 ? 's' : ''} sat together recently.`;
   else if (history.size) msg += ' No repeat partners.';
   if (pins.size) msg += ` ${pins.size} pinned.`;
-  showToast(msg, (remaining || unmixed || unplaced || best.reps) ? 5000 : 2800);
+  showToast(msg, (remaining || unmixed || unplaced || best.reps || best.soft) ? 5000 : 2800);
 }
 
 // Hill-climb: swap violating students with other seats while that reduces broken rules.
 // Prefers swaps with a student of the same group so group balance is kept.
 export function optimizeAssignments(allSeats, rules, locked) {
-  const count = () => evaluateRules(state.assignments, allSeats, rules).length;
+  const count = () => ruleCost(evaluateRules(state.assignments, allSeats, rules));
   let best = count();
   if (!best) return 0;
   const groupOf = id => (state.students.find(s => s.id === id) || {}).gender || null;
@@ -280,7 +300,7 @@ export function shuffle(arr) {
 function reduceRepeats(allSeats, rules, locked, history, keyOf) {
   if (!history.size) return 0;
   const seatPairs = partnerSeatPairs(allSeats);
-  const vio = () => evaluateRules(state.assignments, allSeats, rules).length;
+  const vio = () => ruleCost(evaluateRules(state.assignments, allSeats, rules));
   const rep = () => countRepeats(state.assignments, seatPairs, history);
   let bestV = vio(), bestR = rep();
   const free = allSeats.map(s => s.seatId).filter(id => !locked.has(id));

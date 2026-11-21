@@ -10,6 +10,7 @@ import { renderAssignPanel } from '../assign/panel.js';
 import { editorOpen, flushSave } from '../storage/autosave.js';
 import { localDateStr } from '../storage/landingData.js';
 import { ruleSummary } from '../assign/rulesEngine.js';
+import { classTags, hasTag, tagSetting } from '../landing/tags.js';
 
 // Clean copy of the Assign canvas
 function cloneChart() {
@@ -19,7 +20,8 @@ function cloneChart() {
   c.removeAttribute('id');
   c.className = 'chart-clone';
   c.removeAttribute('style');
-  c.querySelectorAll('.seat-unseat-btn, .seat-pin-btn, .drop-zone-hint').forEach(e => e.remove());
+  // Tags are for the teacher's eyes only — never on the projector or the printed chart
+  c.querySelectorAll('.seat-unseat-btn, .seat-pin-btn, .seat-tag-badge, .drop-zone-hint').forEach(e => e.remove());
   c.querySelectorAll('.selected-seat, .drop-target, .drag-source').forEach(e => e.classList.remove('selected-seat', 'drop-target', 'drag-source'));
   c.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
   c.querySelectorAll('[title]').forEach(e => e.removeAttribute('title'));
@@ -125,6 +127,17 @@ function buildPrintView(withSubPage) {
   const unplaced = state.students.filter(s => !seated.has(s.id)).map(s => s.name).sort((x, y) => x.localeCompare(y));
   const rules = [...(state.hardRules || []), ...(state.tempRules || [])];
   const notes = document.getElementById('sessionNotes').value.trim();
+  // Tagged students for the substitute (private tags stay off)
+  const cls = store.landingData.classes.find(c => c.id === window._currentChartClassId);
+  const PLACE = { front: 'sits toward the front', back: 'sits toward the back', teacher: "sits near the teacher's desk" };
+  const tagLines = classTags({ students: state.students })
+    .filter(t => !tagSetting(cls, t).private)
+    .map(t => {
+      const names = state.students.filter(s => hasTag(s, t)).map(s => s.name).sort((x, y) => x.localeCompare(y));
+      const st = tagSetting(cls, t);
+      const how = [PLACE[st.place], st.spread ? 'spread across groups' : ''].filter(Boolean).join(', ');
+      return `<li><b>${esc(t)}</b>${how ? ` <span class="print-muted">(${esc(how)})</span>` : ''}: ${names.map(esc).join(', ')}</li>`;
+    });
 
   v.innerHTML = `
     <div class="print-head"><h1>${esc(name)}</h1><div>${esc(date)} · ${state.students.length} students</div></div>
@@ -135,6 +148,7 @@ function buildPrintView(withSubPage) {
       ${notes ? `<h3>Today</h3><p class="print-notes">${esc(notes)}</p>` : ''}
       <h3>Seating rules</h3>
       ${rules.length ? `<ul>${rules.map(r => `<li>${describeRule(r)}</li>`).join('')}</ul>` : '<p>No special seating rules.</p>'}
+      ${tagLines.length ? `<h3>Students to know about</h3><ul>${tagLines.join('')}</ul>` : ''}
       ${unplaced.length ? `<h3>Not seated on this chart</h3><p>${unplaced.map(esc).join(', ')}</p>` : ''}
       <h3>Notes</h3><div class="print-lines"></div>
     </section>` : ''}`;
@@ -155,7 +169,7 @@ export async function printChart() {
   if (!state.layoutItems.length) { showToast('Build a layout first'); return; }
   const pick = await choiceDialog({
     title: 'Print this chart',
-    message: 'The substitute version adds a second page with today\'s notes, the seating rules and space to write.',
+    message: 'The substitute version adds a second page with today\'s notes, the seating rules, tagged students (not private tags) and space to write.',
     choices: [
       { label: 'For a substitute', value: 'sub' },
       { label: 'Chart only', value: 'chart', primary: true },

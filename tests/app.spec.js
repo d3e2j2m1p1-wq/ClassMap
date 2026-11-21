@@ -560,6 +560,35 @@ test('tags: add from the roster menu; spread-out and helper rules are followed',
   expect(r.summary).toBe('Each “Needs support” student sits with a “Strong reader” student');
 });
 
+test('tags: "toward the front" + spread out puts tagged students up front at different tables', async ({ page }) => {
+  await open(page);
+  const r = await page.evaluate(() => {
+    const cm = window.__cm;
+    document.getElementById('newClassInput').value = 'Tag seats'; cm.addLandingClass();
+    const c = cm.store.landingData.classes[0];
+    for (let i = 0; i < 24; i++) c.students.push({ id: 's' + i, name: 'Kid' + i + ' Z', gender: null, tags: i < 4 ? ['IEP'] : [] });
+    c.tagSettings = { iep: { place: 'front', spread: true } };
+    cm.saveLandingData();
+    cm.createNewChart();
+    cm.state.layoutItems.push({ id: 'b', type: 'board', x: 300, y: 0, rotation: 0 });
+    for (let row = 0; row < 2; row++) for (let col = 0; col < 3; col++)
+      cm.state.layoutItems.push({ id: `t${row}${col}`, type: 'table', x: 100 + col * 250, y: 100 + row * 300, rotation: 0, groups: 1, groupShift: 0,
+        seatPositions: [{ x: 14, y: 14 }, { x: 76, y: 14 }, { x: 14, y: 76 }, { x: 76, y: 76 }] });
+    let ok = 0;
+    for (let i = 0; i < 10; i++) {
+      cm.autoAssign();
+      const seats = cm.getAllSeats();
+      const tables = Object.entries(cm.state.assignments).filter(([, id]) => +id.slice(1) < 4)
+        .map(([seat]) => seats.find(s => s.seatId === seat).tableId);
+      if (new Set(tables).size === 4 && tables.filter(t => t.startsWith('t0')).length === 3) ok++;
+    }
+    cm.renderAssignPanel();
+    return { ok, badges: document.querySelectorAll('#assignCanvas .seat-tag-badge').length, privateByDefault: cm.tagSetting(c, 'IEP').private };
+  });
+  // 3 front tables for 4 students: spreading out wins, so one sits in the second row
+  expect(r).toEqual({ ok: 10, badges: 4, privateByDefault: true });
+});
+
 // ── Storage ──
 test('data from the old version (localStorage) moves to IndexedDB', async ({ page }) => {
   await page.addInitScript(() => {
