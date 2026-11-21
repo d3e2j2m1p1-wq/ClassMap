@@ -213,7 +213,7 @@ export function ldStudentRow(s, showGroupBtns, groups, checkFlag) {
     <div class="ld-drag-handle" title="Drag to reassign">⠿</div>
     <div class="ld-student-avatar" style="background:${esc(dotColor)};color:${textColor}">${esc(ini)}</div>
     <span class="ld-student-name">${esc(s.name)}<span class="ld-tags">${tagChipsHTML(s)}</span></span>
-    <button class="ld-tag-btn" title="Tags" aria-label="Tags for ${esc(s.name)}">🏷</button>
+    <button class="ld-tag-btn" title="Tags" aria-label="Tags for ${esc(s.name)}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></button>
     <button class="ld-student-del" data-sid="${esc(s.id)}" title="Remove" aria-label="Remove ${esc(s.name)}">✕</button>`;
 
   row.querySelector('.ld-tag-btn').addEventListener('click', e => {
