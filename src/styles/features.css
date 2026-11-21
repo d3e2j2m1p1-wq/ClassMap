@@ -144,10 +144,11 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
   background: var(--blue-dim); color: var(--blue); white-space: nowrap;
 }
 .ld-tag-btn {
-  background: none; border: none; cursor: pointer; font-size: 0.75rem; padding: 2px 4px; border-radius: 4px;
-  opacity: 0; transition: opacity 0.15s;
+  background: none; border: none; cursor: pointer; font-size: 0.9rem; padding: 4px 6px; border-radius: 4px;
+  opacity: 0.45; transition: opacity 0.15s, background 0.15s;
 }
-.ld-student-row:hover .ld-tag-btn, .ld-tag-btn:focus-visible { opacity: 0.8; }
+.ld-student-row:hover .ld-tag-btn { opacity: 0.8; }
+.ld-tag-btn:hover, .ld-tag-btn:focus-visible { opacity: 1; background: var(--surface2); }
 @media (hover: none) { .ld-tag-btn { opacity: 0.8; } }
 .tag-menu { min-width: 230px; max-height: 70vh; overflow-y: auto; }
 .tag-new { display: flex; gap: 6px; padding: 6px 4px 2px; border-top: 1px solid var(--border); margin-top: 4px; }
