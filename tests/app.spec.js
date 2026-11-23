@@ -498,7 +498,7 @@ test('room items: door, window, outlet and a "no seats" area; resize and rename 
   const zone = page.locator('#layoutCanvas .canvas-zone');
   const zb = await zone.boundingBox();
   await page.mouse.move(zb.x + zb.width / 2, zb.y + zb.height / 2); await page.mouse.down(); await page.mouse.up();   // select
-  const grip = page.locator('#layoutCanvas .zone-resize');
+  const grip = page.locator('#layoutCanvas .canvas-item:has(.canvas-zone) .item-resize');
   const gb = await grip.boundingBox();
   await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2); await page.mouse.down();
   await page.mouse.move(gb.x + 40, gb.y + 30); await page.mouse.move(gb.x + 59, gb.y + 41); await page.mouse.up();
@@ -580,6 +580,140 @@ test('tags: "near the door" and "away from the window" seat tagged students acco
     return out;
   });
   expect(r).toEqual({ breaksNear: 10, distractedFar: 10, sameTable: 10 });
+});
+
+test('resize: a window gets longer from its end (also when turned 90°); the board too', async ({ page }) => {
+  const errors = await open(page);
+  await layoutWithTables(page);
+  await page.evaluate(() => {
+    const cm = window.__cm;
+    cm.state.layoutItems.push({ id: 'w1', type: 'window', x: 98, y: 420, rotation: 0 }, { id: 'w2', type: 'window', x: 700, y: 420, rotation: 90 },
+      { id: 'bd', type: 'board', x: 300, y: 14, rotation: 0 });
+    cm.renderLayoutCanvas();
+  });
+  const drag = async (id, dx, dy) => {
+    const box = await page.locator(`#layoutCanvas .canvas-item[data-id="${id}"] > div:first-child`).boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await page.mouse.up();  // select
+    const g = await page.locator(`#layoutCanvas .canvas-item[data-id="${id}"] .item-resize`).boundingBox();
+    await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2); await page.mouse.down();
+    await page.mouse.move(g.x + g.width / 2 + dx / 2, g.y + g.height / 2 + dy / 2); await page.mouse.move(g.x + g.width / 2 + dx, g.y + g.height / 2 + dy);
+    await page.mouse.up();
+  };
+  const rectOf = id => page.locator(`#layoutCanvas .canvas-item[data-id="${id}"] > div:first-child`).boundingBox();
+  const r0 = await rectOf('w1');
+  await drag('w1', 56, 0);
+  const r1 = await rectOf('w1');
+  expect(Math.round(r1.width - r0.width)).toBe(56);
+  expect(Math.round(r1.x)).toBe(Math.round(r0.x));            // left end stays put
+
+  // turned 90°: its "end" is at the bottom — dragging down makes it taller, the top stays put
+  const v0 = await rectOf('w2');
+  await drag('w2', 0, 70);
+  const v1 = await rectOf('w2');
+  expect(Math.round(v1.height - v0.height)).toBe(70);
+  expect(Math.abs(v1.y - v0.y)).toBeLessThan(1.5);
+
+  await drag('bd', 84, 0);
+  expect(await page.evaluate(() => window.__cm.state.layoutItems.find(i => i.id === 'bd').w)).toBe(238);   // 148 + 84 → nearest grid step
+  expect(errors).toEqual([]);
+});
+
+test('rotate: 45° steps by default, free when switched; tapping ↻ turns 45°', async ({ page }) => {
+  await open(page);
+  await layoutWithTables(page);
+  await page.evaluate(() => { try { localStorage.removeItem('cm-rotate-free'); } catch {} });
+  const rot = () => page.evaluate(() => window.__cm.state.layoutItems.find(i => i.id === 'tc').rotation || 0);
+  const t = await page.locator('#layoutCanvas .canvas-item[data-id="tc"] .canvas-table-free').boundingBox();
+  await page.mouse.click(t.x + 6, t.y + t.height / 2);
+  const turn = async deg => {
+    const h = await page.locator('#layoutCanvas .canvas-item[data-id="tc"] .rotate-handle').boundingBox();
+    const wb = await page.locator('#layoutCanvas .canvas-item[data-id="tc"]').boundingBox();
+    const cx = wb.x + wb.width / 2, cy = wb.y + wb.height / 2;
+    const hx = h.x + h.width / 2, hy = h.y + h.height / 2;
+    const a0 = Math.atan2(hy - cy, hx - cx), r = Math.hypot(hx - cx, hy - cy);
+    await page.mouse.move(hx, hy); await page.mouse.down();
+    for (let k = 1; k <= 6; k++) {
+      const a = a0 + (deg * Math.PI / 180) * k / 6;
+      await page.mouse.move(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    }
+    await page.mouse.up();
+  };
+  await turn(30);
+  expect(await rot()).toBe(45);              // 30° rounds to the 45° step
+  await turn(-60);
+  expect(await rot()).toBe(0);               // back to straight
+  await page.locator('#rotSnapBtn').click();
+  await expect(page.locator('#rotSnapBtn')).toHaveText('↻ Free turn');
+  await turn(30);
+  expect(Math.abs(await rot() - 30)).toBeLessThan(4);
+  // a tap on ↻ goes to the next 45° step
+  const h = await page.locator('#layoutCanvas .canvas-item[data-id="tc"] .rotate-handle').boundingBox();
+  await page.mouse.click(h.x + h.width / 2, h.y + h.height / 2);
+  expect(await rot()).toBe(45);
+});
+
+test('templates: optional, sized to the class, replacing a room asks first and can be undone', async ({ page }) => {
+  const errors = await open(page);
+  await classWithChart(page, 6, 7);   // 13 students
+  await page.evaluate(() => { window.__cm.state.layoutItems = []; window.__cm.switchPanel('layout', document.querySelector('[data-panel=layout]')); window.__cm.renderLayoutCanvas(); });
+  // the empty room offers it, but nothing is placed until you pick
+  await expect(page.locator('#layoutCanvas .hint-link')).toBeVisible();
+  await page.locator('#layoutCanvas .hint-link').click();
+  await page.getByRole('button', { name: /Groups of 4/ }).click();
+  const kinds = await page.evaluate(() => window.__cm.state.layoutItems.map(i => i.type).join(','));
+  expect(kinds).toBe('room,table,table,table,table,board,teacher');
+  await expect(page.locator('#seatCount')).toHaveText('16 seats · 13 students');
+
+  for (const [name, seats] of [['Rows', 13], ['Pairs', 14], ['Groups of 6', 18], ['U-shape', 13]]) {
+    await page.getByRole('button', { name: 'Template ▾' }).click();
+    await page.getByRole('button', { name: new RegExp(name) }).click();
+    await page.locator('.cm-btn-confirm').click();
+    await expect(page.locator('#seatCount')).toHaveText(`${seats} seats · 13 students`);
+  }
+  // nothing overlaps in the U
+  const overlaps = await page.evaluate(() => {
+    const r = [...document.querySelectorAll('#layoutCanvas .canvas-seat')].map(e => e.getBoundingClientRect());
+    let n = 0;
+    for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++)
+      if (r[i].left < r[j].right && r[j].left < r[i].right && r[i].top < r[j].bottom && r[j].top < r[i].bottom) n++;
+    return n;
+  });
+  expect(overlaps).toBe(0);
+  // Cancel keeps the room; Undo after replacing brings the U back
+  await page.getByRole('button', { name: 'Template ▾' }).click();
+  await page.getByRole('button', { name: /Rows/ }).click();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.locator('#seatCount')).toHaveText('13 seats · 13 students');
+  await page.getByRole('button', { name: 'Template ▾' }).click();
+  await page.getByRole('button', { name: /Pairs/ }).click();
+  await page.locator('.cm-btn-confirm').click();
+  await page.locator('.cm-undo-btn').last().click();
+  await expect(page.locator('#layoutCanvas .canvas-seat')).toHaveCount(13);
+  expect(errors).toEqual([]);
+});
+
+test('walls: drawn round the room, box select inside does not grab them, clicks inside still place tables', async ({ page }) => {
+  await open(page);
+  await layoutWithTables(page);
+  await page.getByRole('button', { name: '▢ Walls' }).click();
+  const room = await page.evaluate(() => window.__cm.state.layoutItems.find(i => i.type === 'room'));
+  expect(room.x).toBeLessThanOrEqual(56); expect(room.w).toBeGreaterThan(600);
+  await page.keyboard.press('Escape');
+  const c = await page.locator('#layoutCanvas').boundingBox();
+  // box round just the first two tables (starting outside the walls)
+  await page.mouse.move(c.x + 12, c.y + 12); await page.mouse.down();
+  await page.mouse.move(c.x + 300, c.y + 200); await page.mouse.move(c.x + 450, c.y + 260); await page.mouse.up();
+  const sel = await page.evaluate(() => [...window.__cm.store.selectedIds].sort().join(','));
+  expect(sel).toBe('ta,tb');
+  // placing a table inside the walls still works
+  await page.evaluate(() => window.__cm.setTool('table'));
+  await page.mouse.click(c.x + 300, c.y + 330);
+  expect(await page.evaluate(() => window.__cm.state.layoutItems.filter(i => i.type === 'table').length)).toBe(4);
+  // a second click on Walls selects them instead of adding more
+  await page.evaluate(() => window.__cm.setTool('pointer'));
+  await page.getByRole('button', { name: '▢ Walls' }).click();
+  expect(await page.evaluate(() => window.__cm.state.layoutItems.filter(i => i.type === 'room').length)).toBe(1);
+  await expect(page.locator('#selCount')).toHaveText('1 selected');
 });
 
 test('undo toast closes by itself', async ({ page }) => {

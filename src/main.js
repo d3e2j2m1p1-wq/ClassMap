@@ -34,7 +34,8 @@ import { addLandingClass, deleteClass, showLanding, switchLandingTab } from './l
 import { exportNameList, importNameListFile, learnFromRosters, openNameList, renderNameList } from './landing/nameListViewer.js';
 import { ldAddStudent, ldClearRoster, ldDeleteGroup, ldParseRoster, ldToggleGender } from './landing/roster.js';
 import { ldAddRule, ldDeleteRule } from './landing/rules.js';
-import { initLayoutCanvas, setTool } from './layout/canvas.js';
+import { initLayoutCanvas, setTool, toggleRotateSnap, updateRotateButton } from './layout/canvas.js';
+import { addWalls, openTemplateMenu } from './layout/templates.js';
 import { alignSelection, deleteSelection, distributeSelection, duplicateSelection, editItemName, initLayoutKeys, numberTables, toggleMultiTap } from './layout/selection.js';
 import { handleLayoutImg, layoutUploadImg, shrinkStoredImages } from './layout/image.js';
 import { toggleTableToolMenu, updateTableToolBadge } from './layout/tableGroups.js';
@@ -49,6 +50,9 @@ import { toggleTheme } from './ui/theme.js';
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
 // which only see global names — so they are put on window.
 Object.assign(window, {
+  addWalls,
+  openTemplateMenu,
+  toggleRotateSnap,
   editItemName,
   numberTables,
   alignSelection,
@@ -127,6 +131,7 @@ initErrorBanner();
 
 initLayoutCanvas();
 initLayoutKeys();
+updateRotateButton();
 
 initAssignInteractions();
 

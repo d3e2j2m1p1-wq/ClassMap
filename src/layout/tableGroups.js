@@ -196,6 +196,21 @@ export function closeFloatMenu() {
 export function _floatMenuOutside(e) { if (_floatMenu && !_floatMenu.contains(e.target)) closeFloatMenu(); }
 export function _floatMenuKey(e) { if (e.key === 'Escape') closeFloatMenu(); }
 
+// Show a float menu under (or above) `anchor`; it closes on Esc or a click outside
+export function openFloatMenu(m, anchor) {
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect();
+  const mw = m.offsetWidth, mh = m.offsetHeight;
+  const left = Math.max(8, Math.min(r.left, window.innerWidth - mw - 8));
+  let top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+  m.style.left = left + 'px';
+  m.style.top = top + 'px';
+  _floatMenu = m;
+  document.addEventListener('pointerdown', _floatMenuOutside, true);
+  document.addEventListener('keydown', _floatMenuKey, true);
+}
+
 export function openTableGroupsMenu(item, anchor) {
   closeFloatMenu();
   const n = (item.seatPositions || []).length;

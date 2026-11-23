@@ -191,8 +191,11 @@ export function startMarquee(e) {
     const r = box._r;
     box.remove();
     const hit = [];
+    const isRoom = id => state.layoutItems.find(i => i.id === id)?.type === 'room';
     boxes().forEach((b, id) => {
-      if (b.x < r.x + r.w && b.x + b.w > r.x && b.y < r.y + r.h && b.y + b.h > r.y) hit.push(id);
+      const touches = b.x < r.x + r.w && b.x + b.w > r.x && b.y < r.y + r.h && b.y + b.h > r.y;
+      const inside = b.x >= r.x && b.y >= r.y && b.x + b.w <= r.x + r.w && b.y + b.h <= r.y + r.h;
+      if (isRoom(id) ? inside : touches) hit.push(id);   // the walls only when the box goes round them
     });
     setSelection([...new Set([...keep, ...hit])]);
   }

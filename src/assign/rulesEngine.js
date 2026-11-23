@@ -2,7 +2,7 @@ import { SEAT_SIZE } from './panel.js';
 import { getAllSeats } from './seats.js';
 import { esc, state } from '../core/state.js';
 import { store } from '../core/store.js';
-import { fixtureCenter } from '../layout/fixtures.js';
+import { fixtureCenter, fixtureSize } from '../layout/fixtures.js';
 import { classTags, hasTag, tagKey, tagSetting } from '../landing/tags.js';
 
 // ── Rule engine (shared by drag/drop warnings and auto-assign) ──
@@ -105,7 +105,8 @@ export function frontInfo(seats) {
     let best = null;
     boards.forEach(b => {
       const th = (b.rotation || 0) * Math.PI / 180;
-      const dx = px - (b.x + BOARD_W / 2), dy = py - (b.y + BOARD_H / 2);
+      const [bw, bh] = fixtureSize(b);
+      const dx = px - (b.x + bw / 2), dy = py - (b.y + bh / 2);
       const along = dx * Math.cos(th) + dy * Math.sin(th);
       const away = Math.abs(-dx * Math.sin(th) + dy * Math.cos(th));
       if (!best || away < best.away) best = { away, along };

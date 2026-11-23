@@ -4,7 +4,7 @@ import { appendGroupOutlines, closeFloatMenu, groupsText, openTableGroupsMenu } 
 import { addSeatToTable, makeFreeTableSeat, removeLayoutItem, tableBBox } from './tables.js';
 import { markDirty } from '../storage/autosave.js';
 import { GRID, clearSelection, editItemName, onItemPointerDown, refreshSelection, startMarquee } from './selection.js';
-import { FIXTURE_SIZE, ZONE_MIN, isFixture, makeFixture } from './fixtures.js';
+import { FIXTURE_SIZE, MIN_SIZE, RESIZE, fixtureSize, isFixture, makeFixture, sizeFixture } from './fixtures.js';
 
 // ═══════════════════════════════════════════════
 //  LAYOUT CANVAS
@@ -18,15 +18,15 @@ store.selectedSeatId = null;   // a seated student picked by tap (assign panel)
 store.selectedStudentId = null; // an unplaced student picked by tap (assign panel)
 
 export const TOOL_HINTS = {
-  pointer: 'Click to select · Shift-click or drag a box to select several · Drag to move (snaps to neighbours; hold Alt for free) · ↻ rotates.',
+  pointer: 'Click to select · Shift-click or drag a box to select several · Drag to move (hold Alt for free) · ↻ turns (tap it = 45°) · drag a blue grip to resize.',
   seat: 'Click anywhere on the canvas to place a single seat.',
   table: 'Click to place a table. Hover Table (or tap ▾) to change seats and groups. Click a table\'s label to change just that table.',
   board: 'Click to place the board / whiteboard. Front Row and Back Row rules are measured from the board.',
   teacher: "Click to place the teacher's desk.",
-  door: 'Click to place a door. Tags can seat students near it (Rules → Tags).',
-  window: 'Click to place a window. Tags can seat students away from it (Rules → Tags).',
   outlet: 'Click to place an outlet — handy for students with a device to charge.',
   zone: 'Click to mark an area with no seats (sink, reading corner…). Drag its corner to resize; double-click to rename.',
+  door: 'Click to place a door. Drag the grip on its end to make it wider. Tags can seat students near it (Rules → Tags).',
+  window: 'Click to place a window. Drag the grip on its end to make it longer. Tags can seat students away from it (Rules → Tags).',
 };
 
 export function setTool(name) {
@@ -134,7 +134,7 @@ export function renderLayoutCanvas() {
     hint.className = 'drop-zone-hint';
     hint.innerHTML = `
       <div class="hint-icon">🏫</div>
-      <p><strong>Upload a classroom image</strong> (photo, floor plan, PNG/JPG) or start placing elements directly.<br><br>Use the toolbar to add seats, tables, the board, and teacher position.</p>`;
+      <p><strong>Place your tables</strong> with the toolbar — seats, tables, the board, the teacher's desk, doors and windows.<br><br>Or <button type="button" class="hint-link" onclick="openTemplateMenu(this)">start from a template</button>, or upload a photo / floor plan of the room to trace.</p>`;
     canvas.appendChild(hint);
   }
 
@@ -146,12 +146,14 @@ export function renderLayoutCanvas() {
     canvas.appendChild(img);
   }
 
-  // "No seats" areas first, so they sit underneath tables and seats
-  [...state.layoutItems].sort((a, b) => (b.type === 'zone') - (a.type === 'zone')).forEach(item => {
+  // Walls, then "no seats" areas, underneath tables and seats
+  [...state.layoutItems].sort((a, b) => layer(a) - layer(b)).forEach(item => {
     canvas.appendChild(makeLayoutElement(item));
   });
   refreshSelection();
 }
+
+export const layer = i => i.type === 'room' ? 0 : i.type === 'zone' ? 1 : 2;
 
 export function makeLayoutElement(item) {
   const wrap = document.createElement('div');
@@ -224,12 +226,14 @@ export function makeLayoutElement(item) {
   } else if (isFixture(item)) {
     const inner = makeFixture(item);
     wrap.appendChild(inner);
-    if (item.type === 'zone') {
-      inner.addEventListener('dblclick', e => { e.stopPropagation(); editItemName(item); });
+    if (item.type === 'zone') inner.addEventListener('dblclick', e => { e.stopPropagation(); editItemName(item); });
+    if (item.type === 'room') wrap.classList.add('is-room');
+    if (RESIZE[item.type]) {
       const grip = document.createElement('div');
-      grip.className = 'zone-resize';
-      grip.title = 'Drag to resize';
-      grip.addEventListener('pointerdown', e => startZoneResize(e, item, inner));
+      grip.className = 'item-resize ' + RESIZE[item.type];
+      if (RESIZE[item.type] === 'w') wrap.classList.add('thin');   // ✕ moves up, out of the grip's way
+      grip.title = RESIZE[item.type] === 'w' ? 'Drag to make longer or shorter' : 'Drag to resize';
+      grip.addEventListener('pointerdown', e => startResize(e, item, wrap, inner));
       wrap.appendChild(grip);
     }
   }
@@ -252,7 +256,7 @@ export function makeLayoutElement(item) {
     e.preventDefault();
     startRotate(e, item, wrap);
   });
-  wrap.appendChild(rotHandle);
+  if (item.type !== 'room') wrap.appendChild(rotHandle);   // walls stay square to the page
 
   // Apply saved rotation
   if (item.rotation) wrap.style.transform = `rotate(${item.rotation}deg)`;
@@ -278,20 +282,28 @@ export function startRotate(e, item, el) {
   const cy = rect.top + rect.height / 2;
   const startAngle = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI;
   const startRot = item.rotation || 0;
+  const sx = e.clientX, sy = e.clientY;
+  let moved = false;
+  const norm = r => Math.round((((r % 360) + 360) % 360) * 10) / 10;
 
   function onMove(mv) {
+    if (!moved && Math.hypot(mv.clientX - sx, mv.clientY - sy) < 4) return;
+    moved = true;
     const a = Math.atan2(mv.clientY - cy, mv.clientX - cx) * 180 / Math.PI;
     let newRot = startRot + (a - startAngle);
-    // Snap to 15° increments when holding shift
-    if (mv.shiftKey) newRot = Math.round(newRot / 15) * 15;
-    item.rotation = newRot;
-    el.style.transform = `rotate(${newRot}deg)`;
+    if (rotSnap !== mv.shiftKey) newRot = Math.round(newRot / 45) * 45;   // 45° steps unless "free"
+    item.rotation = norm(newRot);
+    el.style.transform = `rotate(${item.rotation}deg)`;
   }
   function onUp() {
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerup', onUp);
     document.removeEventListener('pointercancel', onUp);
     store._canvasMouseDownTime = 0; // prevent placement after rotation
+    if (!moved) {   // a tap on ↻ turns it to the next 45° step
+      item.rotation = norm(Math.floor((startRot + 0.01) / 45) * 45 + 45);
+      el.style.transform = `rotate(${item.rotation}deg)`;
+    }
     markDirty();
   }
   document.addEventListener('pointermove', onMove);
@@ -299,20 +311,37 @@ export function startRotate(e, item, el) {
   document.addEventListener('pointercancel', onUp);
 }
 
-// Drag the corner of a "no seats" area to resize it (snaps to the grid; Alt = free)
-function startZoneResize(e, item, el) {
+// Drag a fixture's grip to resize it: doors, windows and the board get longer or shorter; the desk,
+// "no seats" areas and walls change both ways. Works when rotated; the opposite end stays put.
+// Snaps to the grid (Alt = free).
+function startResize(e, item, wrap, el) {
   if (e.button !== 0) return;
   e.stopPropagation();
   e.preventDefault();
+  const mode = RESIZE[item.type];
+  const th = (item.rotation || 0) * Math.PI / 180, cos = Math.cos(th), sin = Math.sin(th);
+  const [w0, h0] = fixtureSize(item);
+  const rot = ([x, y]) => [x * cos - y * sin, x * sin + y * cos];
+  const anchorOf = (w, h) => [-w / 2, mode === 'wh' ? -h / 2 : 0];   // left end, or top-left corner
+  const [ax, ay] = rot(anchorOf(w0, h0));
+  const anchor = [item.x + w0 / 2 + ax, item.y + h0 / 2 + ay];
   const sx = e.clientX, sy = e.clientY;
-  const w0 = item.w || FIXTURE_SIZE.zone[0], h0 = item.h || FIXTURE_SIZE.zone[1];
   let changed = false;
   function onMove(mv) {
+    const dx = mv.clientX - sx, dy = mv.clientY - sy;
+    const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;      // pointer movement along the item
     const snap = v => mv.altKey ? v : Math.round(v / GRID) * GRID;
-    item.w = Math.max(ZONE_MIN, snap(w0 + mv.clientX - sx));
-    item.h = Math.max(ZONE_MIN, snap(h0 + mv.clientY - sy));
-    el.style.width = item.w + 'px';
-    el.style.height = item.h + 'px';
+    const min = MIN_SIZE[item.type] || GRID;
+    const w = Math.max(min, snap(w0 + lx));
+    const h = mode === 'wh' ? Math.max(min, snap(h0 + ly)) : h0;
+    const [bx, by] = rot(anchorOf(w, h));
+    item.x = anchor[0] - bx - w / 2;
+    item.y = anchor[1] - by - h / 2;
+    item.w = w;
+    if (mode === 'wh') item.h = h;
+    wrap.style.left = item.x + 'px';
+    wrap.style.top = item.y + 'px';
+    sizeFixture(el, item);
     changed = true;
   }
   function onUp() {
@@ -325,4 +354,20 @@ function startZoneResize(e, item, el) {
   document.addEventListener('pointermove', onMove);
   document.addEventListener('pointerup', onUp);
   document.addEventListener('pointercancel', onUp);
+}
+
+// ── Rotation: 45° steps by default (straight is easy), or free. Shift does the other one. ──
+let rotSnap = true;
+try { rotSnap = localStorage.getItem('cm-rotate-free') !== '1'; } catch { /* private mode */ }
+export function updateRotateButton() {
+  const b = document.getElementById('rotSnapBtn');
+  if (!b) return;
+  b.textContent = rotSnap ? '↻ 45° steps' : '↻ Free turn';
+  b.setAttribute('aria-pressed', String(!rotSnap));
+  b.title = rotSnap ? 'Items turn 45° at a time (hold Shift to turn freely). Click to turn freely.' : 'Items turn freely (hold Shift for 45° steps). Click for 45° steps.';
+}
+export function toggleRotateSnap() {
+  rotSnap = !rotSnap;
+  try { localStorage.setItem('cm-rotate-free', rotSnap ? '0' : '1'); } catch { /* private mode */ }
+  updateRotateButton();
 }

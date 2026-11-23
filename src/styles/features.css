@@ -252,10 +252,11 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
   display: flex; align-items: center; justify-content: center;
   font-size: 0.55rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--green);
 }
-/* dashed quarter circle = which way the door swings */
+/* dashed quarter circle = which way the door swings (grows with the door) */
 .canvas-door::after {
-  content: ''; position: absolute; left: -2px; top: 100%; width: 44px; height: 44px;
-  border: 1px dashed var(--green); border-top: none; border-left: none; border-radius: 0 0 44px 0;
+  content: ''; position: absolute; left: -2px; top: 100%;
+  width: calc(var(--w, 56px) * 0.8); height: calc(var(--w, 56px) * 0.8);
+  border: 1px dashed var(--green); border-top: none; border-left: none; border-radius: 0 0 100% 0;
   opacity: 0.5; pointer-events: none;
 }
 .canvas-window {
@@ -276,13 +277,30 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
   display: flex; align-items: flex-start; justify-content: flex-start; padding: 6px 8px;
 }
 .zone-label { font-size: 0.68rem; font-weight: 600; color: var(--rose); background: var(--bg); padding: 1px 6px; border-radius: 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.zone-resize {
-  position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px; z-index: 6;
-  border-radius: 4px; background: var(--rose); border: 2px solid var(--bg); cursor: nwse-resize; touch-action: none;
-  display: none;
+.item-resize {
+  position: absolute; z-index: 6; width: 14px; height: 14px; border-radius: 4px;
+  background: var(--blue); border: 2px solid var(--bg); touch-action: none; display: none;
 }
-.canvas-item:hover .zone-resize, .canvas-item.selected .zone-resize { display: block; }
-@media (hover: none) { .canvas-item.selected .zone-resize { width: 22px; height: 22px; right: -11px; bottom: -11px; } }
+.item-resize.wh { right: -7px; bottom: -7px; cursor: nwse-resize; }
+.item-resize.w { right: -7px; top: calc(50% - 7px); cursor: ew-resize; }
+.canvas-item:hover .item-resize, .canvas-item.selected .item-resize { display: block; }
+@media (hover: none) {
+  .canvas-item.selected .item-resize { width: 24px; height: 24px; }
+  .item-resize.wh { right: -12px; bottom: -12px; }
+  .item-resize.w { right: -12px; top: calc(50% - 12px); }
+}
+
+/* ── Walls ── */
+.canvas-room { position: relative; pointer-events: none; }
+.room-edge { position: absolute; background: var(--text3); opacity: 0.55; pointer-events: auto; cursor: move; }
+.room-edge.t, .room-edge.b { left: 0; right: 0; height: 6px; }
+.room-edge.l, .room-edge.r { top: 0; bottom: 0; width: 6px; }
+.room-edge.t { top: 0; } .room-edge.b { bottom: 0; } .room-edge.l { left: 0; } .room-edge.r { right: 0; }
+.canvas-item.is-room { pointer-events: none; }
+.canvas-item.is-room > .item-delete, .canvas-item.is-room > .item-resize { pointer-events: auto; }
+.canvas-item.is-room.selected .room-edge { background: var(--blue); opacity: 1; }
+.hint-link { background: none; border: none; padding: 0; color: var(--blue); font: inherit; text-decoration: underline; cursor: pointer; }
+@media print { .room-edge { background: #777; } }
 
 /* ── Table names ── */
 .table-name-pill {
@@ -301,3 +319,8 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .sel-tools .sel-name, .sel-tools .sel-number { display: none; }
 .sel-tools[data-name="1"] .sel-name, .sel-tools[data-tables="1"] .sel-number { display: inline-flex; }
 @media print { .table-name-pill { color: #000; background: #fff; border-color: #999; } }
+/* the board can be made shorter or longer */
+.canvas-board { min-width: 0; overflow: hidden; white-space: nowrap; }
+.drop-zone-hint .hint-link { pointer-events: auto; }
+/* thin items (door, window, board): the ✕ sits above the end grip */
+.canvas-item.thin > .item-delete { top: -26px !important; }

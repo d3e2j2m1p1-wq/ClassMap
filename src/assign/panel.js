@@ -36,8 +36,9 @@ export function renderAssignPanel() {
     canvas.appendChild(img);
   }
 
-  // "No seats" areas first, so they sit underneath everything else
-  [...state.layoutItems].sort((a, b) => (b.type === 'zone') - (a.type === 'zone')).forEach(item => {
+  // Walls, then "no seats" areas, underneath everything else
+  const layer = i => i.type === 'room' ? 0 : i.type === 'zone' ? 1 : 2;
+  [...state.layoutItems].sort((a, b) => layer(a) - layer(b)).forEach(item => {
     if (isFixture(item)) {
       const el = makeFixture(item);
       el.style.position = 'absolute';
