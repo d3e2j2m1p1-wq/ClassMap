@@ -1,6 +1,6 @@
 import { store } from '../core/store.js';
 import { renderAssignPanel } from './panel.js';
-import { evaluateRules, frontInfo, getResolvedRules, ruleCost, seatsAreNeighbors, teacherInfo } from './rulesEngine.js';
+import { evaluateRules, frontInfo, getResolvedRules, NEAR_PLACES, nearInfo, ruleCost, seatsAreNeighbors } from './rulesEngine.js';
 import { cleanAssignments, getAllSeats } from './seats.js';
 import { getGenderGroups, state } from '../core/state.js';
 import { showToast } from '../core/ui.js';
@@ -59,8 +59,16 @@ export function autoAssign() {
     for (let i = 0; lists.some(l => l[i]); i++) lists.forEach(l => { if (l[i]) out.push(l[i]); });
     return [...out, ...rest];
   };
-  const ti = teacherInfo(allSeats);
-  const byDesk = ti ? [...allSeats].sort((a, b) => ti.raw[a.seatId] - ti.raw[b.seatId]) : [];
+  // Teacher's desk, door, window: seats ordered closest-first ("near") or furthest-first ("away")
+  const nearOrders = {};
+  Object.entries(NEAR_PLACES).forEach(([type, [fx, way]]) => {
+    const ni = nearInfo(allSeats, fx);
+    if (!ni) return;
+    const sign = way === 'near' ? 1 : -1;
+    const order = [...allSeats].sort((a, b) => sign * (ni.raw[a.seatId] - ni.raw[b.seatId]));
+    const ok = s => way === 'near' ? ni.depth[s.seatId] <= 0.35 : ni.depth[s.seatId] >= 0.35;
+    nearOrders[type] = spreadOrder(order, ok);
+  });
 
   const minRow = g => Math.min(...g.map(s => rowOf(s.seatId)));
   const minLat = g => Math.min(...g.map(s => fi.lat[s.seatId]));
@@ -93,7 +101,7 @@ export function autoAssign() {
     };
     seatList('front', spreadOrder(sortedSeats, s => fi.range <= 1 || fi.depth[s.seatId] <= 0.35));
     seatList('back', spreadOrder([...sortedSeats].reverse(), s => fi.range > 1 && fi.depth[s.seatId] >= 0.65));
-    if (ti) seatList('teacher', spreadOrder(byDesk, s => ti.depth[s.seatId] <= 0.35));
+    Object.entries(nearOrders).forEach(([type, order]) => seatList(type, order));
     pool = pool.filter(s => !placed.has(s.id));
 
     // Buckets per group (+ "_none" for ungrouped)
@@ -209,7 +217,10 @@ export function autoAssign() {
   if (remaining) msg += ` ${remaining} rule${remaining !== 1 ? 's' : ''} couldn't be satisfied.`;
   if (unmixed) msg += ` ${unmixed} group${unmixed !== 1 ? 's' : ''} couldn't be mixed.`;
   if (best.soft) msg += ` ${best.soft} tagged student${best.soft !== 1 ? 's' : ''} couldn't get their usual spot.`;
-  if (!ti && rules.some(r => r.type === 'teacher')) msg += " Add the teacher's desk in Layout to seat tagged students near it.";
+  const missing = { teacher: "the teacher's desk", door: 'a door', window: 'a window' };
+  Object.keys(NEAR_PLACES).forEach(t => {
+    if (!nearOrders[t] && rules.some(r => r.type === t)) msg += ` Add ${missing[t]} in Layout so tagged students can sit ${t === 'window' ? 'away from' : 'near'} it.`;
+  });
   if (best.reps) msg += ` ${best.reps} pair${best.reps !== 1 ? 's' : ''} sat together recently.`;
   else if (history.size) msg += ' No repeat partners.';
   if (pins.size) msg += ` ${pins.size} pinned.`;

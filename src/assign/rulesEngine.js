@@ -2,6 +2,7 @@ import { SEAT_SIZE } from './panel.js';
 import { getAllSeats } from './seats.js';
 import { esc, state } from '../core/state.js';
 import { store } from '../core/store.js';
+import { fixtureCenter } from '../layout/fixtures.js';
 import { classTags, hasTag, tagKey, tagSetting } from '../landing/tags.js';
 
 // ── Rule engine (shared by drag/drop warnings and auto-assign) ──
@@ -47,10 +48,11 @@ export function getResolvedRules() {
   return [...studentRules, ...tagRules];
 }
 
-// How bad a set of broken rules is: real rules count 1000, tag placement 1 — so auto-assign never
-// breaks a rule (or puts two "spread out" students together) just to move someone forward.
+// How bad a set of broken rules is: real rules count 1000, tag placement 1–14 (more the further the
+// student ends up from where the tag wants them) — so auto-assign never breaks a rule (or puts two
+// "spread out" students together) to move someone, but does pick the next-best spot.
 export const HARD_WEIGHT = 1000;
-export const ruleCost = vios => vios.reduce((n, v) => n + (v.soft ? 1 : HARD_WEIGHT), 0);
+export const ruleCost = vios => vios.reduce((n, v) => n + (v.soft ? 1 + Math.round((v.miss || 0) * 20) : HARD_WEIGHT), 0);
 
 // One wording for a rule everywhere (rules lists, print): { label, text }
 export function ruleSummary(r) {
@@ -121,18 +123,19 @@ export function frontInfo(seats) {
   return info;
 }
 
-// How close each seat is to the teacher's desk: depth 0 (closest) … 1 (furthest). null = no desk.
-export const TEACHER_SIZE = 48;
-let _teacherCache = { seats: null, items: null, info: null };
-export function teacherInfo(seats) {
-  if (_teacherCache.seats === seats && _teacherCache.items === state.layoutItems) return _teacherCache.info;
-  const desks = state.layoutItems.filter(i => i.type === 'teacher');
+// How close each seat is to the nearest fixture of a kind (teacher's desk, door, window):
+// depth 0 (closest) … 1 (furthest). null = no such fixture in the room.
+const _nearCache = new Map();
+export function nearInfo(seats, type) {
+  const c = _nearCache.get(type);
+  if (c && c.seats === seats && c.items === state.layoutItems) return c.info;
+  const fx = state.layoutItems.filter(i => i.type === type).map(fixtureCenter);
   let info = null;
-  if (desks.length && seats.length) {
+  if (fx.length && seats.length) {
     const raw = {};
     seats.forEach(s => {
       const px = s.x + SEAT_SIZE / 2, py = s.y + SEAT_SIZE / 2;
-      raw[s.seatId] = Math.min(...desks.map(d => Math.hypot(px - (d.x + TEACHER_SIZE / 2), py - (d.y + TEACHER_SIZE / 2))));
+      raw[s.seatId] = Math.min(...fx.map(([fx0, fy0]) => Math.hypot(px - fx0, py - fy0)));
     });
     const vals = Object.values(raw);
     const min = Math.min(...vals), range = Math.max(...vals) - min;
@@ -140,9 +143,13 @@ export function teacherInfo(seats) {
     Object.keys(raw).forEach(k => { depth[k] = range > 0 ? (raw[k] - min) / range : 0; });
     info = { raw, depth, range };
   }
-  _teacherCache = { seats, items: state.layoutItems, info };
+  _nearCache.set(type, { seats, items: state.layoutItems, info });
   return info;
 }
+export const teacherInfo = seats => nearInfo(seats, 'teacher');
+
+// Tag placements measured from a fixture: [fixture, "near" or "away"]
+export const NEAR_PLACES = { teacher: ['teacher', 'near'], door: ['door', 'near'], window: ['window', 'away'] };
 
 // Returns [{ type, ids:[...] }] for every rule that is currently broken
 export function evaluateRules(assign, seats, rules) {
@@ -152,7 +159,8 @@ export function evaluateRules(assign, seats, rules) {
   const seatOf = {};
   Object.keys(assign).forEach(k => { if (seatById[k]) seatOf[assign[k]] = seatById[k]; });
   const fi = frontInfo(seats);
-  const ti = teacherInfo(seats);
+  const near = {};
+  Object.entries(NEAR_PLACES).forEach(([t, [fx]]) => { near[t] = nearInfo(seats, fx); });
 
   const out = [];
   rules.forEach(r => {
@@ -184,11 +192,13 @@ export function evaluateRules(assign, seats, rules) {
       const sb = seatOf[r.b];
       if (sb && !seatsArePartners(sa, sb)) out.push({ type: 'partners', ids: [r.a, r.b] });
     } else if (r.type === 'front') {
-      if (fi.range > 1 && fi.depth[sa.seatId] > 0.35) out.push({ type: 'front', ids: [r.a], soft: r.soft, tag: r.tag });
+      if (fi.range > 1 && fi.depth[sa.seatId] > 0.35) out.push({ type: 'front', ids: [r.a], soft: r.soft, tag: r.tag, miss: fi.depth[sa.seatId] - 0.35 });
     } else if (r.type === 'back') {
-      if (fi.range > 1 && fi.depth[sa.seatId] < 0.65) out.push({ type: 'back', ids: [r.a], soft: r.soft, tag: r.tag });
-    } else if (r.type === 'teacher') {
-      if (ti && ti.range > 1 && ti.depth[sa.seatId] > 0.35) out.push({ type: 'teacher', ids: [r.a], soft: r.soft, tag: r.tag });
+      if (fi.range > 1 && fi.depth[sa.seatId] < 0.65) out.push({ type: 'back', ids: [r.a], soft: r.soft, tag: r.tag, miss: 0.65 - fi.depth[sa.seatId] });
+    } else if (NEAR_PLACES[r.type]) {
+      const ni = near[r.type], way = NEAR_PLACES[r.type][1];
+      const miss = ni ? (way === 'near' ? ni.depth[sa.seatId] - 0.35 : 0.35 - ni.depth[sa.seatId]) : 0;
+      if (ni && ni.range > 1 && miss > 0) out.push({ type: r.type, ids: [r.a], soft: r.soft, tag: r.tag, miss });
     }
   });
   return out;
@@ -203,7 +213,8 @@ export function violationMessage(v) {
   if (v.type === 'near')     return `💡 Rule: ${first(v.ids[0])} & ${first(v.ids[1])} should be near each other`;
   if (v.type === 'partners') return `💡 Rule: ${first(v.ids[0])} & ${first(v.ids[1])} should be in the same group`;
   if (v.soft) {
-    const where = v.type === 'front' ? 'toward the front' : v.type === 'back' ? 'toward the back' : "near the teacher's desk";
+    const where = { front: 'toward the front', back: 'toward the back', teacher: "near the teacher's desk",
+      door: 'near the door', window: 'away from the window' }[v.type];
     return `💡 “${v.tag}”: ${first(v.ids[0])} usually sits ${where}`;
   }
   if (v.type === 'front')    return `⚠️ Rule: ${first(v.ids[0])} should sit in the front row`;

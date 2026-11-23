@@ -184,6 +184,12 @@
         <button class="tool-btn" id="tool-board" onclick="setTool('board')">▭ Board</button>
         <button class="tool-btn" id="tool-teacher" onclick="setTool('teacher')">★ Teacher</button>
       </div>
+      <div class="tool-group" aria-label="Room">
+        <button class="tool-btn" id="tool-door" onclick="setTool('door')" title="Door">Door</button>
+        <button class="tool-btn" id="tool-window" onclick="setTool('window')" title="Window">Window</button>
+        <button class="tool-btn" id="tool-outlet" onclick="setTool('outlet')" title="Outlet">Outlet</button>
+        <button class="tool-btn" id="tool-zone" onclick="setTool('zone')" title="An area with no seats — sink, reading corner…">No seats</button>
+      </div>
       <div class="tool-sep"></div>
       <div class="tool-group">
         <button class="tool-btn" onclick="layoutUploadImg()">🖼 Upload Image</button>
@@ -195,6 +201,8 @@
       <div class="tool-group sel-tools" id="selTools" hidden data-n="0">
         <span class="sel-count" id="selCount"></span>
         <button class="tool-btn" onclick="duplicateSelection()" title="Duplicate (Ctrl+D)">⧉ Duplicate</button>
+        <button class="tool-btn sel-name" onclick="editItemName()" title="Name this table or area">✎ Name</button>
+        <button class="tool-btn sel-number" onclick="numberTables()" title="Name the selected tables Table 1, Table 2… (top row first, left to right)"># Number tables</button>
         <button class="tool-btn sel-2" onclick="alignSelection('left')" title="Line up left edges">⇤ Align left</button>
         <button class="tool-btn sel-2" onclick="alignSelection('top')" title="Line up top edges">⤒ Align top</button>
         <button class="tool-btn sel-3" onclick="distributeSelection('x')" title="Equal gaps left to right">↔ Space evenly</button>

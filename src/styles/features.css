@@ -244,3 +244,60 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .layout-marquee { position: absolute; z-index: 60; pointer-events: none; border: 1px solid var(--blue); background: rgba(79,142,247,0.12); border-radius: 4px; }
 .touch-only { display: none; }
 @media (hover: none) { .touch-only { display: inline-flex; } }
+
+/* ── Room fixtures: door, window, outlet, no-seat area ── */
+.canvas-door {
+  position: relative; width: 56px; height: 16px; border-radius: 3px;
+  background: var(--surface2); border: 2px solid var(--green);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.55rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--green);
+}
+/* dashed quarter circle = which way the door swings */
+.canvas-door::after {
+  content: ''; position: absolute; left: -2px; top: 100%; width: 44px; height: 44px;
+  border: 1px dashed var(--green); border-top: none; border-left: none; border-radius: 0 0 44px 0;
+  opacity: 0.5; pointer-events: none;
+}
+.canvas-window {
+  width: 112px; height: 14px; border-radius: 2px;
+  background: repeating-linear-gradient(90deg, rgba(79,142,247,0.22) 0 26px, var(--blue) 26px 28px);
+  border: 2px solid var(--blue);
+  display: flex; align-items: center; justify-content: center;
+}
+.canvas-window span { font-size: 0.5rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); background: var(--bg); padding: 0 4px; border-radius: 3px; line-height: 1.2; }
+.canvas-outlet {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: var(--amber-dim); border: 2px solid var(--amber); color: var(--amber);
+  display: flex; align-items: center; justify-content: center;
+}
+.canvas-zone {
+  border: 2px dashed var(--rose); border-radius: 10px;
+  background: repeating-linear-gradient(45deg, rgba(247,86,124,0.07) 0 8px, transparent 8px 16px);
+  display: flex; align-items: flex-start; justify-content: flex-start; padding: 6px 8px;
+}
+.zone-label { font-size: 0.68rem; font-weight: 600; color: var(--rose); background: var(--bg); padding: 1px 6px; border-radius: 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zone-resize {
+  position: absolute; right: -7px; bottom: -7px; width: 14px; height: 14px; z-index: 6;
+  border-radius: 4px; background: var(--rose); border: 2px solid var(--bg); cursor: nwse-resize; touch-action: none;
+  display: none;
+}
+.canvas-item:hover .zone-resize, .canvas-item.selected .zone-resize { display: block; }
+@media (hover: none) { .canvas-item.selected .zone-resize { width: 22px; height: 22px; right: -11px; bottom: -11px; } }
+
+/* ── Table names ── */
+.table-name-pill {
+  position: absolute; top: -22px; right: 2px; z-index: 6;
+  font-family: 'Geist', sans-serif; font-size: 0.66rem; font-weight: 700; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 1px 8px;
+  white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; cursor: text;
+}
+.assign-table-wrap .table-name-pill { top: -20px; left: 50%; right: auto; transform: translateX(-50%); cursor: default; }
+.table-groups-btn .table-name { color: var(--text); font-weight: 700; cursor: text; }
+.item-name-input {
+  position: absolute; z-index: 80; width: 200px;
+  font-family: 'Geist', sans-serif; font-size: 0.8rem; padding: 6px 10px; border-radius: 8px;
+  background: var(--surface); color: var(--text); border: 2px solid var(--blue); box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
+.sel-tools .sel-name, .sel-tools .sel-number { display: none; }
+.sel-tools[data-name="1"] .sel-name, .sel-tools[data-tables="1"] .sel-number { display: inline-flex; }
+@media print { .table-name-pill { color: #000; background: #fff; border-color: #999; } }

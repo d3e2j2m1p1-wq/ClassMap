@@ -4,6 +4,7 @@ import { cleanAssignments, getAllSeats } from './seats.js';
 import { esc, groupColor, initials, state } from '../core/state.js';
 import { isLightColor } from '../landing/roster.js';
 import { tagAbbr, tagSetting } from '../landing/tags.js';
+import { isFixture, makeFixture } from '../layout/fixtures.js';
 import { appendGroupOutlines } from '../layout/tableGroups.js';
 import { tableBBox } from '../layout/tables.js';
 import { markDirty } from '../storage/autosave.js';
@@ -35,20 +36,14 @@ export function renderAssignPanel() {
     canvas.appendChild(img);
   }
 
-  state.layoutItems.forEach(item => {
-    if (item.type === 'board') {
-      const el = document.createElement('div');
-      el.className = 'canvas-board';
-      el.textContent = '▲ Board';
-      el.style.cssText = `position:absolute;left:${item.x}px;top:${item.y}px;pointer-events:none;`;
-      if (item.rotation) el.style.transform = `rotate(${item.rotation}deg)`;
-      canvas.appendChild(el);
-
-    } else if (item.type === 'teacher') {
-      const el = document.createElement('div');
-      el.className = 'canvas-teacher';
-      el.innerHTML = '★<span>Teacher</span>';
-      el.style.cssText = `position:absolute;left:${item.x}px;top:${item.y}px;pointer-events:none;`;
+  // "No seats" areas first, so they sit underneath everything else
+  [...state.layoutItems].sort((a, b) => (b.type === 'zone') - (a.type === 'zone')).forEach(item => {
+    if (isFixture(item)) {
+      const el = makeFixture(item);
+      el.style.position = 'absolute';
+      el.style.left = item.x + 'px';
+      el.style.top = item.y + 'px';
+      el.style.pointerEvents = 'none';
       if (item.rotation) el.style.transform = `rotate(${item.rotation}deg)`;
       canvas.appendChild(el);
 
@@ -91,6 +86,13 @@ export function makeAssignTable(item) {
     (chip._extras || []).forEach(x => bg.appendChild(x));
   });
   wrap.appendChild(bg);
+
+  if (item.label) {
+    const nm = document.createElement('div');
+    nm.className = 'table-name-pill';
+    nm.textContent = item.label;
+    wrap.appendChild(nm);
+  }
 
   // Drag the whole table (pointer position is converted to canvas coordinates)
   bg.addEventListener('pointerdown', e => {

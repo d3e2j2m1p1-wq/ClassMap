@@ -49,6 +49,9 @@ export function refreshSelection() {
   if (bar) {
     bar.hidden = n === 0;
     bar.dataset.n = n >= 3 ? '3' : String(n);
+    const sel = selectedItems();
+    bar.dataset.name = n === 1 && ['table', 'zone'].includes(sel[0]?.type) ? '1' : '0';
+    bar.dataset.tables = sel.filter(i => i.type === 'table').length >= 2 ? '1' : '0';
     document.getElementById('selCount').textContent = n === 1 ? '1 selected' : n + ' selected';
   }
   const hint = document.getElementById('toolHint');
@@ -295,4 +298,66 @@ export function initLayoutKeys() {
       nudge(k === 'ArrowLeft' ? -step : k === 'ArrowRight' ? step : 0, k === 'ArrowUp' ? -step : k === 'ArrowDown' ? step : 0);
     }
   });
+}
+
+// ── Names: tables ("Table 1", "Red table") and "no seats" areas ("Sink") ──
+// A small text box appears over the item; Enter or clicking away saves, Esc cancels.
+export function editItemName(item) {
+  item = item || selectedItems()[0];
+  if (!item || !['table', 'zone'].includes(item.type)) return;
+  const c = canvasEl();
+  c.querySelectorAll('.item-name-input').forEach(i => i.remove());
+  const b = boxes().get(item.id);
+  if (!b) return;
+  const input = document.createElement('input');
+  input.className = 'item-name-input';
+  input.maxLength = 30;
+  input.placeholder = item.type === 'table' ? 'Table name, e.g. Table 1' : 'Name, e.g. Sink';
+  input.value = item.label || '';
+  input.setAttribute('aria-label', item.type === 'table' ? 'Table name' : 'Area name');
+  input.style.left = Math.max(0, b.x) + 'px';
+  input.style.top = Math.max(0, b.y - 34) + 'px';
+  c.appendChild(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const finish = save => {
+    if (done) return;
+    done = true;
+    const v = input.value.trim();
+    input.remove();
+    if (!save || v === (item.label || '')) return;
+    if (v) item.label = v;
+    else if (item.type === 'zone') item.label = 'No seats';
+    else delete item.label;
+    renderLayoutCanvas();
+    markDirty();
+  };
+  input.addEventListener('pointerdown', e => e.stopPropagation());
+  input.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  });
+  input.addEventListener('blur', () => finish(true));
+}
+
+// Name the selected tables Table 1, Table 2 … in reading order: top row first, left to right
+export function numberTables() {
+  const bx = boxes();
+  const tables = selectedItems().filter(i => i.type === 'table' && bx.get(i.id))
+    .map(i => { const b = bx.get(i.id); return { i, cx: b.x + b.w / 2, cy: b.y + b.h / 2, h: b.h }; })
+    .sort((a, b) => a.cy - b.cy);
+  if (tables.length < 2) return;
+  // Same row = centre within ¾ of a table's height of the row's average (rows can be a little staggered)
+  const rows = [];
+  tables.forEach(t => {
+    const row = rows[rows.length - 1];
+    const avg = row && row.reduce((n, r) => n + r.cy, 0) / row.length;
+    if (row && Math.abs(t.cy - avg) < Math.max(...row.map(r => r.h)) * 0.75) row.push(t); else rows.push([t]);
+  });
+  let n = 0;
+  rows.forEach(r => r.sort((a, b) => a.cx - b.cx).forEach(t => { t.i.label = 'Table ' + (++n); }));
+  renderLayoutCanvas();
+  markDirty();
 }

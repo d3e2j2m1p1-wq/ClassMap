@@ -480,6 +480,108 @@ test('layout: plain click on empty canvas deselects; Esc deselects; new tables l
   expect(last).toEqual([0, 0]);
 });
 
+test('room items: door, window, outlet and a "no seats" area; resize and rename the area', async ({ page }) => {
+  const errors = await open(page);
+  await layoutWithTables(page);
+  const c = await page.locator('#layoutCanvas').boundingBox();
+  for (const [tool, x, y] of [['door', 60, 380], ['window', 400, 380], ['outlet', 700, 380], ['zone', 760, 250]]) {
+    await page.locator('#tool-' + tool).click();
+    await page.mouse.click(c.x + x, c.y + y);
+  }
+  for (const cls of ['.canvas-door', '.canvas-window', '.canvas-outlet', '.canvas-zone'])
+    await expect(page.locator('#layoutCanvas ' + cls)).toHaveCount(1);
+  // seat count ignores room items
+  await expect(page.locator('#seatCount')).toHaveText('6 seats · 12 students · 6 more needed');
+
+  // resize the area by its corner (snaps to the 14px grid)
+  await page.locator('#tool-pointer').click();
+  const zone = page.locator('#layoutCanvas .canvas-zone');
+  const zb = await zone.boundingBox();
+  await page.mouse.move(zb.x + zb.width / 2, zb.y + zb.height / 2); await page.mouse.down(); await page.mouse.up();   // select
+  const grip = page.locator('#layoutCanvas .zone-resize');
+  const gb = await grip.boundingBox();
+  await page.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2); await page.mouse.down();
+  await page.mouse.move(gb.x + 40, gb.y + 30); await page.mouse.move(gb.x + 59, gb.y + 41); await page.mouse.up();
+  const size = await page.evaluate(() => { const z = window.__cm.state.layoutItems.find(i => i.type === 'zone'); return [z.w, z.h]; });
+  expect(size).toEqual([224, 140]);   // 168+52 → 224, 112+34 → 140 (grid)
+
+  // rename by double-click
+  await zone.dblclick();
+  await page.locator('.item-name-input').fill('Sink');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#layoutCanvas .zone-label')).toHaveText('Sink');
+
+  // they show on the Assign chart and on the projector
+  await page.evaluate(() => window.__cm.switchPanel('assign', document.querySelector('[data-panel=assign]')));
+  for (const cls of ['.canvas-door', '.canvas-window', '.canvas-outlet', '.canvas-zone'])
+    await expect(page.locator('#assignCanvas ' + cls)).toHaveCount(1);
+  await expect(page.locator('#assignCanvas .zone-label')).toHaveText('Sink');
+  expect(errors).toEqual([]);
+});
+
+test('table names: Number tables in reading order, rename one, shown on the Assign chart', async ({ page }) => {
+  const errors = await open(page);
+  await layoutWithTables(page);   // ta (56,84)  tb (280,140)  tc (560,98): one row, left to right
+  await page.evaluate(() => {
+    window.__cm.state.layoutItems.push({ id: 'td', type: 'table', x: 84, y: 336, rotation: 0, groups: 1, groupShift: 0, seatPositions: [{ x: 14, y: 14 }] });
+    window.__cm.renderLayoutCanvas();
+  });
+  await page.keyboard.press('Control+a');
+  await expect(page.locator('#selTools .sel-number')).toBeVisible();
+  await page.getByRole('button', { name: '# Number tables' }).click();
+  const names = await page.evaluate(() => Object.fromEntries(window.__cm.state.layoutItems.map(i => [i.id, i.label])));
+  expect(names).toEqual({ ta: 'Table 1', tb: 'Table 2', tc: 'Table 3', td: 'Table 4' });
+  await expect(page.locator('#layoutCanvas .table-name')).toHaveCount(4);
+
+  // one table selected → ✎ Name
+  await page.keyboard.press('Escape');
+  const t = await page.locator('#layoutCanvas .canvas-item[data-id="tb"] .canvas-table-free').boundingBox();
+  await page.mouse.click(t.x + 6, t.y + t.height / 2);
+  await page.getByRole('button', { name: '✎ Name' }).click();
+  await page.locator('.item-name-input').fill('Red table');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#layoutCanvas .canvas-item[data-id="tb"] .table-name')).toHaveText('Red table');
+  // Esc cancels, empty name removes it
+  await page.getByRole('button', { name: '✎ Name' }).click();
+  await page.locator('.item-name-input').fill('Nope');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#layoutCanvas .canvas-item[data-id="tb"] .table-name')).toHaveText('Red table');
+
+  await page.evaluate(() => window.__cm.switchPanel('assign', document.querySelector('[data-panel=assign]')));
+  await expect(page.locator('#assignCanvas .table-name-pill')).toHaveText(['Table 1', 'Red table', 'Table 3', 'Table 4']);
+  expect(errors).toEqual([]);
+});
+
+test('tags: "near the door" and "away from the window" seat tagged students accordingly', async ({ page }) => {
+  await open(page);
+  const r = await page.evaluate(() => {
+    const cm = window.__cm;
+    document.getElementById('newClassInput').value = 'Doors'; cm.addLandingClass();
+    const c = cm.store.landingData.classes[0];
+    for (let i = 0; i < 24; i++) c.students.push({ id: 's' + i, name: 'Kid' + i + ' Z', gender: null, tags: i < 3 ? ['Breaks'] : i < 6 ? ['Distracted'] : [] });
+    c.tagSettings = { breaks: { place: 'door', spread: true }, distracted: { place: 'window' } };
+    cm.saveLandingData();
+    cm.createNewChart();
+    // 3 columns × 2 rows of 4-seat tables; door at the bottom-left, window along the left wall
+    for (let row = 0; row < 2; row++) for (let col = 0; col < 3; col++)
+      cm.state.layoutItems.push({ id: `t${row}${col}`, type: 'table', x: 140 + col * 250, y: 100 + row * 250, rotation: 0, groups: 1, groupShift: 0,
+        seatPositions: [{ x: 14, y: 14 }, { x: 76, y: 14 }, { x: 14, y: 76 }, { x: 76, y: 76 }] });
+    cm.state.layoutItems.push({ id: 'door', type: 'door', x: 0, y: 520, rotation: 0 }, { id: 'win', type: 'window', x: 0, y: 200, rotation: 90 });
+    const out = { breaksNear: 0, distractedFar: 0, sameTable: 0 };
+    for (let i = 0; i < 10; i++) {
+      cm.autoAssign();
+      const seats = cm.getAllSeats();
+      const seatOf = id => seats.find(s => s.seatId === Object.keys(cm.state.assignments).find(k => cm.state.assignments[k] === id));
+      const breaks = ['s0', 's1', 's2'].map(seatOf), dist = ['s3', 's4', 's5'].map(seatOf);
+      if (breaks.every(s => s.tableId === 't10' || s.tableId === 't11' || s.tableId === 't00')) out.breaksNear++;
+      if (new Set(breaks.map(s => s.tableId)).size === 3) out.sameTable++;
+      if (dist.every(s => s.tableId.endsWith('2') || s.tableId.endsWith('1'))) out.distractedFar++;
+    }
+    return out;
+  });
+  expect(r).toEqual({ breaksNear: 10, distractedFar: 10, sameTable: 10 });
+});
+
 test('undo toast closes by itself', async ({ page }) => {
   await homeWithChart(page);
   await page.evaluate(() => window.__cm.undoToast('Test', () => {}, 400));

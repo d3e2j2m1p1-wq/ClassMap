@@ -3,7 +3,8 @@ import { state, uid } from '../core/state.js';
 import { appendGroupOutlines, closeFloatMenu, groupsText, openTableGroupsMenu } from './tableGroups.js';
 import { addSeatToTable, makeFreeTableSeat, removeLayoutItem, tableBBox } from './tables.js';
 import { markDirty } from '../storage/autosave.js';
-import { GRID, clearSelection, onItemPointerDown, refreshSelection, startMarquee } from './selection.js';
+import { GRID, clearSelection, editItemName, onItemPointerDown, refreshSelection, startMarquee } from './selection.js';
+import { FIXTURE_SIZE, ZONE_MIN, isFixture, makeFixture } from './fixtures.js';
 
 // ═══════════════════════════════════════════════
 //  LAYOUT CANVAS
@@ -22,6 +23,10 @@ export const TOOL_HINTS = {
   table: 'Click to place a table. Hover Table (or tap ▾) to change seats and groups. Click a table\'s label to change just that table.',
   board: 'Click to place the board / whiteboard. Front Row and Back Row rules are measured from the board.',
   teacher: "Click to place the teacher's desk.",
+  door: 'Click to place a door. Tags can seat students near it (Rules → Tags).',
+  window: 'Click to place a window. Tags can seat students away from it (Rules → Tags).',
+  outlet: 'Click to place an outlet — handy for students with a device to charge.',
+  zone: 'Click to mark an area with no seats (sink, reading corner…). Drag its corner to resize; double-click to rename.',
 };
 
 export function setTool(name) {
@@ -91,8 +96,9 @@ export function placeLayoutItem(x, y, free = false) {
     addLayoutItem({ type: 'table', ...at(60, 50), seatPositions: defaultSeatPositions(d.seats), groups: d.groups, groupShift: 0 });
   } else if (currentTool === 'board') {
     addLayoutItem({ type: 'board', ...at(75, 12) });
-  } else if (currentTool === 'teacher') {
-    addLayoutItem({ type: 'teacher', ...at(24, 24) });
+  } else if (FIXTURE_SIZE[currentTool]) {
+    const [w, h] = FIXTURE_SIZE[currentTool];
+    addLayoutItem({ type: currentTool, ...at(w / 2, h / 2), ...(currentTool === 'zone' ? { w, h, label: 'No seats' } : {}) });
   }
 }
 
@@ -140,9 +146,9 @@ export function renderLayoutCanvas() {
     canvas.appendChild(img);
   }
 
-  state.layoutItems.forEach(item => {
-    const el = makeLayoutElement(item);
-    canvas.appendChild(el);
+  // "No seats" areas first, so they sit underneath tables and seats
+  [...state.layoutItems].sort((a, b) => (b.type === 'zone') - (a.type === 'zone')).forEach(item => {
+    canvas.appendChild(makeLayoutElement(item));
   });
   refreshSelection();
 }
@@ -173,10 +179,21 @@ export function makeLayoutElement(item) {
       border-radius:10px;`;
     inner.dataset.label = `Table · ${seatCount} seats`;
 
+
     // Label doubles as the groups button for this table
     const lbl = document.createElement('button');
     lbl.className = 'table-groups-btn';
     lbl.textContent = `${seatCount} seat${seatCount !== 1 ? 's' : ''} · ${groupsText(item.groups, seatCount)} ▾`;
+    // Table name ("Table 1", "Red table") leads the label — double-click it to rename
+    if (item.label) {
+      const nm = document.createElement('b');
+      nm.className = 'table-name';
+      nm.textContent = item.label;
+      nm.title = 'Double-click to rename';
+      nm.addEventListener('click', e => e.stopPropagation());   // the name doesn't open the groups menu
+      nm.addEventListener('dblclick', e => { e.stopPropagation(); editItemName(item); });
+      lbl.prepend(nm, ' · ');
+    }
     lbl.title = 'Split this table into groups';
     lbl.addEventListener('pointerdown', e => e.stopPropagation());
     lbl.addEventListener('click', e => { e.stopPropagation(); openTableGroupsMenu(item, lbl); });
@@ -204,17 +221,17 @@ export function makeLayoutElement(item) {
 
     wrap.appendChild(inner);
 
-  } else if (item.type === 'board') {
-    const inner = document.createElement('div');
-    inner.className = 'canvas-board';
-    inner.textContent = '▲ Board';
+  } else if (isFixture(item)) {
+    const inner = makeFixture(item);
     wrap.appendChild(inner);
-
-  } else if (item.type === 'teacher') {
-    const inner = document.createElement('div');
-    inner.className = 'canvas-teacher';
-    inner.innerHTML = '★<span>Teacher</span>';
-    wrap.appendChild(inner);
+    if (item.type === 'zone') {
+      inner.addEventListener('dblclick', e => { e.stopPropagation(); editItemName(item); });
+      const grip = document.createElement('div');
+      grip.className = 'zone-resize';
+      grip.title = 'Drag to resize';
+      grip.addEventListener('pointerdown', e => startZoneResize(e, item, inner));
+      wrap.appendChild(grip);
+    }
   }
 
   // Delete button (always)
@@ -276,6 +293,34 @@ export function startRotate(e, item, el) {
     document.removeEventListener('pointercancel', onUp);
     store._canvasMouseDownTime = 0; // prevent placement after rotation
     markDirty();
+  }
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onUp);
+}
+
+// Drag the corner of a "no seats" area to resize it (snaps to the grid; Alt = free)
+function startZoneResize(e, item, el) {
+  if (e.button !== 0) return;
+  e.stopPropagation();
+  e.preventDefault();
+  const sx = e.clientX, sy = e.clientY;
+  const w0 = item.w || FIXTURE_SIZE.zone[0], h0 = item.h || FIXTURE_SIZE.zone[1];
+  let changed = false;
+  function onMove(mv) {
+    const snap = v => mv.altKey ? v : Math.round(v / GRID) * GRID;
+    item.w = Math.max(ZONE_MIN, snap(w0 + mv.clientX - sx));
+    item.h = Math.max(ZONE_MIN, snap(h0 + mv.clientY - sy));
+    el.style.width = item.w + 'px';
+    el.style.height = item.h + 'px';
+    changed = true;
+  }
+  function onUp() {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+    store._canvasMouseDownTime = 0;
+    if (changed) markDirty();
   }
   document.addEventListener('pointermove', onMove);
   document.addEventListener('pointerup', onUp);

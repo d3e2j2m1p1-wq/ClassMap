@@ -129,7 +129,8 @@ function buildPrintView(withSubPage) {
   const notes = document.getElementById('sessionNotes').value.trim();
   // Tagged students for the substitute (private tags stay off)
   const cls = store.landingData.classes.find(c => c.id === window._currentChartClassId);
-  const PLACE = { front: 'sits toward the front', back: 'sits toward the back', teacher: "sits near the teacher's desk" };
+  const PLACE = { front: 'sits toward the front', back: 'sits toward the back', teacher: "sits near the teacher's desk",
+    door: 'sits near the door', window: 'sits away from the window' };
   const tagLines = classTags({ students: state.students })
     .filter(t => !tagSetting(cls, t).private)
     .map(t => {

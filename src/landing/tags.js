@@ -11,13 +11,15 @@ import { saveLandingData } from '../storage/landingData.js';
 export const PRESET_TAGS = ['IEP', '504', 'Needs support', 'Strong reader', 'ELL', 'Talkative', 'Preferential seating'];
 
 // ── Tag settings (per class): where tagged students sit, whether they're spread out, whether it's private ──
-//   cls.tagSettings = { "<tag, lower case>": { place: ''|'front'|'back'|'teacher', spread: bool, private: bool } }
+//   cls.tagSettings = { "<tag, lower case>": { place: ''|'front'|'back'|'teacher'|'door'|'window', spread: bool, private: bool } }
 // Tags never show on the projector or the printed chart. Private tags also stay off the substitute page.
 export const TAG_PLACES = [
   ['', 'Anywhere'],
   ['front', 'Toward the front'],
   ['back', 'Toward the back'],
   ['teacher', "Near the teacher's desk"],
+  ['door', 'Near the door'],
+  ['window', 'Away from the window'],
 ];
 const PRIVATE_BY_DEFAULT = new Set(['iep', '504', 'medical']);
 export const tagKey = t => String(t).trim().toLowerCase();
