@@ -5,6 +5,7 @@ import { esc, groupColor, initials, state } from '../core/state.js';
 import { isLightColor } from '../landing/roster.js';
 import { tagAbbr, tagSetting } from '../landing/tags.js';
 import { isFixture, makeFixture } from '../layout/fixtures.js';
+import { clearSeatFit, fitNote, showSeatFit } from './seatFit.js';
 import { appendGroupOutlines } from '../layout/tableGroups.js';
 import { tableBBox } from '../layout/tables.js';
 import { markDirty } from '../storage/autosave.js';
@@ -61,6 +62,9 @@ export function renderAssignPanel() {
 
   updateAssignStats();
   renderUnplaced();
+  // a student picked by tap and waiting for a seat: show which seats keep the rules
+  const moving = store.selectedStudentId || (store.selectedSeatId && state.assignments[store.selectedSeatId]);
+  if (moving) showSeatFit(moving); else clearSeatFit();
 }
 
 export function makeAssignTable(item) {
@@ -160,6 +164,9 @@ export function makeAssignChip(seatId, x, y, relative) {
       findTarget: el => el.closest('.seat-chip') || el.closest('.unplaced-wrap'),
       onDrop: t => t.classList.contains('seat-chip') ? placeStudent(student.id, t.dataset.seatId) : unseatStudent(seatId),
       onTap: tap,
+      onStart: () => showSeatFit(student.id),
+      onEnd: clearSeatFit,
+      note: t => t.classList.contains('seat-chip') ? fitNote(t.dataset.seatId) : 'Take out of the seat',
     }));
     function tap() {
       if (store.selectedSeatId === seatId) { store.selectedSeatId = null; }
@@ -262,6 +269,9 @@ export function renderUnplaced() {
       highlightClass: 'drop-target',
       findTarget: el2 => el2.closest('.seat-chip'),
       onDrop: t => placeStudent(s.id, t.dataset.seatId),
+      onStart: () => showSeatFit(s.id),
+      onEnd: clearSeatFit,
+      note: t => fitNote(t.dataset.seatId),
       onTap: () => {
         store.selectedStudentId = store.selectedStudentId === s.id ? null : s.id;
         store.selectedSeatId = null;

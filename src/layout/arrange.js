@@ -15,11 +15,12 @@ import { undo } from '../editor/undo.js';
 import { defaultSeatPositions, renderLayoutCanvas } from './canvas.js';
 import { tableBBox } from './tables.js';
 import { addWalls } from './templates.js';
+import { roomPoints } from './roomShape.js';
 import { getAllSeats } from '../assign/seats.js';
 import { planSeating } from '../assign/autoAssign.js';
 import { getResolvedRules } from '../assign/rulesEngine.js';
 import {
-  AISLE_FT, SEAT_PX, VIEW, aabb, boardInfo, boxOf, corners, doorZones, isFurniture, makeBox, pxPerFt,
+  AISLE_FT, SEAT_PX, VIEW, aabb, boardInfo, boxOf, corners, doorZones, insideBounds, isFurniture, makeBox, pxPerFt,
   reachability, roomBounds, seatCount, sightlines,
 } from './roomModel.js';
 
@@ -94,6 +95,10 @@ function candidates(style, ctx) {
         for (let c = 0; c < cols; c++) {
           const rect = { u0: uAt(c), v0: v, u1: uAt(c) + fw, v1: v + fh };
           if (blocked.some(b => hit(rect, b))) continue;
+          if (ctx.bounds.poly) {   // shaped room: the table must be inside the outline
+            const [cx, cy] = frame.toC((rect.u0 + rect.u1) / 2, (rect.v0 + rect.v1) / 2);
+            if (!insideBounds(makeBox(cx, cy, unit.w, unit.h, rot * Math.PI / 180), ctx.bounds, inset)) continue;
+          }
           slots.push({ ...rect, r, c });
         }
       }
@@ -225,7 +230,7 @@ export function openArrange() {
 
   if (!state.layoutItems.some(i => i.type === 'room')) {
     wrap.querySelector('.ar-body').innerHTML = `<div class="ar-empty">
-      <p><b>Add the room's walls first</b> so ClassMap knows how much space there is. Then drag the walls' corner to match your room.</p>
+      <p><b>Add the room's walls first</b> so ClassMap knows how much space there is. Then drag the corners to match your room.</p>
       <button class="rc-btn primary" id="arWalls">Add walls</button></div>`;
     wrap.querySelector('#arWalls').onclick = () => { addWalls(); closeArrange(); };
     return;
@@ -285,7 +290,7 @@ function preview(items, b) {
   const poly = (box, cls) => `<polygon class="${cls}" points="${corners(box).map(p => p.join(',')).join(' ')}"/>`;
   const parts = [];
   items.forEach(i => {
-    if (i.type === 'room') parts.push(`<rect class="pv-wall" x="${i.x}" y="${i.y}" width="${b.w}" height="${b.h}"/>`);
+    if (i.type === 'room') parts.push(`<polygon class="pv-wall" points="${roomPoints(i).map(p => p.join(',')).join(' ')}"/>`);
   });
   items.forEach(i => {
     const box = boxOf(i);

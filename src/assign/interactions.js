@@ -10,7 +10,7 @@ import { editorOpen, markDirty } from '../storage/autosave.js';
 // HTML drag-and-drop doesn't work on iPads/phones, so everything is built on pointer events.
 // A press that barely moves counts as a tap.
 //   o = { label, sourceEl, sourceClass, highlightClass, findTarget(el) → target|null,
-//         onDrop(target), onTap() }
+//         onDrop(target), onTap(), onStart(), onEnd(), note(target) → text under the label }
 export function pointerDrag(e, o) {
   if (e.button !== 0) return;
   e.stopPropagation();
@@ -26,15 +26,24 @@ export function pointerDrag(e, o) {
     if (hot) hot.classList.remove(o.highlightClass);
     if (t) t.classList.add(o.highlightClass);
     hot = t;
+    if (ghost && o.note) {
+      const n = t ? o.note(t) : '';
+      ghost.querySelector('.drag-note').textContent = n;
+      ghost.classList.toggle('has-note', !!n);
+      ghost.classList.toggle('note-bad', n.startsWith('✕'));
+      ghost.classList.toggle('note-ok', n.startsWith('✓'));
+    }
   };
   const onMove = mv => {
     if (!ghost) {
       if (Math.hypot(mv.clientX - sx, mv.clientY - sy) < 6) return;
       ghost = document.createElement('div');
       ghost.className = 'drag-ghost';
-      ghost.textContent = o.label || '';
+      ghost.innerHTML = '<span class="drag-label"></span><span class="drag-note"></span>';
+      ghost.querySelector('.drag-label').textContent = o.label || '';
       document.body.appendChild(ghost);
       if (o.sourceClass) o.sourceEl.classList.add(o.sourceClass);
+      if (o.onStart) o.onStart();
     }
     ghost.style.left = mv.clientX + 'px';
     ghost.style.top = mv.clientY + 'px';
@@ -46,6 +55,7 @@ export function pointerDrag(e, o) {
     document.removeEventListener('pointercancel', onCancel);
     light(null);
     const dragged = !!ghost;
+    if (dragged && o.onEnd) o.onEnd();
     if (ghost) { ghost.remove(); if (o.sourceClass) o.sourceEl.classList.remove(o.sourceClass); }
     if (cancelled) return;
     const t = dragged ? targetAt(up.clientX, up.clientY) : null;

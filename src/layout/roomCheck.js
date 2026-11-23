@@ -100,7 +100,7 @@ export function analyzeRoom(items = state.layoutItems) {
   if (students && seats < students)
     issues.push({ key: 'seats', level: 'problem', ids: [], text: `${plural(seats, 'seat')} for ${plural(students, 'student')} — ${students - seats} more needed`,
       hint: 'Arrange for me can lay out enough' });
-  if (!bounds.walls) issues.push({ key: 'nowalls', level: 'info', ids: [], text: 'Add walls to check walkways along the edges of the room', fix: () => { addWalls(); scheduleRoomCheck(); }, fixLabel: 'Add walls' });
+  if (!bounds.walls) issues.push({ key: 'nowalls', level: 'info', ids: [], text: 'Add walls (any shape) to check walkways along the edges of the room', fix: () => { addWalls(); scheduleRoomCheck(); }, fixLabel: 'Add walls' });
   if (!doorZones(items, bounds).length) issues.push({ key: 'nodoor', level: 'info', ids: [], text: 'Add a door so ClassMap can check the way in' });
 
   return { issues, reach, views, stats: { seats, students, ppf, bounds, farthest, feet: bounds.walls ? [bounds.w / ppf, bounds.h / ppf] : null } };

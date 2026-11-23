@@ -3,6 +3,7 @@
 //  One renderer for the Layout tab and the Assign tab (Present and Print copy Assign).
 // ═══════════════════════════════════════════════
 import { esc } from '../core/state.js';
+import { roomPoints } from './roomShape.js';
 
 // Size of each fixture in px (used to place it centred on a click and to measure distances).
 // The no-seat area is resizable: its size lives on the item (w, h).
@@ -18,13 +19,15 @@ export const FIXTURE_SIZE = {
 export const ZONE_MIN = 56;
 
 // Which fixtures can be resized, and how: 'w' = longer/shorter only, 'wh' = both ways. Smallest size.
-export const RESIZE = { board: 'w', door: 'w', window: 'w', teacher: 'wh', zone: 'wh', room: 'wh' };
+// (Walls are shaped by dragging their corners instead.)
+export const RESIZE = { board: 'w', door: 'w', window: 'w', teacher: 'wh', zone: 'wh' };
 export const MIN_SIZE = { board: 84, door: 28, window: 28, teacher: 28, zone: ZONE_MIN, room: 168 };
 
 export const isFixture = item => ['board', 'teacher', 'door', 'window', 'outlet', 'zone', 'room'].includes(item.type);
 
 // Current size: resized fixtures keep theirs on the item (w, h)
 export function fixtureSize(item) {
+  if (item.type === 'room') return [item.w || FIXTURE_SIZE.room[0], item.h || FIXTURE_SIZE.room[1]];
   const [w, h] = FIXTURE_SIZE[item.type] || [0, 0];
   const mode = RESIZE[item.type];
   return [mode ? item.w || w : w, mode === 'wh' ? item.h || h : h];
@@ -61,9 +64,10 @@ export function makeFixture(item) {
     el.className = 'canvas-zone';
     el.innerHTML = `<span class="zone-label">${esc(item.label || 'No seats')}</span>`;
   } else if (item.type === 'room') {
-    // Walls: only the four edges can be grabbed, so clicks inside reach the floor (box select, placing)
+    // Walls: an outline of any shape. Only the wall lines can be grabbed, so clicks inside reach
+    // the floor (box select, placing tables).
     el.className = 'canvas-room';
-    el.innerHTML = '<i class="room-edge t"></i><i class="room-edge r"></i><i class="room-edge b"></i><i class="room-edge l"></i>';
+    el.innerHTML = roomSvg(item);
   }
   sizeFixture(el, item);
   return el;
@@ -76,4 +80,11 @@ export function sizeFixture(el, item) {
   el.style.width = w + 'px';
   el.style.height = h + 'px';
   el.style.setProperty('--w', w + 'px');
+}
+
+// The walls as an SVG outline (corners relative to the walls item)
+export function roomSvg(item) {
+  const [w, h] = fixtureSize(item);
+  const pts = roomPoints(item).map(([x, y]) => `${x - item.x},${y - item.y}`).join(' ');
+  return `<svg class="room-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" overflow="visible" aria-hidden="true"><polygon class="room-wall" points="${pts}"/></svg>`;
 }

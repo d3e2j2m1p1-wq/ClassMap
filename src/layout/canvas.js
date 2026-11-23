@@ -5,6 +5,7 @@ import { addSeatToTable, makeFreeTableSeat, removeLayoutItem, tableBBox } from '
 import { markDirty } from '../storage/autosave.js';
 import { GRID, clearSelection, editItemName, onItemPointerDown, refreshSelection, startMarquee } from './selection.js';
 import { scheduleRoomCheck } from './roomCheck.js';
+import { decorateRoom, snapToWall } from './roomEditor.js';
 import { FIXTURE_SIZE, MIN_SIZE, RESIZE, fixtureSize, isFixture, makeFixture, sizeFixture } from './fixtures.js';
 
 // ═══════════════════════════════════════════════
@@ -26,8 +27,8 @@ export const TOOL_HINTS = {
   teacher: "Click to place the teacher's desk.",
   outlet: 'Click to place an outlet — handy for students with a device to charge.',
   zone: 'Click to mark an area with no seats (sink, reading corner…). Drag its corner to resize; double-click to rename.',
-  door: 'Click to place a door. Drag the grip on its end to make it wider. Tags can seat students near it (Rules → Tags).',
-  window: 'Click to place a window. Drag the grip on its end to make it longer. Tags can seat students away from it (Rules → Tags).',
+  door: 'Click on a wall to place a door (it lines up with the wall). Drag the grip on its end to make it wider. Tags can seat students near it.',
+  window: 'Click on a wall to place a window (it lines up with the wall). Drag the grip on its end to make it longer. Tags can seat students away from it.',
 };
 
 export function setTool(name) {
@@ -99,7 +100,9 @@ export function placeLayoutItem(x, y, free = false) {
     addLayoutItem({ type: 'board', ...at(75, 12) });
   } else if (FIXTURE_SIZE[currentTool]) {
     const [w, h] = FIXTURE_SIZE[currentTool];
-    addLayoutItem({ type: currentTool, ...at(w / 2, h / 2), ...(currentTool === 'zone' ? { w, h, label: 'No seats' } : {}) });
+    const item = { type: currentTool, ...at(w / 2, h / 2), ...(currentTool === 'zone' ? { w, h, label: 'No seats' } : {}) };
+    if (!free) snapToWall(item, 42);   // a door or window placed near a wall goes on the wall
+    addLayoutItem(item);
   }
 }
 
@@ -229,7 +232,7 @@ export function makeLayoutElement(item) {
     const inner = makeFixture(item);
     wrap.appendChild(inner);
     if (item.type === 'zone') inner.addEventListener('dblclick', e => { e.stopPropagation(); editItemName(item); });
-    if (item.type === 'room') wrap.classList.add('is-room');
+    if (item.type === 'room') { wrap.classList.add('is-room'); decorateRoom(wrap, item); }
     if (RESIZE[item.type]) {
       const grip = document.createElement('div');
       grip.className = 'item-resize ' + RESIZE[item.type];

@@ -82,7 +82,7 @@ function extent(items) {
   });
   return e;
 }
-function wallsAround(items) {
+export function wallsAround(items) {
   const pad = 2 * GRID;
   const list = items.filter(i => i.type !== 'room');
   if (!list.length) return { type: 'room', x: GRID, y: GRID, w: 840, h: 560, rotation: 0 };

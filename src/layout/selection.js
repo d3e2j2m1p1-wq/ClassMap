@@ -13,6 +13,7 @@ import { undoToast, plural } from '../core/ui.js';
 import { editorOpen, markDirty } from '../storage/autosave.js';
 import { renderLayoutCanvas } from './canvas.js';
 import { undo } from '../editor/undo.js';
+import { snapToWall } from './roomEditor.js';
 
 export const GRID = 14;        // half the background dot spacing, so items sit on the dots
 const SNAP_DIST = 7;           // px: how close an edge must come to a neighbour's edge to snap
@@ -137,6 +138,14 @@ function startGroupDrag(e, item, additive) {
       s.i.x = s.x + dx; s.i.y = s.y + dy;
       if (s.el) { s.el.style.left = s.i.x + 'px'; s.el.style.top = s.i.y + 'px'; }
     });
+    // a door or window dragged near a wall lines up on it (Alt = place freely)
+    if (start.length === 1 && !mv.altKey) {
+      const s = start[0];
+      if (s.r0 === undefined) s.r0 = s.i.rotation || 0;
+      if (snapToWall(s.i)) { guides.length = 0; s.snapped = true; }
+      else if (s.snapped) { s.i.rotation = s.r0; s.snapped = false; }
+      if (s.el) { s.el.style.left = s.i.x + 'px'; s.el.style.top = s.i.y + 'px'; s.el.style.transform = s.i.rotation ? `rotate(${s.i.rotation}deg)` : ''; }
+    }
     drawGuides(guides);
   }
   function onUp() {

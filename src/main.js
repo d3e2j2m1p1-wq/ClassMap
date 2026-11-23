@@ -38,6 +38,7 @@ import { initLayoutCanvas, setTool, toggleRotateSnap, updateRotateButton } from 
 import { addWalls, openTemplateMenu } from './layout/templates.js';
 import { initRoomCheck, toggleRoomCheck } from './layout/roomCheck.js';
 import { openArrange } from './layout/arrange.js';
+import { openWallsMenu } from './layout/roomEditor.js';
 import { openShare, receiveFromLink, sendCurrentChart } from './share/shareUI.js';
 import { alignSelection, deleteSelection, distributeSelection, duplicateSelection, editItemName, initLayoutKeys, numberTables, toggleMultiTap } from './layout/selection.js';
 import { handleLayoutImg, layoutUploadImg, shrinkStoredImages } from './layout/image.js';
@@ -53,6 +54,7 @@ import { toggleTheme } from './ui/theme.js';
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
 // which only see global names — so they are put on window.
 Object.assign(window, {
+  openWallsMenu,
   openShare,
   sendCurrentChart,
   toggleRoomCheck,

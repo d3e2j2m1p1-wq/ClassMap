@@ -695,7 +695,8 @@ test('templates: optional, sized to the class, replacing a room asks first and c
 test('walls: drawn round the room, box select inside does not grab them, clicks inside still place tables', async ({ page }) => {
   await open(page);
   await layoutWithTables(page);
-  await page.getByRole('button', { name: '▢ Walls' }).click();
+  await page.getByRole('button', { name: '▢ Walls ▾' }).click();
+  await page.getByRole('button', { name: /Rectangle/ }).click();
   const room = await page.evaluate(() => window.__cm.state.layoutItems.find(i => i.type === 'room'));
   expect(room.x).toBeLessThanOrEqual(56); expect(room.w).toBeGreaterThan(600);
   await page.keyboard.press('Escape');
@@ -709,12 +710,133 @@ test('walls: drawn round the room, box select inside does not grab them, clicks 
   await page.evaluate(() => window.__cm.setTool('table'));
   await page.mouse.click(c.x + 300, c.y + 330);
   expect(await page.evaluate(() => window.__cm.state.layoutItems.filter(i => i.type === 'table').length)).toBe(4);
-  // a second click on Walls selects them instead of adding more
+  // choosing a shape again reshapes the same walls instead of adding more
   await page.evaluate(() => window.__cm.setTool('pointer'));
-  await page.getByRole('button', { name: '▢ Walls' }).click();
+  await page.getByRole('button', { name: '▢ Walls ▾' }).click();
+  await page.getByRole('button', { name: /L-shape/ }).click();
   expect(await page.evaluate(() => window.__cm.state.layoutItems.filter(i => i.type === 'room').length)).toBe(1);
   await expect(page.locator('#selCount')).toHaveText('1 selected');
 });
+
+test('walls of any shape: corners drag and snap, double-click adds and removes corners, lengths in feet', async ({ page }) => {
+  const errors = await open(page);
+  await smartRoom(page);
+  await page.getByRole('button', { name: '▢ Walls ▾' }).click();
+  await page.getByRole('button', { name: /L-shape/ }).click();
+  const corners = page.locator('#layoutCanvas .room-corner');
+  await expect(corners).toHaveCount(6);
+  await expect(corners.first()).toBeVisible();                 // walls are selected → corners show
+  await expect(page.locator('#layoutCanvas .room-len').first()).toContainText('ft');
+  const pts = () => page.evaluate(() => window.__cm.roomPoints(window.__cm.state.layoutItems.find(i => i.type === 'room')));
+  const before = await pts();
+  // drag the inside corner of the L (corner 2) a bit right and down: it lands on the grid
+  const h = await corners.nth(2).boundingBox();
+  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2); await page.mouse.down();
+  await page.mouse.move(h.x + 30, h.y + 20); await page.mouse.move(h.x + 47, h.y + 33); await page.mouse.up();
+  const after = await pts();
+  expect(after[2][0] % 14).toBe(0); expect(after[2][1] % 14).toBe(0);
+  expect(after[2][0]).toBeGreaterThan(before[2][0]);
+  // its neighbours stay straight lines: corner 1 shares x, corner 3 shares y
+  expect(after[1][0]).toBe(after[2][0] === before[1][0] ? before[1][0] : after[1][0]);
+  // double-click the top wall → a 7th corner; double-click it → back to 6
+  const wall = await page.evaluate(() => {
+    const cm = window.__cm, r = cm.state.layoutItems.find(i => i.type === 'room'), p = cm.roomPoints(r);
+    return [(p[0][0] + p[1][0]) / 2, p[0][1]];
+  });
+  const c = await page.locator('#layoutCanvas').boundingBox();
+  await page.mouse.dblclick(c.x + wall[0], c.y + wall[1]);
+  await expect(corners).toHaveCount(7);
+  await corners.nth(1).dblclick();
+  await expect(corners).toHaveCount(6);
+  expect(errors).toEqual([]);
+});
+
+test('shaped room: the missing corner of an L is outside; walkways and Arrange stay inside the outline', async ({ page }) => {
+  await open(page);
+  await smartRoom(page, 16);
+  const r = await page.evaluate(() => {
+    const cm = window.__cm;
+    cm.applyShape('l');   // the top-right part of the room is missing
+    const room = cm.state.layoutItems.find(i => i.type === 'room');
+    const p = cm.roomPoints(room);
+    cm.state.layoutItems = cm.state.layoutItems.filter(i => i.type !== 'door');
+    cm.state.layoutItems.push({ id: 'door', type: 'door', x: 0, y: 0, rotation: 0 });
+    // a door on the bottom wall of the L, snapped onto it
+    const d = cm.state.layoutItems.find(i => i.id === 'door');
+    d.x = (p[4][0] + p[5][0]) / 2 - 28; d.y = p[4][1] - 4;
+    cm.snapToWall(d);
+    // one table in the missing corner, one in the room
+    const T = (id, x, y) => ({ id, type: 'table', x, y, rotation: 0, groups: 1, groupShift: 0, seatPositions: cm.defaultSeatPositions(4) });
+    cm.state.layoutItems.push(T('gone', p[1][0] + 60, p[1][1] + 60), T('fine', p[0][0] + 60, p[0][1] + 160));
+    const a = cm.analyzeRoom();
+    const outside = (a.issues.find(i => i.key === 'outside') || {}).ids || [];
+    // walkable floor never includes the missing corner
+    const w = cm.reachability(cm.state.layoutItems).walk;
+    const probe = w.cellAt((p[1][0] + p[3][0]) / 2, (p[1][1] + p[3][1]) / 2);
+    const res = cm.arrangeOptions();
+    const top = res.best[0];
+    const probs = top ? cm.analyzeRoom(top.items).issues.filter(i => i.level === 'problem').map(i => i.key) : ['none'];
+    return { outside, blockedCorner: probe >= 0 ? w.blocked[probe] : 1, door: d.rotation, probs, seats: top && top.stats.seats };
+  });
+  expect(r.outside).toEqual(['gone']);
+  expect(r.blockedCorner).toBe(1);
+  expect(r.door).toBe(180);                    // on the bottom wall, turned so it swings into the room
+  expect(r.probs).toEqual([]);
+  expect(r.seats).toBeGreaterThanOrEqual(16);
+});
+
+test('doors and windows dropped near a wall line up on it', async ({ page }) => {
+  await open(page);
+  await smartRoom(page);
+  // place a window by clicking just inside the left wall: it turns to run along the wall
+  await page.evaluate(() => window.__cm.setTool('window'));
+  const c = await page.locator('#layoutCanvas').boundingBox();
+  await page.mouse.click(c.x + 40, c.y + 300);
+  const win = await page.evaluate(() => { const w = window.__cm.state.layoutItems.find(i => i.type === 'window'); return { r: w.rotation, cx: w.x + 56 }; });
+  expect(win.r).toBe(90);
+  expect(Math.round(win.cx)).toBe(28);           // centred on the wall line (x = 28)
+  // drag the door from the bottom wall to near the right wall: it turns to match
+  await page.evaluate(() => window.__cm.setTool('pointer'));
+  const d = await page.locator('#layoutCanvas .canvas-item:has(.canvas-door) .canvas-door').boundingBox();
+  await page.mouse.move(d.x + 10, d.y + 8); await page.mouse.down();
+  await page.mouse.move(d.x + 60, d.y - 100); await page.mouse.move(c.x + 700, c.y + 300); await page.mouse.up();
+  const door = await page.evaluate(() => window.__cm.state.layoutItems.find(i => i.id === 'door').rotation);
+  expect(door).toBe(90);
+});
+
+// ── Safe seats ──
+test('safe seats: moving a student colours seats by whether the rules still hold, with the reason', async ({ page }) => {
+  const errors = await open(page);
+  await classWithChart(page, 2, 2);
+  await page.evaluate(() => {
+    const cm = window.__cm;
+    const T = (id, x) => ({ id, type: 'table', x, y: 120, rotation: 0, groups: 1, groupShift: 0, seatPositions: cm.defaultSeatPositions(2) });
+    cm.state.layoutItems = [T('t1', 380), T('t2', 680)];   // clear of the Auto-Assign panel
+    cm.state.hardRules = [{ type: 'separate', studentA: 'b0', studentB: 'g0' }];
+    cm.state.assignments = { t1_0: 'b0' };
+    cm.switchPanel('assign', document.querySelector('[data-panel=assign]'));
+  });
+  // tap Girl0 in Unplaced: the seat next to Boy0 is red, the other table green
+  await page.locator('.chip-pill', { hasText: 'Girl0' }).click();
+  await expect(page.locator('#assignCanvas .seat-chip[data-seat-id="t1_1"]')).toHaveClass(/seat-fit-bad/);
+  await expect(page.locator('#assignCanvas .seat-chip[data-seat-id="t2_0"]')).toHaveClass(/seat-fit-ok/);
+  // taking Boy0's own seat sends him back to Unplaced, so that keeps the rule
+  await expect(page.locator('#assignCanvas .seat-chip[data-seat-id="t1_0"]')).toHaveClass(/seat-fit-ok/);
+  // drag Boy0: hovering the other table says it keeps every rule
+  await page.locator('.chip-pill', { hasText: 'Girl0' }).click();   // un-pick
+  await expect(page.locator('#assignCanvas.showing-fit')).toHaveCount(0);
+  const g = await page.locator('.chip-pill', { hasText: 'Girl0' }).boundingBox();
+  const bad = await page.locator('#assignCanvas .seat-chip[data-seat-id="t1_1"]').boundingBox();
+  await page.mouse.move(g.x + 10, g.y + 8); await page.mouse.down();
+  await page.mouse.move(g.x + 40, g.y + 30); await page.mouse.move(bad.x + bad.width / 2, bad.y + bad.height / 2);
+  await expect(page.locator('.drag-ghost .drag-note')).toContainText('should be separated');
+  await expect(page.locator('.drag-ghost')).toHaveClass(/note-bad/);
+  await page.mouse.up();
+  await expect(page.locator('#assignCanvas.showing-fit')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+
 
 // ── Smart room: Room check, Tidy up, Arrange for me ──
 // A 26 × 20 ft room (26 px = 1 ft): walls, board on the top wall, door bottom right

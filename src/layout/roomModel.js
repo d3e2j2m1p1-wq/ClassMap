@@ -9,6 +9,7 @@ import { state } from '../core/state.js';
 import { tableBBox } from './tables.js';
 import { fixtureSize } from './fixtures.js';
 import { getAllSeats } from '../assign/seats.js';
+import { edgeDist, isRectangle, pointInPoly, roomPoints } from './roomShape.js';
 
 export const SEAT_PX = 52;
 export const DEFAULT_PX_PER_FT = 26;  // a 52px seat ≈ a 2-ft student desk
@@ -72,7 +73,12 @@ export function overlaps(b1, b2, pad = 0) {
 // ── The room's edges: the walls, or (without walls) everything plus 2 ft ──
 export function roomBounds(items = state.layoutItems) {
   const room = items.find(i => i.type === 'room');
-  if (room) { const [w, h] = fixtureSize(room); return { x: room.x, y: room.y, w, h, walls: true }; }
+  if (room) {
+    const [w, h] = fixtureSize(room);
+    const pts = roomPoints(room);
+    // poly: the real outline (L-shapes, angled walls…); a plain rectangle needs no polygon tests
+    return { x: room.x, y: room.y, w, h, walls: true, poly: isRectangle(pts) ? null : pts };
+  }
   const list = items.filter(i => i.type !== 'room');
   if (!list.length) return { x: 0, y: 0, w: 840, h: 560, walls: false };
   const pad = 2 * pxPerFt(items);
@@ -81,12 +87,29 @@ export function roomBounds(items = state.layoutItems) {
 }
 export function insideBounds(b, bounds, inset = 0) {
   const e = aabb(b);
-  return e.x0 >= bounds.x + inset - 0.5 && e.y0 >= bounds.y + inset - 0.5 && e.x1 <= bounds.x + bounds.w - inset + 0.5 && e.y1 <= bounds.y + bounds.h - inset + 0.5;
+  if (!(e.x0 >= bounds.x + inset - 0.5 && e.y0 >= bounds.y + inset - 0.5 && e.x1 <= bounds.x + bounds.w - inset + 0.5 && e.y1 <= bounds.y + bounds.h - inset + 0.5)) return false;
+  if (!bounds.poly) return true;
+  // shaped room: every corner inside the outline (and far enough from the walls), and no corner
+  // of the room poking into the item (the inside corner of an L)
+  const big = { ...b, w: b.w + 2 * inset, h: b.h + 2 * inset };
+  if (!corners(big).every(([x, y]) => pointInPoly(x, y, bounds.poly) || edgeDist(x, y, bounds.poly) < 0.6)) return false;
+  return !bounds.poly.some(([x, y]) => distToBox(big, x, y) === 0 && !onBoxEdge(big, x, y));
 }
+const onBoxEdge = (b, x, y) => {
+  const c = Math.cos(-b.a), s = Math.sin(-b.a), dx = x - b.cx, dy = y - b.cy;
+  const lx = Math.abs(dx * c - dy * s), ly = Math.abs(dx * s + dy * c);
+  return Math.abs(lx - b.w / 2) < 0.6 || Math.abs(ly - b.h / 2) < 0.6;
+};
 
 // The direction "into the room" from a fixture on a wall (towards the middle of the room)
 function inward(b, bounds) {
   const nx = -Math.sin(b.a), ny = Math.cos(b.a);
+  if (bounds.poly) {
+    // the side of the wall that's inside the room
+    const step = Math.max(b.h, 8) + 10;
+    const a = pointInPoly(b.cx + nx * step, b.cy + ny * step, bounds.poly), z = pointInPoly(b.cx - nx * step, b.cy - ny * step, bounds.poly);
+    if (a !== z) return a ? [nx, ny] : [-nx, -ny];
+  }
   const mx = bounds.x + bounds.w / 2 - b.cx, my = bounds.y + bounds.h / 2 - b.cy;
   return (mx * nx + my * ny) >= 0 ? [nx, ny] : [-nx, -ny];
 }
@@ -140,6 +163,7 @@ export function walkways(items, bounds = roomBounds(items), opts = {}) {
     for (let rr = 0; rr < rows; rr++) for (let c = 0; c < cols; c++) {
       const x = cx(c), y = cy(rr);
       if (x - bounds.x < rr0 || bounds.x + bounds.w - x < rr0 || y - bounds.y < rr0 || bounds.y + bounds.h - y < rr0) blocked[rr * cols + c] = 1;
+      else if (bounds.poly && (!pointInPoly(x, y, bounds.poly) || edgeDist(x, y, bounds.poly) < rr0)) blocked[rr * cols + c] = 1;
     }
   }
   const boxes = items.filter(i => BLOCKERS.has(i.type)).map(boxOf);

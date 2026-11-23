@@ -292,15 +292,23 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 
 /* ── Walls ── */
 .canvas-room { position: relative; pointer-events: none; }
-.room-edge { position: absolute; background: var(--text3); opacity: 0.55; pointer-events: auto; cursor: move; }
-.room-edge.t, .room-edge.b { left: 0; right: 0; height: 6px; }
-.room-edge.l, .room-edge.r { top: 0; bottom: 0; width: 6px; }
-.room-edge.t { top: 0; } .room-edge.b { bottom: 0; } .room-edge.l { left: 0; } .room-edge.r { right: 0; }
+/* walls: any shape; only the wall line itself can be grabbed */
+.canvas-room { position: relative; pointer-events: none; }
+.room-svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.room-wall { fill: none; stroke: var(--text3); stroke-opacity: 0.6; stroke-width: 6; stroke-linejoin: miter; pointer-events: stroke; cursor: move; }
+#assignCanvas .room-wall, .chart-clone .room-wall { pointer-events: none; }
 .canvas-item.is-room { pointer-events: none; }
-.canvas-item.is-room > .item-delete, .canvas-item.is-room > .item-resize { pointer-events: auto; }
-.canvas-item.is-room.selected .room-edge { background: var(--blue); opacity: 1; }
+.canvas-item.is-room > .item-delete { pointer-events: auto; }
+.canvas-item.is-room.selected .room-wall { stroke: var(--blue); stroke-opacity: 1; }
+.room-corner { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; z-index: 7;
+  background: var(--bg); border: 3px solid var(--blue); cursor: grab; pointer-events: auto; touch-action: none; display: none; }
+.canvas-item.is-room.selected .room-corner { display: block; }
+@media (pointer: coarse) { .room-corner { width: 26px; height: 26px; margin: -13px 0 0 -13px; } }
+.room-len { position: absolute; transform: translate(-50%, -50%); z-index: 6; pointer-events: none; display: none;
+  font-size: 0.66rem; font-weight: 600; color: var(--blue); background: var(--bg); padding: 1px 6px; border-radius: 8px; border: 1px solid var(--blue); white-space: nowrap; }
+.canvas-item.is-room.selected .room-len { display: block; }
 .hint-link { background: none; border: none; padding: 0; color: var(--blue); font: inherit; text-decoration: underline; cursor: pointer; }
-@media print { .room-edge { background: #777; } }
+@media print { .room-wall { stroke: #777; stroke-opacity: 1; } }
 
 /* ── Table names ── */
 .table-name-pill {
@@ -428,3 +436,19 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .sh-bar { height: 8px; border-radius: 4px; background: var(--surface2); overflow: hidden; margin-top: 8px; }
 .sh-bar i { display: block; height: 100%; width: 0; background: var(--blue); transition: width 0.2s; }
 @media (max-width: 520px) { .sh-codebox { flex-direction: column; } .sh-choices { grid-template-columns: 1fr; } }
+
+/* ── Safe seats while moving a student ── */
+#assignCanvas.showing-fit .seat-chip.seat-fit-ok { box-shadow: 0 0 0 3px var(--green); }
+#assignCanvas.showing-fit .seat-chip.seat-fit-meh { box-shadow: 0 0 0 3px var(--amber); }
+#assignCanvas.showing-fit .seat-chip.seat-fit-bad { box-shadow: 0 0 0 3px var(--rose); opacity: 0.75; }
+#assignCanvas.showing-fit .seat-chip.empty.seat-fit-ok { background: var(--green-dim); }
+.drag-ghost .drag-label { display: block; }
+.drag-ghost .drag-note { display: none; font-size: 0.7rem; font-weight: 500; color: var(--amber); margin-top: 2px; max-width: 280px; white-space: normal; }
+.drag-ghost.has-note { border-radius: 12px; }
+.drag-ghost.has-note .drag-note { display: block; }
+.drag-ghost.note-bad { border-color: var(--rose); }
+.drag-ghost.note-bad .drag-note { color: var(--rose); }
+.drag-ghost.note-ok .drag-note { color: var(--green); }
+
+/* shaped walls: the outline itself turns blue when selected, no box round it */
+.canvas-item.is-room.selected > .canvas-room { outline: none !important; box-shadow: none !important; border-color: transparent !important; }
