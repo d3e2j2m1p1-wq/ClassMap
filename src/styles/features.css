@@ -227,3 +227,20 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .tag-set-check { display: flex; align-items: center; gap: 5px; color: var(--text2); cursor: pointer; }
 .tag-set-check input { accent-color: var(--blue); }
 @media print { .print-muted { color: #555; } }
+
+/* ── Layout: selection tools, snapping guides, box select, seat count ── */
+.sel-tools[hidden] { display: none; }
+.sel-tools { align-items: center; }
+.sel-count { font-size: 0.72rem; color: var(--blue); font-weight: 600; padding: 0 8px 0 6px; white-space: nowrap; }
+.sel-tools .sel-2, .sel-tools .sel-3 { display: none; }
+.sel-tools[data-n="2"] .sel-2, .sel-tools[data-n="3"] .sel-2, .sel-tools[data-n="3"] .sel-3 { display: inline-flex; }
+.sel-tools .sel-del:hover { color: var(--rose); }
+.seat-count { margin-left: auto; font-size: 0.72rem; color: var(--text3); white-space: nowrap; padding: 4px 10px; border-radius: 20px; background: var(--bg); }
+.seat-count.ok { color: var(--green); }
+.seat-count.short { color: var(--amber); background: var(--amber-dim); }
+.layout-guide { position: absolute; z-index: 50; pointer-events: none; background: var(--rose); opacity: 0.85; }
+.layout-guide.x { width: 1px; }
+.layout-guide.y { height: 1px; }
+.layout-marquee { position: absolute; z-index: 60; pointer-events: none; border: 1px solid var(--blue); background: rgba(79,142,247,0.12); border-radius: 4px; }
+.touch-only { display: none; }
+@media (hover: none) { .touch-only { display: inline-flex; } }

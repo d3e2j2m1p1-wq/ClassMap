@@ -364,6 +364,122 @@ test('clear layout + Undo restores items, photo and seats', async ({ page }) => 
   expect(await page.evaluate(() => [window.__cm.state.layoutItems.length, window.__cm.state.assignments.d1])).toEqual([1, 'b0']);
 });
 
+// ── Layout builder: select several, snap, duplicate, align, delete ──
+async function layoutWithTables(page) {
+  await classWithChart(page, 6, 6);
+  await page.evaluate(() => {
+    const cm = window.__cm;
+    const T = (id, x, y) => ({ id, type: 'table', x, y, rotation: 0, groups: 1, groupShift: 0,
+      seatPositions: [{ x: 14, y: 14 }, { x: 76, y: 14 }] });
+    cm.state.layoutItems.push(T('ta', 56, 84), T('tb', 280, 140), T('tc', 560, 98));
+    cm.renderLayoutCanvas();
+    cm.switchPanel('layout', document.querySelector('[data-panel=layout]'));
+  });
+  await expect(page.locator('#layoutCanvas .canvas-item')).toHaveCount(3);
+}
+const pos = page => page.evaluate(() => Object.fromEntries(window.__cm.state.layoutItems.map(i => [i.id, [Math.round(i.x), Math.round(i.y)]])));
+// A spot on the table's own surface (left padding), not on a seat or its ✕
+const center = async loc => { const b = await loc.boundingBox(); return [b.x + 6, b.y + b.height / 2]; };
+
+test('layout: seat count, shift-click select, move together, snap to a neighbour', async ({ page }) => {
+  const errors = await open(page);
+  await layoutWithTables(page);
+  await expect(page.locator('#seatCount')).toHaveText('6 seats · 12 students · 6 more needed');
+  await expect(page.locator('#seatCount')).toHaveClass(/short/);
+
+  const item = id => page.locator(`#layoutCanvas .canvas-item[data-id="${id}"] .canvas-table-free`);
+  // click A, shift-click B → 2 selected; the selection bar replaces the hint
+  let [x, y] = await center(item('ta'));
+  await page.mouse.click(x, y);
+  [x, y] = await center(item('tb'));
+  await page.keyboard.down('Shift'); await page.mouse.click(x, y); await page.keyboard.up('Shift');
+  await expect(page.locator('#selCount')).toHaveText('2 selected');
+  await expect(page.locator('#toolHint')).toBeHidden();
+
+  // drag the pair with Alt (no snapping): both move by exactly the same amount
+  const before = await pos(page);
+  await page.keyboard.down('Alt');
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(x + 20, y + 10); await page.mouse.move(x + 37, y + 23);
+  await page.mouse.up();
+  await page.keyboard.up('Alt');
+  const after = await pos(page);
+  expect([after.ta[0] - before.ta[0], after.ta[1] - before.ta[1]]).toEqual([37, 23]);
+  expect([after.tb[0] - before.tb[0], after.tb[1] - before.tb[1]]).toEqual([37, 23]);
+  expect(after.tc).toEqual(before.tc);
+
+  // a plain click on B selects just B; dragging it near C's top edge snaps level with C and shows a guide
+  [x, y] = await center(item('tb'));
+  await page.mouse.click(x, y);
+  await expect(page.locator('#selCount')).toHaveText('1 selected');
+  const dy = before.tc[1] - after.tb[1] + 4;      // 4px short of C's top
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(x - 10, y + dy / 2); await page.mouse.move(x - 20, y + dy);
+  await expect(page.locator('.layout-guide')).not.toHaveCount(0);
+  await page.mouse.up();
+  await expect(page.locator('.layout-guide')).toHaveCount(0);
+  const snapped = await pos(page);
+  expect(snapped.tb[1]).toBe(snapped.tc[1]);
+  expect(errors).toEqual([]);
+});
+
+test('layout: duplicate (Ctrl+D), box select, align, space evenly, Delete + Undo', async ({ page }) => {
+  const errors = await open(page);
+  await layoutWithTables(page);
+  const item = id => page.locator(`#layoutCanvas .canvas-item[data-id="${id}"] .canvas-table-free`);
+  let [x, y] = await center(item('ta'));
+  await page.mouse.click(x, y);
+  await page.keyboard.press('Control+d');
+  await expect(page.locator('#layoutCanvas .canvas-item')).toHaveCount(4);
+  await expect(page.locator('#seatCount')).toHaveText('8 seats · 12 students · 4 more needed');
+  const dup = await page.evaluate(() => { const it = window.__cm.state.layoutItems; return [it[0], it[3]].map(i => [i.y, i.seatPositions.length, i.id]); });
+  expect(dup[1][0]).toBe(dup[0][0]);              // same row
+  expect(dup[1][1]).toBe(2);                      // same seats
+  expect(dup[1][2]).not.toBe('ta');
+  await expect(page.locator('#selCount')).toHaveText('1 selected');   // the copy is selected
+
+  // box-select everything from an empty corner
+  const c = await page.locator('#layoutCanvas').boundingBox();
+  await page.mouse.move(c.x + 5, c.y + 5); await page.mouse.down();
+  await page.mouse.move(c.x + 400, c.y + 300); await page.mouse.move(c.x + 899, c.y + 399);
+  await page.mouse.up();
+  await expect(page.locator('#selCount')).toHaveText('4 selected');
+
+  await page.getByRole('button', { name: '⤒ Align top' }).click();
+  const tops = await page.evaluate(() => window.__cm.state.layoutItems.map(i => Math.round(i.y)));
+  expect(new Set(tops).size).toBe(1);
+  await page.getByRole('button', { name: '↔ Space evenly' }).click();
+  const gaps = await page.evaluate(() => {
+    const r = [...document.querySelectorAll('#layoutCanvas .canvas-item')].map(e => e.getBoundingClientRect()).sort((a, b) => a.left - b.left);
+    return r.slice(1).map((b, i) => Math.round(b.left - r[i].right));
+  });
+  expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThanOrEqual(1);
+
+  // Delete key removes all 4 (and their seated students); Undo brings them back
+  await page.evaluate(() => { window.__cm.state.assignments = { ta_0: 'b0' }; window.__cm.markDirty(); });
+  await page.keyboard.press('Delete');
+  await expect(page.locator('#layoutCanvas .canvas-item')).toHaveCount(0);
+  expect(await page.evaluate(() => Object.keys(window.__cm.state.assignments).length)).toBe(0);
+  await page.locator('.cm-undo-btn').click();
+  await expect(page.locator('#layoutCanvas .canvas-item')).toHaveCount(4);
+  expect(await page.evaluate(() => window.__cm.state.assignments.ta_0)).toBe('b0');
+  expect(errors).toEqual([]);
+});
+
+test('layout: plain click on empty canvas deselects; Esc deselects; new tables land on the grid', async ({ page }) => {
+  await open(page);
+  await layoutWithTables(page);
+  await page.keyboard.press('Control+a');
+  await expect(page.locator('#selCount')).toHaveText('3 selected');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#selTools')).toBeHidden();
+  await page.evaluate(() => window.__cm.setTool('table'));
+  const c = await page.locator('#layoutCanvas').boundingBox();
+  await page.mouse.click(c.x + 503, c.y + 451);
+  const last = await page.evaluate(() => { const it = window.__cm.state.layoutItems.at(-1); return [it.x % 14, it.y % 14]; });
+  expect(last).toEqual([0, 0]);
+});
+
 test('undo toast closes by itself', async ({ page }) => {
   await homeWithChart(page);
   await page.evaluate(() => window.__cm.undoToast('Test', () => {}, 400));

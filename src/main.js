@@ -35,6 +35,7 @@ import { exportNameList, importNameListFile, learnFromRosters, openNameList, ren
 import { ldAddStudent, ldClearRoster, ldDeleteGroup, ldParseRoster, ldToggleGender } from './landing/roster.js';
 import { ldAddRule, ldDeleteRule } from './landing/rules.js';
 import { initLayoutCanvas, setTool } from './layout/canvas.js';
+import { alignSelection, deleteSelection, distributeSelection, duplicateSelection, initLayoutKeys, toggleMultiTap } from './layout/selection.js';
 import { handleLayoutImg, layoutUploadImg, shrinkStoredImages } from './layout/image.js';
 import { toggleTableToolMenu, updateTableToolBadge } from './layout/tableGroups.js';
 import { clearLayout } from './layout/tables.js';
@@ -48,6 +49,11 @@ import { toggleTheme } from './ui/theme.js';
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
 // which only see global names — so they are put on window.
 Object.assign(window, {
+  alignSelection,
+  deleteSelection,
+  distributeSelection,
+  duplicateSelection,
+  toggleMultiTap,
   addLandingClass,
   addTempRule,
   autoAssign,
@@ -118,6 +124,7 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 initErrorBanner();
 
 initLayoutCanvas();
+initLayoutKeys();
 
 initAssignInteractions();
 

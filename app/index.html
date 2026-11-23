@@ -188,9 +188,20 @@
       <div class="tool-group">
         <button class="tool-btn" onclick="layoutUploadImg()">🖼 Upload Image</button>
         <button class="tool-btn" onclick="clearLayout()">🗑 Clear</button>
+        <button class="tool-btn touch-only" id="multiTapBtn" onclick="toggleMultiTap()" aria-pressed="false" title="Tap items to select several">⊞ Select several</button>
       </div>
       <div class="tool-sep"></div>
       <span style="font-size:0.72rem;color:var(--text3);padding:0 6px;" id="toolHint">Click to select items. Drag to move.</span>
+      <div class="tool-group sel-tools" id="selTools" hidden data-n="0">
+        <span class="sel-count" id="selCount"></span>
+        <button class="tool-btn" onclick="duplicateSelection()" title="Duplicate (Ctrl+D)">⧉ Duplicate</button>
+        <button class="tool-btn sel-2" onclick="alignSelection('left')" title="Line up left edges">⇤ Align left</button>
+        <button class="tool-btn sel-2" onclick="alignSelection('top')" title="Line up top edges">⤒ Align top</button>
+        <button class="tool-btn sel-3" onclick="distributeSelection('x')" title="Equal gaps left to right">↔ Space evenly</button>
+        <button class="tool-btn sel-3" onclick="distributeSelection('y')" title="Equal gaps top to bottom">↕ Space evenly</button>
+        <button class="tool-btn sel-del" onclick="deleteSelection()" title="Delete (Del)">✕ Delete</button>
+      </div>
+      <span class="seat-count" id="seatCount" aria-live="polite"></span>
       <input type="file" id="layoutImgInput" accept="image/*,.pdf" style="display:none" onchange="handleLayoutImg(event)">
     </div>
 

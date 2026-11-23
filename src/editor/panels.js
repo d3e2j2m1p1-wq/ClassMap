@@ -1,5 +1,6 @@
 import { renderAssignPanel } from '../assign/panel.js';
 import { initRuleTypeaheads, populateRuleSelects } from './rules.js';
+import { updateSeatCount } from '../layout/selection.js';
 
 // ═══════════════════════════════════════════════
 //  PANEL SWITCHING
@@ -12,6 +13,7 @@ export function switchPanel(name, btn) {
 
   if (name === 'rules') { populateRuleSelects(); initRuleTypeaheads(); }
   if (name === 'assign') renderAssignPanel();
+  if (name === 'layout') updateSeatCount();   // the roster may have changed
 }
 
 // Header "⋯" menu (Save now, Export / Import chart file)

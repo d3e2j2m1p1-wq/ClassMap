@@ -6,6 +6,7 @@ import { store } from '../core/store.js';
 import { state } from '../core/state.js';
 import { dragOffset, renderLayoutCanvas } from './canvas.js';
 import { markDirty } from '../storage/autosave.js';
+import { setSelection } from './selection.js';
 
 export function tableBBox(item) {
   if (!item.seatPositions || item.seatPositions.length === 0) return { w: 110, h: 90 };
@@ -47,10 +48,7 @@ export function makeFreeTableSeat(item, idx, pos) {
     if (e.target === del || e.button !== 0) return;
     e.stopPropagation();
     // Touching a seat also selects its table (shows the table's ✕ and ↻ on touch screens)
-    const itemEl = wrap.closest('.canvas-item');
-    document.querySelectorAll('.canvas-item').forEach(el => el.classList.remove('selected'));
-    if (itemEl) itemEl.classList.add('selected');
-    store.selectedItemId = item.id;
+    setSelection([item.id]);
     const parentEl = wrap.parentElement;
     const p0 = item.seatPositions[idx];
     const sx = e.clientX, sy = e.clientY, ox = p0.x, oy = p0.y;

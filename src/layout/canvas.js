@@ -1,8 +1,9 @@
 import { store } from '../core/store.js';
 import { state, uid } from '../core/state.js';
 import { appendGroupOutlines, closeFloatMenu, groupsText, openTableGroupsMenu } from './tableGroups.js';
-import { addSeatToTable, makeFreeTableSeat, moveItem, removeLayoutItem, stopMove, tableBBox } from './tables.js';
+import { addSeatToTable, makeFreeTableSeat, removeLayoutItem, tableBBox } from './tables.js';
 import { markDirty } from '../storage/autosave.js';
+import { GRID, clearSelection, onItemPointerDown, refreshSelection, startMarquee } from './selection.js';
 
 // ═══════════════════════════════════════════════
 //  LAYOUT CANVAS
@@ -16,7 +17,7 @@ store.selectedSeatId = null;   // a seated student picked by tap (assign panel)
 store.selectedStudentId = null; // an unplaced student picked by tap (assign panel)
 
 export const TOOL_HINTS = {
-  pointer: 'Tap or click to select. Drag to move. Drag the ↻ handle of a selected item to rotate (hold Shift = snap to 15°).',
+  pointer: 'Click to select · Shift-click or drag a box to select several · Drag to move (snaps to neighbours; hold Alt for free) · ↻ rotates.',
   seat: 'Click anywhere on the canvas to place a single seat.',
   table: 'Click to place a table. Hover Table (or tap ▾) to change seats and groups. Click a table\'s label to change just that table.',
   board: 'Click to place the board / whiteboard. Front Row and Back Row rules are measured from the board.',
@@ -48,6 +49,7 @@ export function initLayoutCanvas() {
     if (!onBg) return; // clicking an item — let item handle it
     store._canvasMouseDownTime = Date.now();
     _canvasMouseDownPos = { x: e.clientX, y: e.clientY };
+    if (currentTool === 'pointer') startMarquee(e);
   });
   wrap.addEventListener('pointerup', e => {
     if (!store._canvasMouseDownTime) return;
@@ -60,8 +62,7 @@ export function initLayoutCanvas() {
     if (dt > 350 || dx > 8 || dy > 8) return;
 
     if (currentTool === 'pointer') {
-      document.querySelectorAll('.canvas-item').forEach(el => el.classList.remove('selected'));
-      store.selectedItemId = null;
+      if (!(e.shiftKey || e.ctrlKey || e.metaKey)) clearSelection();
       return;
     }
 
@@ -74,21 +75,24 @@ export function initLayoutCanvas() {
     const rect = wrap.getBoundingClientRect();
     const x = e.clientX - rect.left + wrap.scrollLeft;
     const y = e.clientY - rect.top + wrap.scrollTop;
-    placeLayoutItem(x, y);
+    placeLayoutItem(x, y, e.altKey);
   });
   wrap.addEventListener('pointercancel', () => { store._canvasMouseDownTime = 0; });
 }
 
-export function placeLayoutItem(x, y) {
+export function placeLayoutItem(x, y, free = false) {
+  // Centre the new item on the click; its corner lands on the grid so rows line up (Alt = exactly here)
+  const at = (w, h) => free ? { x: x - w, y: y - h }
+    : { x: Math.max(0, Math.round((x - w) / GRID) * GRID), y: Math.max(0, Math.round((y - h) / GRID) * GRID) };
   if (currentTool === 'seat') {
-    addLayoutItem({ type: 'seat', x: x - 18, y: y - 18 });
+    addLayoutItem({ type: 'seat', ...at(18, 18) });
   } else if (currentTool === 'table') {
     const d = state.tableDefaults;
-    addLayoutItem({ type: 'table', x: x - 60, y: y - 50, seatPositions: defaultSeatPositions(d.seats), groups: d.groups, groupShift: 0 });
+    addLayoutItem({ type: 'table', ...at(60, 50), seatPositions: defaultSeatPositions(d.seats), groups: d.groups, groupShift: 0 });
   } else if (currentTool === 'board') {
-    addLayoutItem({ type: 'board', x: x - 75, y: y - 12 });
+    addLayoutItem({ type: 'board', ...at(75, 12) });
   } else if (currentTool === 'teacher') {
-    addLayoutItem({ type: 'teacher', x: x - 24, y: y - 24 });
+    addLayoutItem({ type: 'teacher', ...at(24, 24) });
   }
 }
 
@@ -140,11 +144,12 @@ export function renderLayoutCanvas() {
     const el = makeLayoutElement(item);
     canvas.appendChild(el);
   });
+  refreshSelection();
 }
 
 export function makeLayoutElement(item) {
   const wrap = document.createElement('div');
-  wrap.className = 'canvas-item' + (item.id === store.selectedItemId ? ' selected' : '');
+  wrap.className = 'canvas-item' + (store.selectedIds && store.selectedIds.has(item.id) ? ' selected' : '');
   wrap.style.left = item.x + 'px';
   wrap.style.top = item.y + 'px';
   wrap.dataset.id = item.id;
@@ -243,19 +248,8 @@ export function makeLayoutElement(item) {
         e.target.classList.contains('table-add-seat-btn') ||
         e.target === rotHandle ||
         e.target === delBtn) return;
-    e.stopPropagation();
-    // Select this item
-    document.querySelectorAll('.canvas-item').forEach(el => el.classList.remove('selected'));
-    wrap.classList.add('selected');
-    store.selectedItemId = item.id;
-    store.draggingItemId = item.id;
-    const cw = document.getElementById('layoutCanvasWrap');
-    const cr = cw.getBoundingClientRect();
-    dragOffset.x = e.clientX - cr.left + cw.scrollLeft - item.x;
-    dragOffset.y = e.clientY - cr.top + cw.scrollTop - item.y;
-    document.onpointermove = moveItem;
-    document.onpointerup = stopMove;
-    document.onpointercancel = stopMove;
+    // Select (Shift/Ctrl adds) and drag the whole selection — see selection.js
+    onItemPointerDown(e, item);
   });
 
   return wrap;
