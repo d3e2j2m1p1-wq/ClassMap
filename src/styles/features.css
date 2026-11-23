@@ -393,3 +393,38 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .pv-seat { fill: var(--surface3); stroke: var(--text3); stroke-width: 2; }
 .ar-name small { display: block; font-weight: 400; font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
 .ar-note { font-size: 0.75rem; color: var(--amber); margin-top: 12px; }
+
+/* ── Send & receive ── */
+.sh-dialog { width: min(560px, 100%); padding: 20px 22px 18px; position: relative; }
+.sh-dialog .ar-x { position: absolute; top: 12px; right: 12px; }
+.sh-dialog h2 { font-size: 1.1rem; margin: 0 28px 6px 0; }
+.sh-lead { font-size: 0.85rem; color: var(--text2); margin-bottom: 14px; }
+.sh-fine { font-size: 0.74rem; color: var(--text3); margin-top: 10px; line-height: 1.45; }
+.sh-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sh-choice { font: inherit; text-align: left; cursor: pointer; padding: 16px; border-radius: 12px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); display: flex; flex-direction: column; gap: 4px; }
+.sh-choice:hover { border-color: var(--blue); }
+.sh-choice b { font-size: 1rem; }
+.sh-choice span { font-size: 0.78rem; color: var(--text2); }
+.sh-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow: auto; margin: 10px 0 14px; }
+.sh-row { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; }
+.sh-row:has(input:checked) { border-color: var(--blue); }
+.sh-row span { display: flex; flex-direction: column; font-size: 0.85rem; }
+.sh-row small { color: var(--text3); font-size: 0.74rem; }
+.sh-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.sh-codebox { display: flex; gap: 18px; align-items: center; margin-top: 6px; }
+.sh-codebox p { font-size: 0.85rem; color: var(--text2); line-height: 1.45; }
+.sh-qr { flex: none; width: 150px; height: 150px; background: #fff; border-radius: 10px; padding: 4px; }
+.sh-qr svg { width: 100%; height: 100%; display: block; }
+.sh-code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 2.2rem; font-weight: 700; letter-spacing: 0.12em; margin: 6px 0 2px; color: var(--text); }
+.sh-link { background: none; border: none; padding: 0; font: inherit; color: var(--blue); text-decoration: underline; cursor: pointer; }
+.sh-what { font-size: 0.8rem; color: var(--text3); margin-top: 12px; }
+.sh-words { font-size: 1.6rem; font-weight: 700; text-align: center; padding: 14px; margin: 8px 0; border-radius: 12px; background: var(--surface2); letter-spacing: 0.02em; }
+.sh-wait { color: var(--text2); font-size: 0.85rem; padding: 6px 0; }
+.sh-err { color: var(--rose); font-size: 0.85rem; padding: 6px 0; }
+.sh-ok { color: var(--green); font-size: 0.95rem; padding: 10px 0; }
+.sh-enter { display: flex; gap: 8px; margin-bottom: 8px; }
+.sh-input { flex: 1; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 1.5rem; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 8px 12px; border-radius: 10px; background: var(--surface2); color: var(--text); border: 1px solid var(--border2); min-width: 0; }
+.sh-bar { height: 8px; border-radius: 4px; background: var(--surface2); overflow: hidden; margin-top: 8px; }
+.sh-bar i { display: block; height: 100%; width: 0; background: var(--blue); transition: width 0.2s; }
+@media (max-width: 520px) { .sh-codebox { flex-direction: column; } .sh-choices { grid-template-columns: 1fr; } }

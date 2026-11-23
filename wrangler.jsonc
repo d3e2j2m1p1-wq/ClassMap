@@ -1,8 +1,17 @@
-// Cloudflare: serve the built site (dist/) as static files. No server code.
+// Cloudflare: the site (dist/) as static files, plus a small Worker for "Send to another device".
+// The Worker only answers /api/share/…; everything else is served straight from dist/.
 {
   "name": "classmap",
+  "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
   "assets": {
-    "directory": "./dist"
-  }
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  // One short-lived room per share code. Rooms keep nothing: they pass encrypted messages
+  // between the two browsers while both are connected.
+  "durable_objects": {
+    "bindings": [{ "name": "SHARE_ROOMS", "class_name": "ShareRoom" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShareRoom"] }]
 }

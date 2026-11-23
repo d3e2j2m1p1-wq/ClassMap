@@ -863,6 +863,137 @@ test('arrange for me works with the board on a side wall, and asks for walls fir
   expect(await page.evaluate(() => window.__cm.state.layoutItems.some(i => i.type === 'room'))).toBe(true);
 });
 
+// ── Send & receive (two separate browsers = two devices; relay = the local Worker) ──
+async function deviceWithClass(browser, name = 'Period 3') {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  const errors = await open(page);
+  await page.evaluate(n => {
+    const cm = window.__cm;
+    document.getElementById('newClassInput').value = n; cm.addLandingClass();
+    const c = cm.store.landingData.classes[0];
+    ['Zoraida Quintero', 'Bartholomew Ng', 'Ana Ruiz'].forEach((nm, i) => c.students.push({ id: 's' + i, name: nm, gender: null, tags: i === 0 ? ['IEP'] : [] }));
+    c.hardRules = [{ type: 'separate', studentA: 's0', studentB: 's1' }];
+    cm.store.landingData.charts.push({ id: 'ch1', classId: c.id, name: n, savedAt: Date.now(), date: '2026-11-20',
+      data: { className: n, layoutItems: [{ id: 'seat1', type: 'seat', x: 100, y: 100, rotation: 0 }], assignments: { seat1: 's0' }, tempRules: [], sessionNotes: '' } });
+    cm.saveLandingData(); cm.showLanding();
+  }, name);
+  return { ctx, page, errors };
+}
+async function emptyDevice(browser) {
+  const ctx = await browser.newContext();
+  const page = await ctx.newPage();
+  const errors = await open(page);
+  return { ctx, page, errors };
+}
+
+test('send & receive: a class goes to another device, locked, with matching check words', async ({ browser }) => {
+  const A = await deviceWithClass(browser), B = await emptyDevice(browser);
+  // everything that goes over the wire from A, to prove the relay only sees locked data
+  const wire = [];
+  A.page.on('websocket', ws => ws.on('framesent', f => wire.push(String(f.payload))));
+
+  await A.page.getByRole('button', { name: /Send & receive/ }).click();
+  await A.page.locator('#shPickSend').click();
+  await A.page.locator('#shGo').click();
+  const code = (await A.page.locator('.sh-code').textContent()).trim();
+  expect(code).toMatch(/^[2-9A-Z]{3}-[2-9A-Z]{3}$/);
+  await expect(A.page.locator('.sh-qr svg')).toHaveCount(1);
+
+  await B.page.getByRole('button', { name: /Send & receive/ }).click();
+  await B.page.locator('#shPickRecv').click();
+  await B.page.locator('#shCode').fill(code.toLowerCase().replace('-', ''));   // typing is forgiving
+  await B.page.getByRole('button', { name: 'Connect' }).click();
+  await expect(A.page.locator('.sh-words')).toBeVisible();
+  await expect(B.page.locator('.sh-words')).toBeVisible();
+  expect(await A.page.locator('.sh-words').textContent()).toBe(await B.page.locator('.sh-words').textContent());
+
+  await A.page.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(B.page.locator('.cm-btn-confirm')).toBeVisible();
+  await expect(B.page.locator('.cm-dialog, [role=dialog]').last()).toContainText('Add “Period 3” as a new class?');
+  await B.page.locator('.cm-btn-confirm').click();
+  await expect(A.page.locator('.sh-ok')).toContainText('Sent');
+
+  const got = await B.page.evaluate(() => {
+    const L = window.__cm.store.landingData;
+    return { classes: L.classes.map(c => [c.name, c.students.length, c.hardRules.length, c.students[0].tags]), charts: L.charts.map(ch => [ch.id, ch.data.assignments.seat1]) };
+  });
+  expect(got).toEqual({ classes: [['Period 3', 3, 1, ['IEP']]], charts: [['ch1', 's0']] });
+  // the relay never saw a student's name
+  expect(wire.length).toBeGreaterThan(2);
+  expect(wire.join('\n')).not.toContain('Zoraida');
+  expect(wire.join('\n')).not.toContain('Bartholomew');
+  expect([...A.errors, ...B.errors]).toEqual([]);
+  await A.ctx.close(); await B.ctx.close();
+});
+
+test('send & receive: the same class from your other device is updated, newest chart wins; Undo', async ({ browser }) => {
+  const A = await deviceWithClass(browser);
+  const B = await emptyDevice(browser);
+  // B already has this class (same ids) with an older copy of the chart and another chart of its own
+  await B.page.evaluate(snapshot => {
+    const cm = window.__cm;
+    const s = JSON.parse(snapshot);
+    s.charts[0].savedAt -= 60000; s.charts[0].data.assignments = {};
+    s.charts.push({ ...s.charts[0], id: 'chB', savedAt: Date.now() });
+    cm.store.landingData.classes = s.classes; cm.store.landingData.charts = s.charts;
+    cm.saveLandingData(); cm.showLanding();
+  }, await A.page.evaluate(() => JSON.stringify(window.__cm.store.landingData)));
+
+  await A.page.evaluate(() => window.__cm.startSendFlow(window.__cm.everythingPayload()));
+  const code = (await A.page.locator('.sh-code').textContent()).trim();
+  await B.page.evaluate(c => window.__cm.openReceive(c), code);
+  await A.page.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(B.page.locator('.cm-btn-confirm')).toBeVisible();
+  await B.page.locator('.cm-btn-confirm').click();
+  const after = await B.page.evaluate(() => window.__cm.store.landingData.charts.map(ch => [ch.id, ch.data.assignments.seat1 || null]).sort());
+  expect(after).toEqual([['ch1', 's0'], ['chB', null]]);   // newer ch1 came over; chB stayed
+  expect(await B.page.evaluate(() => window.__cm.store.landingData.classes.length)).toBe(1);
+  await B.page.locator('.cm-undo-btn').last().click();
+  expect(await B.page.evaluate(() => window.__cm.store.landingData.charts.find(c => c.id === 'ch1').data.assignments.seat1 || null)).toBe(null);
+  await A.ctx.close(); await B.ctx.close();
+});
+
+test('send & receive: a big chart (room photo) arrives in pieces', async ({ browser }) => {
+  const A = await deviceWithClass(browser), B = await emptyDevice(browser);
+  const size = await A.page.evaluate(() => {
+    const ch = window.__cm.store.landingData.charts[0];
+    const r = new Uint8Array(900000); for (let i = 0; i < r.length; i += 65536) crypto.getRandomValues(r.subarray(i, i + 65536));
+    let s = ''; for (let i = 0; i < r.length; i += 0x8000) s += String.fromCharCode(...r.subarray(i, i + 0x8000));
+    ch.data.layoutImg = 'data:image/jpeg;base64,' + btoa(s);    // ~1.2 MB that doesn't compress
+    window.__cm.startSendFlow(window.__cm.classPayload(ch.classId));
+    return ch.data.layoutImg.length;
+  });
+  const code = (await A.page.locator('.sh-code').textContent()).trim();
+  await B.page.evaluate(c => window.__cm.openReceive(c), code);
+  await A.page.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(B.page.locator('.cm-btn-confirm')).toBeVisible({ timeout: 15000 });
+  await B.page.locator('.cm-btn-confirm').click();
+  expect(await B.page.evaluate(() => (window.__cm.store.landingData.charts[0].data.layoutImg || '').length)).toBe(size);
+  await A.ctx.close(); await B.ctx.close();
+});
+
+test('send & receive: a link opens straight to receiving; wrong or used codes say so', async ({ browser }) => {
+  const A = await deviceWithClass(browser), B = await emptyDevice(browser), C = await emptyDevice(browser);
+  await A.page.evaluate(() => { const L = window.__cm.store.landingData; window.__cm.startSendFlow(window.__cm.classPayload(L.classes[0].id)); });
+  const code = (await A.page.locator('.sh-code').textContent()).trim().replace('-', '');
+  // B opens the link from the QR code
+  await B.page.goto('/app/#receive=' + code);
+  await B.page.waitForFunction(() => window.__classmapStarted);
+  await expect(B.page.locator('.sh-words')).toBeVisible();
+  expect(await B.page.evaluate(() => location.hash)).toBe('');
+  // C tries the same code while B is connected
+  await C.page.evaluate(c => window.__cm.openReceive(c), code);
+  await expect(C.page.locator('.sh-err')).toContainText('already connected');
+  // a code nobody is sharing
+  await C.page.evaluate(() => window.__cm.openReceive('ZZZZZZ'));
+  await expect(C.page.locator('.sh-err')).toContainText("isn't active");
+  // the sender cancels: the receiver is told
+  await A.page.locator('#shareDialog .ar-x').click();
+  await expect(B.page.locator('.sh-err')).toContainText('stopped sharing');
+  await A.ctx.close(); await B.ctx.close(); await C.ctx.close();
+});
+
 test('undo toast closes by itself', async ({ page }) => {
   await homeWithChart(page);
   await page.evaluate(() => window.__cm.undoToast('Test', () => {}, 400));

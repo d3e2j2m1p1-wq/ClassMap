@@ -38,6 +38,7 @@ import { initLayoutCanvas, setTool, toggleRotateSnap, updateRotateButton } from 
 import { addWalls, openTemplateMenu } from './layout/templates.js';
 import { initRoomCheck, toggleRoomCheck } from './layout/roomCheck.js';
 import { openArrange } from './layout/arrange.js';
+import { openShare, receiveFromLink, sendCurrentChart } from './share/shareUI.js';
 import { alignSelection, deleteSelection, distributeSelection, duplicateSelection, editItemName, initLayoutKeys, numberTables, toggleMultiTap } from './layout/selection.js';
 import { handleLayoutImg, layoutUploadImg, shrinkStoredImages } from './layout/image.js';
 import { toggleTableToolMenu, updateTableToolBadge } from './layout/tableGroups.js';
@@ -52,6 +53,8 @@ import { toggleTheme } from './ui/theme.js';
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
 // which only see global names — so they are put on window.
 Object.assign(window, {
+  openShare,
+  sendCurrentChart,
   toggleRoomCheck,
   openArrange,
   addWalls,
@@ -174,6 +177,8 @@ try {
   showLanding();
   shrinkStoredImages();
   initDrive();
+  receiveFromLink();   // opened from a "Receive" link or QR code
+  window.addEventListener('hashchange', receiveFromLink);   // …or a link opened while ClassMap was already open
   // index.html shows a "couldn't start" screen if this line is never reached
   window.__classmapStarted = true;
 })();
