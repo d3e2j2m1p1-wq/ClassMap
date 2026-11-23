@@ -13,15 +13,60 @@ import { countRepeats, pairKey, partnerSeatPairs, recentPartnerPairs } from './r
 // ═══════════════════════════════════════════════
 export function autoAssign() {
   cleanAssignments();
-  const allSeats = getAllSeats();
-  if (!allSeats.length) { showToast('Add seats in the Layout tab first'); return; }
+  if (!getAllSeats().length) { showToast('Add seats in the Layout tab first'); return; }
   if (!state.students.length) { showToast('This class has no students yet'); return; }
+  const avoidEl = document.getElementById('assignAvoidRepeats');
+  const plan = planSeating({
+    keep: document.getElementById('assignKeep').checked,
+    balance: document.getElementById('assignGenderBal').value,
+    fillOrder: document.getElementById('fillOrder').value,
+    avoidRepeats: !!(avoidEl && avoidEl.checked),
+  });
+  const { best, allSeats, rules, history, pins, balance, bucketIds, keyOf, nearOrders } = plan;
+  const remaining = best.left;
 
-  const keep = document.getElementById('assignKeep').checked;
-  const balance = document.getElementById('assignGenderBal').value;
-  const fillOrder = document.getElementById('fillOrder').value;
+  const seatedNow = new Set(Object.values(state.assignments));
+  const unplaced = state.students.filter(s => !seatedNow.has(s.id)).length;
+
+  store.selectedSeatId = null;
+  store.selectedStudentId = null;
+  markDirty();
+  renderAssignPanel();
+  renderRoster();
+
+  // Groups that ended up all one roster group (uneven numbers, or a rule needed the swap)
+  let unmixed = 0;
+  if (balance === 'mixed' && bucketIds.length >= 2) {
+    const members = {};
+    allSeats.forEach(s => {
+      const sid = state.assignments[s.seatId];
+      if (s.podKey && sid) (members[s.podKey] = members[s.podKey] || []).push(keyOf[sid]);
+    });
+    unmixed = Object.values(members).filter(ks => ks.length >= 2 && ks[0] !== '_none' && new Set(ks).size === 1).length;
+  }
+
+  let msg = '✓ Auto-assigned!';
+  if (unplaced) msg += ` ${unplaced} student${unplaced !== 1 ? 's' : ''} have no seat.`;
+  if (remaining) msg += ` ${remaining} rule${remaining !== 1 ? 's' : ''} couldn't be satisfied.`;
+  if (unmixed) msg += ` ${unmixed} group${unmixed !== 1 ? 's' : ''} couldn't be mixed.`;
+  if (best.soft) msg += ` ${best.soft} tagged student${best.soft !== 1 ? 's' : ''} couldn't get their usual spot.`;
+  const missing = { teacher: "the teacher's desk", door: 'a door', window: 'a window' };
+  Object.keys(NEAR_PLACES).forEach(t => {
+    if (!nearOrders[t] && rules.some(r => r.type === t)) msg += ` Add ${missing[t]} in Layout so tagged students can sit ${t === 'window' ? 'away from' : 'near'} it.`;
+  });
+  if (best.reps) msg += ` ${best.reps} pair${best.reps !== 1 ? 's' : ''} sat together recently.`;
+  else if (history.size) msg += ' No repeat partners.';
+  if (pins.size) msg += ` ${pins.size} pinned.`;
+  showToast(msg, (remaining || unmixed || unplaced || best.reps || best.soft) ? 5000 : 2800);
+}
+
+// The seating search on its own: fills state.assignments with the best of `restarts` tries and
+// returns how it went (best.left = real rules still broken, best.soft = tag spots missed).
+// No toast, no redraw — "Arrange for me" uses it to see how well a room works for this class.
+export function planSeating({ keep = false, balance = 'mixed', fillOrder = 'front', avoidRepeats = false, restarts = 8 } = {}) {
+  cleanAssignments();
+  const allSeats = getAllSeats();
   const rules = getResolvedRules();
-
   // Pinned students always stay; "Keep students already seated" keeps everyone
   const pins = new Set(state.pins || []);
   if (!keep) {
@@ -30,8 +75,7 @@ export function autoAssign() {
     state.assignments = kept;
   }
   const locked = new Set(Object.keys(state.assignments));   // seats we must not move
-  const avoid = document.getElementById('assignAvoidRepeats');
-  const history = avoid && avoid.checked ? recentPartnerPairs(3) : new Set();
+  const history = avoidRepeats ? recentPartnerPairs(3) : new Set();
 
   // Seats front → back (measured from the board when there is one), then side to side.
   // Seats within ROW_BAND px of the same distance count as one row.
@@ -183,48 +227,14 @@ export function autoAssign() {
   // so if rules are still broken, start over with a new shuffle and keep the best result.
   const start = { ...state.assignments };
   let best = null;
-  for (let attempt = 0; attempt < 8; attempt++) {
+  for (let attempt = 0; attempt < restarts; attempt++) {
     state.assignments = { ...start };
     const r = fillAndFix();
     if (!best || r.cost < best.cost || (r.cost === best.cost && r.reps < best.reps)) best = { ...r, assignments: { ...state.assignments } };
     if (!r.cost && !r.reps) break;
   }
   state.assignments = best.assignments;
-  const remaining = best.left;
-
-  const seatedNow = new Set(Object.values(state.assignments));
-  const unplaced = state.students.filter(s => !seatedNow.has(s.id)).length;
-
-  store.selectedSeatId = null;
-  store.selectedStudentId = null;
-  markDirty();
-  renderAssignPanel();
-  renderRoster();
-
-  // Groups that ended up all one roster group (uneven numbers, or a rule needed the swap)
-  let unmixed = 0;
-  if (balance === 'mixed' && bucketIds.length >= 2) {
-    const members = {};
-    allSeats.forEach(s => {
-      const sid = state.assignments[s.seatId];
-      if (s.podKey && sid) (members[s.podKey] = members[s.podKey] || []).push(keyOf[sid]);
-    });
-    unmixed = Object.values(members).filter(ks => ks.length >= 2 && ks[0] !== '_none' && new Set(ks).size === 1).length;
-  }
-
-  let msg = '✓ Auto-assigned!';
-  if (unplaced) msg += ` ${unplaced} student${unplaced !== 1 ? 's' : ''} have no seat.`;
-  if (remaining) msg += ` ${remaining} rule${remaining !== 1 ? 's' : ''} couldn't be satisfied.`;
-  if (unmixed) msg += ` ${unmixed} group${unmixed !== 1 ? 's' : ''} couldn't be mixed.`;
-  if (best.soft) msg += ` ${best.soft} tagged student${best.soft !== 1 ? 's' : ''} couldn't get their usual spot.`;
-  const missing = { teacher: "the teacher's desk", door: 'a door', window: 'a window' };
-  Object.keys(NEAR_PLACES).forEach(t => {
-    if (!nearOrders[t] && rules.some(r => r.type === t)) msg += ` Add ${missing[t]} in Layout so tagged students can sit ${t === 'window' ? 'away from' : 'near'} it.`;
-  });
-  if (best.reps) msg += ` ${best.reps} pair${best.reps !== 1 ? 's' : ''} sat together recently.`;
-  else if (history.size) msg += ' No repeat partners.';
-  if (pins.size) msg += ` ${pins.size} pinned.`;
-  showToast(msg, (remaining || unmixed || unplaced || best.reps || best.soft) ? 5000 : 2800);
+  return { best, allSeats, rules, history, pins, balance, bucketIds, keyOf, nearOrders };
 }
 
 // Hill-climb: swap violating students with other seats while that reduces broken rules.

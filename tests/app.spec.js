@@ -716,6 +716,153 @@ test('walls: drawn round the room, box select inside does not grab them, clicks 
   await expect(page.locator('#selCount')).toHaveText('1 selected');
 });
 
+// ── Smart room: Room check, Tidy up, Arrange for me ──
+// A 26 × 20 ft room (26 px = 1 ft): walls, board on the top wall, door bottom right
+async function smartRoom(page, students = 20) {
+  await classWithChart(page, Math.ceil(students / 2), Math.floor(students / 2));
+  await page.evaluate(() => {
+    const cm = window.__cm;
+    cm.state.layoutItems = [
+      { id: 'room', type: 'room', x: 28, y: 28, w: 676, h: 520, rotation: 0 },
+      { id: 'board', type: 'board', x: 290, y: 42, w: 150, rotation: 0 },
+      { id: 'door', type: 'door', x: 560, y: 532, rotation: 0 },
+    ];
+    cm.switchPanel('layout', document.querySelector('[data-panel=layout]'));
+    cm.renderLayoutCanvas();
+  });
+}
+const issueKeys = page => page.evaluate(() => window.__cm.analyzeRoom().issues.map(i => i.key));
+
+test('room check: door, "no seats" area, behind the board; Move fixes them; walkways show', async ({ page }) => {
+  const errors = await open(page);
+  await smartRoom(page);
+  await page.evaluate(() => {
+    const cm = window.__cm;
+    const T = (id, x, y) => ({ id, type: 'table', x, y, rotation: 0, groups: 1, groupShift: 0, seatPositions: cm.defaultSeatPositions(4) });
+    cm.state.layoutItems.push(
+      { id: 'sink', type: 'zone', x: 56, y: 380, w: 140, h: 140, label: 'Sink', rotation: 0 },
+      T('ok', 280, 220), T('inDoor', 540, 400), T('inSink', 70, 390), { id: 'behind', type: 'seat', x: 340, y: 30, rotation: 0 });
+    cm.renderLayoutCanvas();
+  });
+  await page.locator('#roomCheckBtn').click();
+  await expect(page.locator('#roomCheckBtn .rc-badge')).not.toHaveText('✓');
+  const keys = await issueKeys(page);
+  expect(keys).toEqual(expect.arrayContaining(['door', 'zone', 'view-behind']));
+  await expect(page.locator('#roomCheckPanel')).toContainText('in the door\'s way');
+  await expect(page.locator('#roomCheckPanel')).toContainText('in a “no seats” area');
+  await expect(page.locator('#layoutCanvas .canvas-item.has-issue')).not.toHaveCount(0);
+
+  // Move fixes the door and the sink
+  await page.locator('.rc-issue', { hasText: "door's way" }).getByRole('button', { name: 'Move' }).click();
+  await page.locator('.rc-issue', { hasText: 'no seats' }).getByRole('button', { name: 'Move' }).click();
+  await expect.poll(() => issueKeys(page)).not.toContain('door');
+  await expect.poll(() => issueKeys(page)).not.toContain('zone');
+
+  // walkways overlay
+  await page.locator('#rcWalk').click();
+  await expect(page.locator('#layoutCanvas .walk-overlay')).toHaveCount(1);
+  // room width in feet changes the scale
+  await page.locator('#rcFeetW').fill('52');
+  await page.locator('#rcFeetW').dispatchEvent('change');
+  expect(await page.evaluate(() => window.__cm.pxPerFt())).toBe(13);
+  expect(errors).toEqual([]);
+});
+
+test('room check: a table walled in by others cannot be reached with a 3-ft walkway', async ({ page }) => {
+  await open(page);
+  await smartRoom(page);
+  const keys = await page.evaluate(() => {
+    const cm = window.__cm;
+    // a wall-to-wall row of 2-seat tables, touching, with one more table behind it
+    for (let i = 0; i < 5; i++) cm.state.layoutItems.push({ id: 'r' + i, type: 'table', x: 28 + i * 136, y: 300, rotation: 0, groups: 1, groupShift: 0, seatPositions: [{ x: 4, y: 14 }, { x: 70, y: 14 }] });
+    cm.state.layoutItems.push({ id: 'back', type: 'table', x: 300, y: 120, rotation: 0, groups: 1, groupShift: 0, seatPositions: cm.defaultSeatPositions(2) });
+    // door is below the row; the board side is cut off
+    return cm.analyzeRoom().issues.map(i => [i.key, i.ids]);
+  });
+  const walk = keys.find(k => k[0] === 'walk');
+  expect(walk).toBeTruthy();
+  expect(walk[1]).toContain('back');
+});
+
+test('tidy up straightens and lines up tables, and Undo puts them back', async ({ page }) => {
+  await open(page);
+  await smartRoom(page);
+  await page.evaluate(() => {
+    const cm = window.__cm;
+    const T = (id, x, y, r) => ({ id, type: 'table', x, y, rotation: r, groups: 1, groupShift: 0, seatPositions: cm.defaultSeatPositions(4) });
+    cm.state.layoutItems.push(T('a', 70, 200, 7), T('b', 300, 212, -4), T('c', 500, 194, 0));
+    cm.renderLayoutCanvas();
+    cm.markDirty();
+  });
+  await page.locator('#roomCheckBtn').click();
+  await page.locator('#rcTidy').click();
+  const after = await page.evaluate(() => window.__cm.state.layoutItems.filter(i => i.type === 'table').map(t => [t.rotation, Math.round(t.y)]));
+  expect(after.map(a => a[0])).toEqual([0, 0, 0]);
+  expect(new Set(after.map(a => a[1])).size).toBe(1);          // one straight row
+  await page.locator('.cm-undo-btn').last().click();
+  const back = await page.evaluate(() => window.__cm.state.layoutItems.filter(i => i.type === 'table').map(t => t.rotation));
+  expect(back).toEqual([7, -4, 0]);
+});
+
+test('arrange for me: options fit the class around the door and desk, rules are checked, Use this + Undo', async ({ page }) => {
+  const errors = await open(page);
+  await smartRoom(page, 20);
+  await page.evaluate(() => {
+    const cm = window.__cm;
+    cm.state.layoutItems.push({ id: 'desk', type: 'teacher', x: 600, y: 60, rotation: 0 }, { id: 'sink', type: 'zone', x: 42, y: 420, w: 112, h: 112, rotation: 0, label: 'Sink' });
+    cm.state.hardRules = [{ type: 'separate', studentA: 'b0', studentB: 'g0' }];
+    cm.renderLayoutCanvas();
+  });
+  await page.getByRole('button', { name: '✦ Arrange for me' }).click();
+  await expect(page.locator('.ar-card').first()).toBeVisible();
+  const cards = page.locator('.ar-card');
+  expect(await cards.count()).toBeGreaterThanOrEqual(2);
+  await expect(cards.first()).toContainText('walkways to every table');
+  await expect(cards.first()).toContainText('seating rule');
+  // every style tab renders
+  for (const tab of ['Rows', 'Pairs', 'Groups of 4', 'Groups of 6']) {
+    await page.getByRole('tab', { name: tab }).click();
+    await expect(page.locator('.ar-card').first()).toBeVisible();
+  }
+  await page.getByRole('tab', { name: 'Best for this class' }).click();
+  await page.locator('.ar-card').first().getByRole('button', { name: 'Use this' }).click();
+  await expect(page.locator('#arrangeDialog')).toHaveCount(0);
+  const result = await page.evaluate(() => {
+    const cm = window.__cm;
+    const a = cm.analyzeRoom();
+    return { seats: a.stats.seats, problems: a.issues.filter(i => i.level === 'problem').map(i => i.key), kept: ['room', 'board', 'door', 'desk', 'sink'].every(id => cm.state.layoutItems.some(i => i.id === id)) };
+  });
+  expect(result.seats).toBeGreaterThanOrEqual(20);
+  expect(result.problems).toEqual([]);
+  expect(result.kept).toBe(true);
+  await page.locator('.cm-undo-btn').last().click();
+  expect(await page.evaluate(() => window.__cm.state.layoutItems.filter(i => i.type === 'table' || i.type === 'seat').length)).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('arrange for me works with the board on a side wall, and asks for walls first', async ({ page }) => {
+  await open(page);
+  await smartRoom(page, 16);
+  const r = await page.evaluate(() => {
+    const cm = window.__cm;
+    const board = cm.state.layoutItems.find(i => i.id === 'board');
+    board.x = -20; board.y = 250; board.rotation = 90;     // on the left wall
+    const res = cm.arrangeOptions();
+    const top = res.best[0];
+    const a = cm.analyzeRoom(top.items);
+    return { style: top.style.id, seats: top.stats.seats, view: top.stats.viewProblems, problems: a.issues.filter(i => i.level === 'problem').map(i => i.key) };
+  });
+  expect(r.seats).toBeGreaterThanOrEqual(16);
+  expect(r.view).toBe(0);
+  expect(r.problems).toEqual([]);
+  // without walls: a prompt to add them
+  await page.evaluate(() => { const cm = window.__cm; cm.state.layoutItems = cm.state.layoutItems.filter(i => i.type !== 'room'); cm.renderLayoutCanvas(); });
+  await page.getByRole('button', { name: '✦ Arrange for me' }).click();
+  await expect(page.locator('#arrangeDialog')).toContainText('Add the room\'s walls first');
+  await page.locator('#arWalls').click();
+  expect(await page.evaluate(() => window.__cm.state.layoutItems.some(i => i.type === 'room'))).toBe(true);
+});
+
 test('undo toast closes by itself', async ({ page }) => {
   await homeWithChart(page);
   await page.evaluate(() => window.__cm.undoToast('Test', () => {}, 400));

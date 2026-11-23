@@ -4,6 +4,7 @@ import { appendGroupOutlines, closeFloatMenu, groupsText, openTableGroupsMenu } 
 import { addSeatToTable, makeFreeTableSeat, removeLayoutItem, tableBBox } from './tables.js';
 import { markDirty } from '../storage/autosave.js';
 import { GRID, clearSelection, editItemName, onItemPointerDown, refreshSelection, startMarquee } from './selection.js';
+import { scheduleRoomCheck } from './roomCheck.js';
 import { FIXTURE_SIZE, MIN_SIZE, RESIZE, fixtureSize, isFixture, makeFixture, sizeFixture } from './fixtures.js';
 
 // ═══════════════════════════════════════════════
@@ -151,6 +152,7 @@ export function renderLayoutCanvas() {
     canvas.appendChild(makeLayoutElement(item));
   });
   refreshSelection();
+  scheduleRoomCheck();
 }
 
 export const layer = i => i.type === 'room' ? 0 : i.type === 'zone' ? 1 : 2;

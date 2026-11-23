@@ -195,6 +195,10 @@
         <button class="tool-btn" id="rotSnapBtn" onclick="toggleRotateSnap()" aria-pressed="false">↻ 45° steps</button>
         <button class="tool-btn" onclick="openTemplateMenu(this)" title="Lay out a whole room for this class, then tweak it">Template ▾</button>
       </div>
+      <div class="tool-group">
+        <button class="tool-btn" id="roomCheckBtn" onclick="toggleRoomCheck()" title="Walkways, the door, what every seat can see, and Tidy up">Room check <span class="rc-badge">✓</span></button>
+        <button class="tool-btn" onclick="openArrange()" title="Fit rows, pairs or groups into this room around the doors, desk and board">✦ Arrange for me</button>
+      </div>
       <div class="tool-sep"></div>
       <div class="tool-group">
         <button class="tool-btn" onclick="layoutUploadImg()">🖼 Upload Image</button>
@@ -218,8 +222,11 @@
       <input type="file" id="layoutImgInput" accept="image/*,.pdf" style="display:none" onchange="handleLayoutImg(event)">
     </div>
 
-    <div class="layout-canvas-wrap" id="layoutCanvasWrap">
-      <div id="layoutCanvas"></div>
+    <div class="layout-stage">
+      <div class="layout-canvas-wrap" id="layoutCanvasWrap">
+        <div id="layoutCanvas"></div>
+      </div>
+      <aside class="room-check-panel" id="roomCheckPanel" hidden aria-label="Room check"></aside>
     </div>
   </div>
 

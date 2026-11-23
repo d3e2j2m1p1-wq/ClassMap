@@ -36,6 +36,8 @@ import { ldAddStudent, ldClearRoster, ldDeleteGroup, ldParseRoster, ldToggleGend
 import { ldAddRule, ldDeleteRule } from './landing/rules.js';
 import { initLayoutCanvas, setTool, toggleRotateSnap, updateRotateButton } from './layout/canvas.js';
 import { addWalls, openTemplateMenu } from './layout/templates.js';
+import { initRoomCheck, toggleRoomCheck } from './layout/roomCheck.js';
+import { openArrange } from './layout/arrange.js';
 import { alignSelection, deleteSelection, distributeSelection, duplicateSelection, editItemName, initLayoutKeys, numberTables, toggleMultiTap } from './layout/selection.js';
 import { handleLayoutImg, layoutUploadImg, shrinkStoredImages } from './layout/image.js';
 import { toggleTableToolMenu, updateTableToolBadge } from './layout/tableGroups.js';
@@ -50,6 +52,8 @@ import { toggleTheme } from './ui/theme.js';
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
 // which only see global names — so they are put on window.
 Object.assign(window, {
+  toggleRoomCheck,
+  openArrange,
   addWalls,
   openTemplateMenu,
   toggleRotateSnap,
@@ -132,6 +136,7 @@ initErrorBanner();
 initLayoutCanvas();
 initLayoutKeys();
 updateRotateButton();
+initRoomCheck();
 
 initAssignInteractions();
 
