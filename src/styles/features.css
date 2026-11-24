@@ -452,3 +452,30 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 
 /* shaped walls: the outline itself turns blue when selected, no box round it */
 .canvas-item.is-room.selected > .canvas-room { outline: none !important; box-shadow: none !important; border-color: transparent !important; }
+
+/* ── Import from Google Classroom (src/storage/classroom.js) ── */
+.gc-import-btn[hidden] { display: none !important; }
+.add-class-form + .gc-import-btn {
+  display: flex; align-items: center; gap: 8px; margin: 0 12px 12px; padding: 8px 10px; border-radius: 9px; cursor: pointer;
+  background: transparent; border: 1px dashed var(--border2); color: var(--text2); font: 500 0.78rem 'Geist', sans-serif;
+}
+.add-class-form + .gc-import-btn:hover { border-color: var(--green); color: var(--text); }
+.gc-mark { color: var(--green); font-size: 1rem; }
+.welcome .gc-import-btn { margin-left: 6px; }
+.gc-dialog { width: min(560px, 100%); }
+.gc-body { padding: 4px 20px 18px; display: flex; flex-direction: column; gap: 12px; }
+.gc-status { font-size: 0.86rem; color: var(--text2); padding: 12px 0; }
+.gc-status.warn { color: var(--amber); }
+.gc-list { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow: auto; }
+.gc-course { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border2); border-radius: 10px; cursor: pointer; background: var(--surface2); }
+.gc-course:has(input:checked) { border-color: var(--blue); }
+.gc-course:has(input:disabled) { opacity: 0.55; cursor: default; }
+.gc-course input { margin-top: 3px; }
+.gc-course b { display: block; font-size: 0.88rem; }
+.gc-course small { font-size: 0.74rem; color: var(--text3); }
+.gc-opts { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--text2); align-items: center; }
+.gc-opts label { display: flex; gap: 5px; align-items: center; cursor: pointer; }
+.gc-plan { font-size: 0.85rem; }
+.gc-plan ul { margin: 6px 0 6px 18px; }
+.gc-plan small { color: var(--text3); font-size: 0.74rem; }
+.gc-body .ar-actions { display: flex; justify-content: flex-end; gap: 8px; }

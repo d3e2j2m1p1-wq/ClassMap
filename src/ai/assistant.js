@@ -18,6 +18,8 @@ import { checkDevice, downloadSize, fmtGB } from './device.js';
 import { getEngine, isDownloaded, removeModelFiles } from './engine.js';
 import { describe, parseRules, planRules, readModelRules, rulesPrompt } from './rulesNL.js';
 import { FAQ, searchHelp } from './help.js';
+import { fromSpanish } from '../i18n/spanishCommands.js';
+import { isSpanish } from '../i18n/i18n.js';
 import { commandPrompt, context, planCommands, readCommand, readModelCommand, restore, snapshot } from './commands.js';
 
 let prefs = loadPrefs();
@@ -457,6 +459,7 @@ export async function send(text) {
   const box = say('bot', '<span class="ai-fine typing">Thinking</span>');
   const ctx = context();
   let cmds = readCommand(text, ctx);
+  if (!cmds || cmds[0].action === 'help') { const en = fromSpanish(text); if (en) cmds = readCommand(en, ctx) || cmds; }
   // not one of the usual phrasings: the on-device model works out what was meant (and only that)
   if (!cmds && aiOn() && (await needAI(box))) {
     box.innerHTML = '<span class="ai-fine typing">Thinking</span>';
@@ -674,7 +677,7 @@ async function runAccom() {
   const box = out.querySelector('.ai-sum');
   // the student's name isn't needed for the summary, so it isn't put in the prompt
   const summary = await stream([
-    { role: 'system', content: 'You help a teacher plan seating and daily support for one student. From the accommodations below, write 3 to 5 short bullet points (start each with "- ") that a teacher can act on in class: where to seat the student, how to give directions, attention and breaks, materials. Use only what the text says. Don’t diagnose, guess, or add anything new. No heading, no notes before or after.' },
+    { role: 'system', content: 'You help a teacher plan seating and daily support for one student. From the accommodations below, write 3 to 5 short bullet points (start each with "- ") that a teacher can act on in class: where to seat the student, how to give directions, attention and breaks, materials. Use only what the text says. Don’t diagnose, guess, or add anything new. No heading, no notes before or after.' + (isSpanish() ? ' Write the bullet points in Spanish.' : '') },
     { role: 'user', content: text },
   ], box, 300);
   if (!summary) return;

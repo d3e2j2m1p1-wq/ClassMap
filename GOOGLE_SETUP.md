@@ -1,4 +1,4 @@
-# Setting up "Sign in with Google" (Drive sync)
+# Setting up Google: "Sign in with Google" (Drive sync) and "Import from Google Classroom"
 
 ClassMap works without this. These steps turn on the optional **Sign in with Google** button,
 which keeps a copy of each teacher's classes in their own Google Drive. It's free; there is
@@ -8,8 +8,9 @@ no server to run. Takes about 20 minutes.
 1. Go to <https://console.cloud.google.com/> and sign in with the Google account that will own ClassMap.
 2. Top bar → project picker → **New project** → name it `ClassMap` → **Create**.
 
-## 2. Turn on the Google Drive API
+## 2. Turn on the Google Drive API (and the Classroom API)
 **APIs & Services → Library** → search **Google Drive API** → **Enable**.
+For **Import from Google Classroom**, also search **Google Classroom API** → **Enable**.
 
 ## 3. Set up the sign-in screen (OAuth consent)
 **APIs & Services → OAuth consent screen** (called **Google Auth Platform** in newer consoles):
@@ -21,6 +22,8 @@ no server to run. Takes about 20 minutes.
 5. **Data access / Scopes → Add scopes:** choose
    - `.../auth/drive.file` — *See, edit, create and delete only the specific Google Drive files you use with this app*
    - `openid` and `.../auth/userinfo.email`
+   - For Classroom import: `.../auth/classroom.courses.readonly` and `.../auth/classroom.rosters.readonly`
+     (read-only: class names and student names; ClassMap never writes to Classroom)
 6. While the app is in **Testing**, only the accounts you add under **Test users** can sign in
    (up to 100). Add your own account and a few teacher friends.
 
@@ -30,16 +33,18 @@ no server to run. Takes about 20 minutes.
 - **Authorized JavaScript origins** (no paths, no trailing slash):
   - `http://localhost:5173` (for `npm run dev`)
   - `http://localhost:4173` (for `npm run preview`)
-  - `https://YOURNAME.github.io` (your live site; later also your own domain, e.g. `https://classmap.example`)
+  - `https://classmap.dev` and `https://www.classmap.dev` (the live site)
 - No redirect URIs are needed.
 - **Create** → copy the **Client ID** (ends in `.apps.googleusercontent.com`).
 
 ## 5. Put the client ID in ClassMap
 - **On your computer:** copy `.env.example` to `.env` and paste it after `VITE_GOOGLE_CLIENT_ID=`.
   Restart `npm run dev`. The home page now shows **Sign in with Google**.
-- **On GitHub:** repo **Settings → Secrets and variables → Actions → Variables → New repository variable**
-  - Name: `VITE_GOOGLE_CLIENT_ID` · Value: the client ID.
-  The deploy workflow passes it to the build.
+- **On Cloudflare:** dash.cloudflare.com → **Workers & Pages → classmap → Settings → Build →
+  Variables and secrets → Add** — Name: `VITE_GOOGLE_CLIENT_ID` · Value: the client ID (type: text).
+  Then redeploy (push any commit, or **Deployments → Retry**). The build bakes it into the site, and
+  both buttons appear: **Sign in with Google** at the top of the home page and
+  **Import from Google Classroom** under the class list.
 
 The client ID is not a secret (it's visible in every web app that uses Google sign-in);
 Google only accepts it from the origins you listed in step 4.
@@ -52,6 +57,15 @@ In Testing mode only your test users can sign in. To let any teacher sign in:
 3. OAuth consent screen → **Publish app** → submit for verification.
    `drive.file`, `openid` and `email` are **non-sensitive** scopes, so this is the light review
    (brand check), not the full security assessment. It usually takes a few days.
+4. **Classroom import adds sensitive scopes** (`classroom.courses.readonly`, `classroom.rosters.readonly`).
+   Google's review for those asks for a short screen recording showing how each permission is used
+   (open ClassMap → Import from Google Classroom → pick classes → Import) and an explanation that
+   names stay in the teacher's browser. Allow one to a few weeks. Until it's approved, only your
+   test users can import; Drive sync can be published on its own first if you leave the Classroom
+   scopes off the consent screen.
+5. Some school districts block apps their admins haven't approved. If a teacher sees "Google didn't
+   allow ClassMap to read Classroom", their admin can allow ClassMap in the Google Admin console
+   (Security → API controls → App access control).
 
 ## How it behaves
 - Signing in uploads the classes on this device. Signing in on a second device merges both.

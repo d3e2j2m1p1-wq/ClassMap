@@ -53,9 +53,11 @@ import { initStorage } from './storage/landingData.js';
 import { exportData, importDataFromFile } from './storage/chartFile.js';
 import { toggleTheme } from './ui/theme.js';
 import { initAssistant, openPanel as openAssistant } from './ai/assistant.js';
+import { getLang, initLanguage, setLanguage } from './i18n/i18n.js';
 import { fitZoom, initZoom, setZoom, zoomOf } from './ui/zoom.js';
 import { classPanelTab, toggleClassPanel } from './assign/sidePanel.js';
 import { closeTools, openTools } from './tools/tools.js';
+import { classroomEnabled, openClassroomImport } from './storage/classroom.js';
 import { initAttendanceMode, setAttendanceMode } from './assign/attendanceMode.js';
 import { initParticipationMode, setPointsMode } from './assign/participationMode.js';
 import './styles/tools.css';
@@ -129,8 +131,10 @@ Object.assign(window, {
   toggleTableToolMenu,
   toggleTheme,
   openAssistant,
+  toggleLanguage,
   classPanelTab,
   openTools,
+  openClassroomImport,
   setAttendanceMode,
   setPointsMode,
   closeTools,
@@ -153,6 +157,8 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
 });
 
 initErrorBanner();
+initLanguage();     // English or Spanish (🌐 on the home page)
+langButtons();
 
 initLayoutCanvas();
 initLayoutKeys();
@@ -200,6 +206,7 @@ try {
   initZoom();            // − / Fit / + and pinch on the room
   initAttendanceMode();  // ✓ Attendance in the Assign view
   initParticipationMode(); // ★ Points in the Assign view
+  if (classroomEnabled()) document.querySelectorAll('.gc-import-btn').forEach(b => { b.hidden = false; });
   initAssistant();       // help + on-device AI (lower right)
   // index.html shows a "couldn't start" screen if this line is never reached
   window.__classmapStarted = true;
@@ -210,4 +217,17 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(new URL('../sw.js', location.href))
     .then(() => console.log('ClassMap SW registered'))
     .catch(e => console.warn('SW registration failed:', e));
+}
+
+// ── Language (🌐 on the home page and in ⋯) ──
+function langButtons() {
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    const label = getLang() === 'es' ? '🌐 English' : '🌐 Español';
+    const span = b.querySelector('span');
+    (span || b).textContent = label;
+  });
+}
+function toggleLanguage() {
+  setLanguage(getLang() === 'es' ? 'en' : 'es');
+  langButtons();
 }

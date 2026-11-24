@@ -46,7 +46,15 @@
     <li>ClassMap saves one file, <b>“ClassMap data.json”</b>, in your Google Drive. It contains the same information that is stored on your device.</li>
     <li>Your browser talks to Google directly. The sign-in is kept only in your browser's memory for about an hour and is never stored or sent to us.</li>
   </ul>
-  <p>ClassMap's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. Data from Google is used only to provide ClassMap's sync feature to you. It is not used for advertising, not sold, not shared with anyone, and not used to train AI or machine-learning models.</p>
+  <h2>Import from Google Classroom (optional)</h2>
+  <p>Teachers can import their class lists from Google Classroom instead of typing them. If you do:</p>
+  <ul>
+    <li>ClassMap asks Google for <b>read-only</b> access to your Classroom classes and their rosters (<code>classroom.courses.readonly</code> and <code>classroom.rosters.readonly</code>). It reads only class names and students' names. It does not read email addresses, photos, coursework or grades, and it never changes anything in Classroom.</li>
+    <li>Your browser fetches the lists directly from Google and saves the names on your device, like a roster you typed. Nothing passes through ClassMap's server, and nothing is sent to us.</li>
+    <li>The sign-in is kept only in your browser's memory for about an hour and is never stored.</li>
+  </ul>
+
+  <p>ClassMap's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. Data from Google is used only to provide ClassMap's sync and roster import features to you. It is not used for advertising, not sold, not shared with anyone, and not used to train AI or machine-learning models.</p>
 
   <h2>Send &amp; receive (optional)</h2>
 <p><em>Send &amp; receive</em> moves a class, a chart, or everything to another device — yours or another teacher's — without a file. Here is exactly what happens:</p>

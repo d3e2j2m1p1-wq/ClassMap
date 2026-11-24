@@ -52,7 +52,7 @@ const RULE_WORDS = /\b(apart|separate|away from|together|next to|near|beside|sam
 export function splitNames(s) {
   const text = String(s || '').trim();
   if (/\n/.test(text)) return parseRosterText(text).map(n => n.replace(/^([^,]+),\s*(.+)$/, '$2 $1').trim()).filter(Boolean);
-  return text.split(/\s*(?:,|;|\band\b|&|\+)\s*/i).map(unquote).filter(n => n && n.length < 60);
+  return text.split(/\s*(?:,|;|\band\b|\by\b|&|\+)\s*/i).map(unquote).filter(n => n && n.length < 60);
 }
 
 // → [{ action, ... }] or null when it isn't one of the usual phrasings
@@ -160,7 +160,7 @@ Classes: ${ctx.classes.map(c => c.name).join(', ') || '(none yet)'}
 Current class: ${ctx.cls ? ctx.cls.name : '(none)'}${ctx.editing ? ' (a seating chart is open)' : ''}
 Students: ${names || '(none)'}
 Tags: ${ctx.cls ? classTags(ctx.cls).join(', ') : ''}
-Use names exactly as the teacher wrote them. Never invent students. If the message asks for several things, return several actions in order.` },
+Use names exactly as the teacher wrote them. Never invent students. The teacher may write in Spanish; the JSON stays as shown. If the message asks for several things, return several actions in order.` },
     { role: 'user', content: 'Can you make me a new class for 5th period and put Jo and Sam in it?' },
     { role: 'assistant', content: '[{"action":"create_class","name":"5th Period","students":["Jo","Sam"]}]' },
     { role: 'user', content: 'Jo keeps talking to Sam, they need to be split up' },

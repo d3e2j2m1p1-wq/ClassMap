@@ -66,6 +66,7 @@
         <button class="tm-item" onclick="openTools('print');closeMoreMenu()"><span>🏷 Name tents &amp; desk labels</span><small>labels print in seat order</small></button>
         <button class="tm-item phone-only" onclick="openPresent();closeMoreMenu()"><span>▶ Present</span><small>full screen, names only</small></button>
         <button class="tm-item phone-only" onclick="toggleTheme();closeMoreMenu()"><span>◐ Light / dark</span></button>
+        <button class="tm-item lang-btn" onclick="toggleLanguage();closeMoreMenu()" data-no-i18n><span>🌐 Español</span></button>
         <button class="tm-item" onclick="manualSave();closeMoreMenu()"><span>💾 Save now</span><small>also saves automatically</small></button>
         <button class="tm-item" onclick="sendCurrentChart();closeMoreMenu()"><span>⇄ Send to another device…</span><small>no file needed</small></button>
         <button class="tm-item" onclick="exportData();closeMoreMenu()"><span>⬇ Export chart file</span></button>
@@ -344,6 +345,7 @@
       <button class="btn btn-ghost btn-sm" onclick="exportEverything()" title="Download every class, chart and the name list as one file">⬇ Back up everything</button>
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('restoreFile').click()" title="Add a class from an exported chart file, or restore a full backup">📂 Import file</button>
       <button class="btn btn-ghost btn-sm" onclick="openNameList()" title="Names ClassMap has learned for automatic sorting">📖 Name list</button>
+      <button class="btn btn-ghost btn-sm lang-btn" onclick="toggleLanguage()" data-no-i18n title="Español / English">🌐 Español</button>
     </div>
     <input type="file" id="restoreFile" accept=".json,application/json" style="display:none" onchange="restoreEverything(this)">
   </div>
@@ -365,6 +367,7 @@
         <input class="add-class-input" id="newClassInput" placeholder="New class name..." onkeydown="if(event.key==='Enter')addLandingClass()">
         <button class="btn btn-primary btn-sm" onclick="addLandingClass()">Add</button>
       </div>
+      <button type="button" class="gc-import-btn" onclick="openClassroomImport()" hidden><span class="gc-mark" aria-hidden="true">▦</span> Import from Google Classroom</button>
     </div>
 
     <!-- Class detail panel — Charts / Roster / Rules tabs -->
@@ -379,6 +382,7 @@
             <li><b>Auto-assign</b> — ClassMap follows your rules and mixes groups.</li>
           </ol>
           <button class="btn btn-primary" onclick="createSampleClass()">Try a sample class</button>
+          <button type="button" class="btn btn-ghost gc-import-btn" onclick="openClassroomImport()" hidden>▦ Import from Google Classroom</button>
           <p class="welcome-note">Everything stays on this device.</p>
         </div>
         <div class="select-hint">

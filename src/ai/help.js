@@ -1,3 +1,4 @@
+import { isSpanish, translate } from '../i18n/i18n.js';
 // ═══════════════════════════════════════════════
 //  HELP SEARCH — works with the AI off.
 //  Short answers about the app, plus every section of the guides on classmap.dev.
@@ -60,9 +61,11 @@ async function loadGuides() {
   return out;
 }
 
-const STOP = new Set('a an the to of in on for and or i my do does how what can is it be with at from this that me you your we our'.split(' '));
-const words = s => String(s).toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w && !STOP.has(w));
-const stem = w => w.replace(/(ing|ed|es|s)$/, '');
+const STOP = new Set(('a an the to of in on for and or i my do does how what can is it be with at from this that me you your we our ' +
+  'el la los las un una unos unas de del al y o en con por para que qué cómo como mi mis tu tus se es son lo le me puedo hago hacer').split(' '));
+const plain = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const words = s => plain(s).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w && !STOP.has(w));
+const stem = w => w.replace(/(ing|ed|es|s|ar|er|ir|o|a)$/, '');
 
 function score(qWords, text, boost = 1) {
   const t = words(text).map(stem);
@@ -76,7 +79,9 @@ function score(qWords, text, boost = 1) {
 export async function searchHelp(query, limit = 5) {
   const q = words(query).map(stem);
   if (!q.length) return [];
-  const faq = FAQ.map(f => ({ kind: 'faq', title: f.q, text: f.a, score: score(q, f.q + ' ' + f.k, 1.5) + score(q, f.a, 0.5) }));
+  // in Spanish, the Spanish wording of each answer is searched too
+  const es = s => (isSpanish() ? ' ' + translate(s) : '');
+  const faq = FAQ.map(f => ({ kind: 'faq', title: f.q, text: f.a, score: score(q, f.q + es(f.q) + ' ' + f.k, 1.5) + score(q, f.a + es(f.a), 0.5) }));
   const guides = (await loadGuides()).map(g => ({ kind: 'guide', title: g.heading ? `${g.title} — ${g.heading}` : g.title, text: g.text.trim(), url: g.url, score: score(q, g.heading, 1.2) + score(q, g.text, 0.4) + score(q, g.title, 0.6) }));
   return [...faq, ...guides].filter(r => r.score >= 2).sort((a, b) => b.score - a.score).slice(0, limit);
 }
