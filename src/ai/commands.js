@@ -26,6 +26,9 @@ import { renderAssignPanel } from '../assign/panel.js';
 import { renderRoster } from '../editor/roster.js';
 import { describe, findStudents, parseRules, rosterIndex } from './rulesNL.js';
 import { openTools } from '../tools/tools.js';
+import { getDay, setStatus, statusOf } from '../tools/attendance.js';
+import { decorateAttendance, setAttendanceMode } from '../assign/attendanceMode.js';
+import { switchPanel } from '../editor/panels.js';
 
 // ── Context: where the teacher is ──
 export function context() {
@@ -81,6 +84,14 @@ export function readCommand(raw, ctx) {
   if ((m = /^(?:tag|mark|label|flag)\s+(.+?)\s+(?:as|with)\s+(?:an?\s+)?["“]?(.+?)["”]?(?:\s+tag)?[.!]?$/i.exec(text))) return [{ action: 'tag', names: splitNames(m[1]), tag: unquote(m[2]) }];
   if ((m = /^(?:give|add)\s+(?:an?\s+)?["“]?(.+?)["”]?\s+tag\s+to\s+(.+?)[.!]?$/i.exec(text))) return [{ action: 'tag', names: splitNames(m[2]), tag: unquote(m[1]) }];
 
+  // ── attendance (today, this device only) ──
+  if (/^who(?:'s| is| was| are)?\s+(absent|out|missing|late|tardy|here)(?:\s+today)?\??$|^(?:show|list)\s+(?:today'?s\s+)?attendance|^attendance\??$/i.test(text)) return [{ action: 'list_absent' }];
+  if ((m = /^(?:mark|put|set)\s+(.+?)\s+(?:as\s+)?(absent|out|missing|late|tardy|here|present)(?:\s+today)?[.!]?$/i.exec(text)) || (m = /^(.+?)\s+(?:is|are)\s+(absent|out|missing|late|tardy|here|present)(?:\s+today)?[.!]?$/i.exec(text))) {
+    const st = /absent|out|missing/i.test(m[2]) ? 'absent' : /late|tardy/i.test(m[2]) ? 'tardy' : 'here';
+    return [{ action: 'attendance', names: splitNames(m[1]), status: st }];
+  }
+  if (/^(?:take|do|start)\s+(?:the\s+)?attendance\b|^roll call$/i.test(text)) return [{ action: 'take_attendance' }];
+
   // ── classroom tools ──
   if (/\b(pick|choose|call on|draw)\s+(a\s+|one\s+)?(random\s+)?(name|student|kid|someone|person)\b|\bname picker\b|\brandom (name|student)\b/i.test(text)) return [{ action: 'pick_name' }];
   if ((m = /\b(?:make|create|split (?:the class |them |everyone )?into|put (?:them |everyone |the class )?(?:in|into)|form)\s+(?:some\s+)?(?:(\d+|two|three|four|five|six|seven|eight)\s+)?(?:random\s+)?groups?(?:\s+of\s+(\d+|two|three|four|five|six))?\b|\bgroup maker\b/i.exec(text))) {
@@ -125,6 +136,7 @@ const SHAPES = `{"action":"create_class","name":"Period 4","students":["Liam","A
 {"action":"swap","a":"Liam","b":"Ana"}   {"action":"seat_near","a":"Liam","b":"Ana"}
 {"action":"pin","names":["Mia"]}   {"action":"unpin","names":["Mia"]}   {"action":"unseat","names":["Mia"]}
 {"action":"auto_assign"}
+{"action":"attendance","names":["Liam"],"status":"absent"}   (status: absent, tardy or here; for today)   {"action":"list_absent"}   {"action":"take_attendance"}
 {"action":"pick_name"}   (call on a random student)   {"action":"make_groups","size":4}   or   {"action":"make_groups","count":6}
 {"action":"where","name":"Liam"}   {"action":"neighbors","name":"Liam"}   {"action":"unplaced"}
 {"action":"check_rules"}   {"action":"list_rules"}   {"action":"list_tag","tag":"IEP"}
@@ -152,7 +164,7 @@ Use names exactly as the teacher wrote them. Never invent students. If the messa
   ];
 }
 
-const KNOWN = new Set(['pick_name', 'make_groups', 'create_class', 'add_students', 'tag', 'untag', 'rules', 'new_chart', 'open_class', 'swap', 'seat_near', 'pin', 'unpin', 'unseat', 'auto_assign', 'where', 'neighbors', 'unplaced', 'check_rules', 'list_rules', 'list_tag', 'count', 'list_students', 'list_classes', 'help', 'none']);
+const KNOWN = new Set(['attendance', 'list_absent', 'take_attendance', 'pick_name', 'make_groups', 'create_class', 'add_students', 'tag', 'untag', 'rules', 'new_chart', 'open_class', 'swap', 'seat_near', 'pin', 'unpin', 'unseat', 'auto_assign', 'where', 'neighbors', 'unplaced', 'check_rules', 'list_rules', 'list_tag', 'count', 'list_students', 'list_classes', 'help', 'none']);
 export function readModelCommand(reply) {
   const m = String(reply).match(/\[[\s\S]*\]|\{[\s\S]*\}/);
   if (!m) return null;
@@ -163,7 +175,7 @@ export function readModelCommand(reply) {
   const str = x => typeof x === 'string' ? x.trim().slice(0, 80) : '';
   const list = x => (Array.isArray(x) ? x : typeof x === 'string' ? splitNames(x) : []).map(str).filter(Boolean).slice(0, 60);
   const num = x => (Number.isFinite(+x) && +x > 0 && +x < 40 ? +x : null);
-  return arr.map(c => ({ action: c.action, size: num(c.size), count: num(c.count), name: str(c.name), names: list(c.names), students: list(c.students), tag: str(c.tag), a: str(c.a), b: str(c.b), text: str(c.text), query: str(c.query) })).slice(0, 6);
+  return arr.map(c => ({ action: c.action, status: ['absent', 'tardy', 'here'].includes(c.status) ? c.status : 'absent', size: num(c.size), count: num(c.count), name: str(c.name), names: list(c.names), students: list(c.students), tag: str(c.tag), a: str(c.a), b: str(c.b), text: str(c.text), query: str(c.query) })).slice(0, 6);
 }
 
 // ══ 3. Plans ══
@@ -239,6 +251,37 @@ function planOne(c, ctx) {
   const cls = ctx.cls;
   switch (c.action) {
     case 'help': return { kind: 'help', query: c.query || '' };
+    case 'attendance': {
+      if (!cls) return needClass();
+      const r = whoAll(ctx, c.names || []);
+      if (r.pick) return { kind: 'pick', text: r.pick.text, options: r.pick.pick };
+      if (!r.students.length) return { kind: 'answer', html: 'I didn’t find those students.' + missingNote(r.missing) };
+      const word = { absent: 'absent', tardy: 'late', here: 'here' }[c.status];
+      const before = r.students.map(s => [s.id, statusOf(cls.id, s.id)]);
+      return {
+        kind: 'plan',
+        items: [`Mark ${list(r.students.map(s => s.name))} <b>${word}</b> for today`],
+        note: missingNote(r.missing),
+        apply: () => { r.students.forEach(s => setStatus(cls.id, s.id, c.status)); try { decorateAttendance(); } catch { /* not on screen */ } },
+        undo: () => { before.forEach(([id, st]) => setStatus(cls.id, id, st)); try { decorateAttendance(); } catch { /* not on screen */ } },
+        done: `Marked ${word}.`,
+      };
+    }
+    case 'list_absent': {
+      if (!cls) return needClass();
+      const d = getDay(cls.id);
+      const nm = ids => list(ids.map(id => (cls.students.find(s => s.id === id) || {}).name).filter(Boolean));
+      return { kind: 'answer', html: !d.absent.length && !d.tardy.length ? `Nobody is marked absent or late in ${esc(cls.name)} today.`
+        : `${d.absent.length ? `<b>Absent:</b> ${nm(d.absent)}. ` : ''}${d.tardy.length ? `<b>Late:</b> ${nm(d.tardy)}.` : ''}` };
+    }
+    case 'take_attendance':
+      if (!cls) return needClass();
+      if (ctx.editing) {
+        try { switchPanel('assign', document.querySelector('.tab-btn[data-panel=assign]')); setAttendanceMode(true); } catch { /* not on screen */ }
+        return { kind: 'answer', html: 'Attendance is on: tap each absent student on the chart (tap again for late).' };
+      }
+      openTools('picker', { here: true });
+      return { kind: 'answer', html: 'Tap each absent student (tap again for late).' };
     case 'pick_name':
       if (!cls) return needClass();
       openTools('picker');

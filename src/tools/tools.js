@@ -2,23 +2,26 @@
 //  CLASSROOM TOOLS — full screen, projector-friendly
 //  🎲 Name picker: everyone gets a turn before anyone repeats (the round is remembered on this device)
 //  👥 Group maker: groups for an activity, following the class's rules; doesn't touch any chart
-//  "Who's here" is shared by both: tap a name to mark them absent for today.
+//  "Here" is today's attendance (shared with the seating chart): absent students are skipped.
+//  The picker also has a skip list: students the teacher never wants called on at random.
 // ═══════════════════════════════════════════════
 import { store } from '../core/store.js';
 import { esc } from '../core/state.js';
 import { showToast } from '../core/ui.js';
 import { editorOpen } from '../storage/autosave.js';
+import { saveLandingData } from '../storage/landingData.js';
 import { makeGroups } from './groups.js';
+import { clearDay, cycleStatus, getDay, summaryText } from './attendance.js';
 
 let ov = null;
 let tool = 'picker';
 let classId = null;
-let showHere = false;
+let showHere = false;     // the attendance list
+let showSkip = false;     // the picker's skip list
 let groupsOut = null;
 let spinTimer = null;
 const opts = { size: 4, mode: 'size', count: 6, followRules: true, mix: false, avoidRecent: true };
 
-const today = () => new Date().toISOString().slice(0, 10);
 const cls = () => (store.landingData?.classes || []).find(c => c.id === classId) || null;
 
 // ── Small per-device memory (not synced, not exported) ──
@@ -26,11 +29,14 @@ const KEY = () => `cm-tools-${classId}`;
 function mem() {
   let m = {};
   try { m = JSON.parse(localStorage.getItem(KEY()) || '{}'); } catch { /* none */ }
-  if (m.absentDay !== today()) { m.absent = []; m.absentDay = today(); }   // absences reset each day
-  return { picked: [], absent: [], lastGroups: [], noRepeats: true, ...m };
+  return { picked: [], lastGroups: [], noRepeats: true, ...m };
 }
 function saveMem(m) { try { localStorage.setItem(KEY(), JSON.stringify(m)); } catch { /* private mode */ } }
-const here = () => { const m = mem(); return (cls()?.students || []).filter(s => !m.absent.includes(s.id)); };
+// Everyone who isn't marked absent today (late counts as here)
+const here = () => { const out = getDay(classId).absent; return (cls()?.students || []).filter(s => !out.includes(s.id)); };
+// The picker also leaves out the class's skip list
+const skipList = () => cls()?.pickerSkip || [];
+const pickable = () => here().filter(s => !skipList().includes(s.id));
 
 // ── Open / close ──
 export function openTools(which = 'picker', options = {}) {
@@ -41,7 +47,8 @@ export function openTools(which = 'picker', options = {}) {
   tool = which;
   Object.assign(opts, options);
   groupsOut = null;
-  showHere = false;
+  showHere = !!options.here;
+  showSkip = false;
   closeTools();
   ov = document.createElement('div');
   ov.className = 'tools-view';
@@ -63,7 +70,7 @@ export function closeTools() {
 }
 function onKey(e) {
   if (!ov) return;
-  if (e.key === 'Escape') { e.preventDefault(); if (showHere) { showHere = false; render(); } else closeTools(); return; }
+  if (e.key === 'Escape') { e.preventDefault(); if (showHere || showSkip) { showHere = showSkip = false; render(); } else closeTools(); return; }
   if (e.target.closest('input, select, textarea')) return;
   if (tool === 'picker' && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); pick(); }
 }
@@ -82,46 +89,73 @@ function render() {
       <button type="button" class="tools-here ${n < total ? 'some-out' : ''}" aria-expanded="${showHere}">Here: ${n}/${total}</button>
       <button type="button" class="tools-exit">Exit <kbd>Esc</kbd></button>
     </div>
-    ${showHere ? hereHTML(c, m) : ''}
+    ${showHere ? hereHTML(c) : showSkip ? skipHTML(c) : ''}
     <div class="tools-stage">${tool === 'picker' ? pickerHTML(c, m) : groupsHTML(c)}</div>`;
   ov.querySelectorAll('.tools-tab').forEach(b => b.onclick = () => { tool = b.dataset.t; render(); });
   ov.querySelector('.tools-exit').onclick = closeTools;
-  ov.querySelector('.tools-here').onclick = () => { showHere = !showHere; render(); };
+  ov.querySelector('.tools-here').onclick = () => { showHere = !showHere; showSkip = false; render(); };
   if (showHere) wireHere();
+  if (showSkip) wireSkip();
   (tool === 'picker' ? wirePicker : wireGroups)();
 }
 
-// ── Who's here ──
-function hereHTML(c, m) {
+// ── Who's here (today's attendance, shared with the seating chart) ──
+function hereHTML(c) {
+  const d = getDay(classId);
   const kids = [...c.students].sort((a, b) => a.name.localeCompare(b.name));
+  const st = id => d.absent.includes(id) ? 'out' : d.tardy.includes(id) ? 'late' : '';
   return `<div class="tools-here-panel">
-      <p>Tap anyone who’s absent today. They’re left out of picks and groups until tomorrow.</p>
-      <div class="tools-chips">${kids.map(s => `<button type="button" class="tools-chip ${m.absent.includes(s.id) ? 'out' : ''}" data-id="${esc(s.id)}" aria-pressed="${m.absent.includes(s.id)}">${esc(s.name)}</button>`).join('')}</div>
-      <div class="tools-row"><button type="button" class="tools-btn ghost tools-all-here">Everyone’s here</button><button type="button" class="tools-btn tools-here-done">Done</button></div>
+      <p>Tap a name once for <b>absent</b>, twice for <b>late</b>, again for here. Absent students are skipped until tomorrow.</p>
+      <div class="tools-chips">${kids.map(s => `<button type="button" class="tools-chip ${st(s.id)}" data-id="${esc(s.id)}">${esc(s.name)}${st(s.id) === 'late' ? ' <small>late</small>' : ''}</button>`).join('')}</div>
+      <div class="tools-row"><button type="button" class="tools-btn ghost tools-all-here">Everyone’s here</button><button type="button" class="tools-btn ghost tools-copy-att">Copy attendance</button><button type="button" class="tools-btn tools-here-done">Done</button></div>
     </div>`;
 }
 function wireHere() {
-  ov.querySelectorAll('.tools-chip').forEach(b => b.onclick = () => {
-    const m = mem();
-    const id = b.dataset.id;
-    m.absent = m.absent.includes(id) ? m.absent.filter(x => x !== id) : [...m.absent, id];
-    saveMem(m);
+  ov.querySelectorAll('.tools-here-panel .tools-chip').forEach(b => b.onclick = () => {
+    cycleStatus(classId, b.dataset.id);
     groupsOut = null;
     render();
   });
-  ov.querySelector('.tools-all-here').onclick = () => { const m = mem(); m.absent = []; saveMem(m); render(); };
+  ov.querySelector('.tools-all-here').onclick = () => { clearDay(classId); render(); };
+  ov.querySelector('.tools-copy-att').onclick = async () => {
+    try { await navigator.clipboard.writeText(summaryText(cls())); showToast('Attendance copied'); } catch { showToast('Couldn’t copy here'); }
+  };
   ov.querySelector('.tools-here-done').onclick = () => { showHere = false; render(); };
+}
+
+// ── The picker's skip list (saved with the class) ──
+function skipHTML(c) {
+  const kids = [...c.students].sort((a, b) => a.name.localeCompare(b.name));
+  const skip = skipList();
+  return `<div class="tools-here-panel">
+      <p>Students on this list are never picked at random (they still join groups). Tap a name to add or remove them.</p>
+      <div class="tools-chips">${kids.map(s => `<button type="button" class="tools-chip ${skip.includes(s.id) ? 'skip' : ''}" data-id="${esc(s.id)}" aria-pressed="${skip.includes(s.id)}">${esc(s.name)}</button>`).join('')}</div>
+      <div class="tools-row">${skip.length ? '<button type="button" class="tools-btn ghost tools-skip-clear">Clear the list</button>' : ''}<button type="button" class="tools-btn tools-skip-done">Done</button></div>
+    </div>`;
+}
+function wireSkip() {
+  const c = cls();
+  ov.querySelectorAll('.tools-here-panel .tools-chip').forEach(b => b.onclick = () => {
+    const id = b.dataset.id;
+    const list = skipList();
+    c.pickerSkip = list.includes(id) ? list.filter(x => x !== id) : [...list, id];
+    saveLandingData();
+    render();
+  });
+  ov.querySelector('.tools-skip-clear')?.addEventListener('click', () => { c.pickerSkip = []; saveLandingData(); render(); });
+  ov.querySelector('.tools-skip-done').onclick = () => { showSkip = false; render(); };
 }
 
 // ══ 🎲 Name picker ══
 let current = null;
 function pool(m) {
-  const kids = here();
+  const kids = pickable();
   if (!m.noRepeats) return kids;
   return kids.filter(s => !m.picked.includes(s.id));
 }
 function pickerHTML(c, m) {
-  const left = pool(m), kids = here();
+  const left = pool(m), kids = pickable();
+  const absent = c.students.length - here().length, skipped = here().length - kids.length;
   const done = m.noRepeats && kids.length && !left.length;
   const recent = m.picked.slice(-8).reverse().map(id => c.students.find(s => s.id === id)).filter(Boolean);
   return `
@@ -131,9 +165,10 @@ function pickerHTML(c, m) {
         ${done ? '<button type="button" class="tools-btn big picker-new">Start a new round</button>'
           : `<button type="button" class="tools-btn big picker-go" ${kids.length ? '' : 'disabled'}>Pick a name</button>`}
       </div>
-      <p class="picker-left">${m.noRepeats ? `${left.length} of ${kids.length} still to go this round` : `Picking from ${kids.length}`}${kids.length < c.students.length ? ` · ${c.students.length - kids.length} absent` : ''}</p>
+      <p class="picker-left">${m.noRepeats ? `${left.length} of ${kids.length} still to go this round` : `Picking from ${kids.length}`}${absent ? ` · ${absent} absent` : ''}${skipped ? ` · ${skipped} skipped` : ''}</p>
       <div class="tools-row center small">
         <label class="tools-check"><input type="checkbox" class="picker-norep" ${m.noRepeats ? 'checked' : ''}> Everyone once before repeats</label>
+        <button type="button" class="tools-link picker-skip">Skip list${skipList().length ? ` (${skipList().length})` : ''}</button>
         ${m.picked.length ? '<button type="button" class="tools-link picker-undo">Put the last name back</button><button type="button" class="tools-link picker-reset">Start over</button>' : ''}
       </div>
       ${recent.length ? `<div class="picker-recent"><span>Called:</span> ${recent.map(s => esc(s.name)).join(' · ')}</div>` : ''}
@@ -143,6 +178,7 @@ function pickerHTML(c, m) {
 function wirePicker() {
   ov.querySelector('.picker-go')?.addEventListener('click', pick);
   ov.querySelector('.picker-new')?.addEventListener('click', () => { const m = mem(); m.picked = []; saveMem(m); current = null; render(); });
+  ov.querySelector('.picker-skip').onclick = () => { showSkip = !showSkip; showHere = false; render(); };
   ov.querySelector('.picker-norep').onchange = e => { const m = mem(); m.noRepeats = e.target.checked; saveMem(m); render(); };
   ov.querySelector('.picker-undo')?.addEventListener('click', () => { const m = mem(); m.picked.pop(); saveMem(m); current = null; render(); });
   ov.querySelector('.picker-reset')?.addEventListener('click', () => { const m = mem(); m.picked = []; saveMem(m); current = null; render(); });
@@ -151,15 +187,15 @@ function pick() {
   if (spinTimer) return;
   const m = mem();
   let left = pool(m);
-  if (!left.length) { if (!m.noRepeats || !here().length) return; m.picked = []; left = here(); }
+  if (!left.length) { if (!m.noRepeats || !pickable().length) return; m.picked = []; left = pickable(); }
   const chosen = left[Math.floor(Math.random() * left.length)];
   m.picked.push(chosen.id);
   saveMem(m);
   const box = ov.querySelector('.picker-name');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || window.__cmNoSpin;
-  if (reduce || here().length < 2) { current = chosen; render(); return; }
+  if (reduce || pickable().length < 2) { current = chosen; render(); return; }
   // a quick shuffle through names, slowing down, then the pick
-  const names = here();
+  const names = pickable();
   let i = 0, delay = 40;
   box.classList.remove('idle');
   box.classList.add('spinning');

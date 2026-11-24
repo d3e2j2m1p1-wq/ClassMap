@@ -499,8 +499,9 @@ async function showResult(r, box, text) {
       try { r.apply(); } catch (e) { part.innerHTML = `<span class="ai-err">That didn’t work: ${esc(e.message)}</span>`; return; }
       const undone = () => { part.innerHTML = '<span class="ai-fine">Undone.</span>'; };
       part.innerHTML = `<span class="ai-note ok">✓ ${esc(r.done || 'Done.')} <button type="button" class="ai-link ai-undo">Undo</button></span>`;
-      part.querySelector('.ai-undo').onclick = () => { restore(snap); undone(); };
-      if (!r.quiet) undoToast(r.done || 'Done', () => { restore(snap); undone(); });
+      const back = () => { if (r.undo) { r.undo(); showToast('Undone'); } else restore(snap); undone(); };
+      part.querySelector('.ai-undo').onclick = back;
+      if (!r.quiet) undoToast(r.done || 'Done', back);
     };
   }
 }

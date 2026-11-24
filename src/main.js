@@ -56,6 +56,7 @@ import { initAssistant, openPanel as openAssistant } from './ai/assistant.js';
 import { fitZoom, initZoom, setZoom, zoomOf } from './ui/zoom.js';
 import { classPanelTab, toggleClassPanel } from './assign/sidePanel.js';
 import { closeTools, openTools } from './tools/tools.js';
+import { initAttendanceMode, setAttendanceMode } from './assign/attendanceMode.js';
 import './styles/tools.css';
 
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
@@ -129,6 +130,7 @@ Object.assign(window, {
   openAssistant,
   classPanelTab,
   openTools,
+  setAttendanceMode,
   closeTools,
   toggleClassPanel,
   undo,
@@ -194,6 +196,7 @@ try {
   receiveFromLink();   // opened from a "Receive" link or QR code
   window.addEventListener('hashchange', receiveFromLink);   // …or a link opened while ClassMap was already open
   initZoom();            // − / Fit / + and pinch on the room
+  initAttendanceMode();  // ✓ Attendance in the Assign view
   initAssistant();       // help + on-device AI (lower right)
   // index.html shows a "couldn't start" screen if this line is never reached
   window.__classmapStarted = true;

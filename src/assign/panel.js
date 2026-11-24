@@ -11,6 +11,7 @@ import { tableBBox } from '../layout/tables.js';
 import { markDirty } from '../storage/autosave.js';
 import { afterRender, toCanvas } from '../ui/zoom.js';
 import { renderClassPanel } from './sidePanel.js';
+import { decorateAttendance } from './attendanceMode.js';
 
 // ═══════════════════════════════════════════════
 //  ASSIGN PANEL
@@ -73,6 +74,7 @@ export function renderAssignPanel() {
   if (left && !left.dataset.ready && innerWidth <= 760 && document.getElementById('panel-assign').classList.contains('active')) { left.dataset.ready = '1'; left.classList.add('collapsed'); }
   // the class panel shows whether each rule is met; don't redraw it under someone typing in it
   if (!document.getElementById('classSidePanel')?.contains(document.activeElement)) renderClassPanel();
+  decorateAttendance();
 }
 
 export function makeAssignTable(item) {
