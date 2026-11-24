@@ -60,6 +60,8 @@
     <div class="tool-dd" id="moreDD" onmouseleave="this.classList.remove('suppress')">
       <button class="hbtn hbtn-ghost hbtn-icon" onclick="toggleMoreMenu(event)" title="More" aria-label="More options">⋯</button>
       <div class="tool-menu more-menu"><div class="tm-inner">
+        <button class="tm-item" onclick="openTools('picker');closeMoreMenu()"><span>🎲 Name picker</span><small>full screen, for the projector</small></button>
+        <button class="tm-item" onclick="openTools('groups');closeMoreMenu()"><span>👥 Group maker</span><small>groups for an activity</small></button>
         <button class="tm-item phone-only" onclick="openPresent();closeMoreMenu()"><span>▶ Present</span><small>full screen, names only</small></button>
         <button class="tm-item phone-only" onclick="toggleTheme();closeMoreMenu()"><span>◐ Light / dark</span></button>
         <button class="tm-item" onclick="manualSave();closeMoreMenu()"><span>💾 Save now</span><small>also saves automatically</small></button>
@@ -391,6 +393,7 @@
             <button class="ld-tab active" data-tab="charts" onclick="switchLandingTab('charts',this)">📋 Charts</button>
             <button class="ld-tab" data-tab="roster" onclick="switchLandingTab('roster',this)">👥 Roster</button>
             <button class="ld-tab" data-tab="rules" onclick="switchLandingTab('rules',this)">📌 Rules</button>
+            <button class="ld-tab" data-tab="tools" onclick="switchLandingTab('tools',this)">🧰 Tools</button>
           </div>
           <button class="btn btn-primary btn-sm" onclick="createNewChart()">+ New Chart</button>
         </div>
@@ -420,6 +423,24 @@
             </div>
             <div id="ldGroupManager"></div>
             <div id="ldStudentCols" class="ld-student-cols"></div>
+          </div>
+        </div>
+
+        <!-- Tools tab: everyday classroom tools that use this class's roster -->
+        <div class="ld-panel" id="ldp-tools">
+          <div class="ld-tools">
+            <p class="ld-roster-info">Everyday tools for this class. They open full screen, ready for the projector, and use this class’s roster and rules. Nothing is changed in your charts.</p>
+            <div class="ld-tool-cards">
+              <button type="button" class="ld-tool-card" onclick="openTools('picker')">
+                <span class="ld-tool-icon">🎲</span>
+                <span><b>Name picker</b><small>Call on students at random. Everyone gets a turn before anyone repeats.</small></span>
+              </button>
+              <button type="button" class="ld-tool-card" onclick="openTools('groups')">
+                <span class="ld-tool-icon">👥</span>
+                <span><b>Group maker</b><small>Groups for an activity that follow your rules: keep-aparts, spread-out tags, helpers.</small></span>
+              </button>
+            </div>
+            <p class="ld-tools-more">Both skip anyone you mark absent for today (“Here” at the top).</p>
           </div>
         </div>
 

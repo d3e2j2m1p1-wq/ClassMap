@@ -25,6 +25,7 @@ import { autoAssign } from '../assign/autoAssign.js';
 import { renderAssignPanel } from '../assign/panel.js';
 import { renderRoster } from '../editor/roster.js';
 import { describe, findStudents, parseRules, rosterIndex } from './rulesNL.js';
+import { openTools } from '../tools/tools.js';
 
 // ── Context: where the teacher is ──
 export function context() {
@@ -80,6 +81,13 @@ export function readCommand(raw, ctx) {
   if ((m = /^(?:tag|mark|label|flag)\s+(.+?)\s+(?:as|with)\s+(?:an?\s+)?["“]?(.+?)["”]?(?:\s+tag)?[.!]?$/i.exec(text))) return [{ action: 'tag', names: splitNames(m[1]), tag: unquote(m[2]) }];
   if ((m = /^(?:give|add)\s+(?:an?\s+)?["“]?(.+?)["”]?\s+tag\s+to\s+(.+?)[.!]?$/i.exec(text))) return [{ action: 'tag', names: splitNames(m[2]), tag: unquote(m[1]) }];
 
+  // ── classroom tools ──
+  if (/\b(pick|choose|call on|draw)\s+(a\s+|one\s+)?(random\s+)?(name|student|kid|someone|person)\b|\bname picker\b|\brandom (name|student)\b/i.test(text)) return [{ action: 'pick_name' }];
+  if ((m = /\b(?:make|create|split (?:the class |them |everyone )?into|put (?:them |everyone |the class )?(?:in|into)|form)\s+(?:some\s+)?(?:(\d+|two|three|four|five|six|seven|eight)\s+)?(?:random\s+)?groups?(?:\s+of\s+(\d+|two|three|four|five|six))?\b|\bgroup maker\b/i.exec(text))) {
+    const num = w => w ? (+w || ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'].indexOf(String(w).toLowerCase())) : null;
+    return [{ action: 'make_groups', count: num(m[1]), size: num(m[2]) }];
+  }
+
   // ── charts and seats ──
   if (/^(make|create|start|open|new)\s+(a\s+)?(new\s+)?(seating\s+)?chart\b/i.test(text)) return [{ action: 'new_chart' }];
   if (/\b(auto[- ]?assign|assign (the |all )?(the )?seats|seat everyone|fill (the |all )?(the )?seats|shuffle (the )?(class|seats)|reshuffle|mix (them|everyone|the class) up)\b/i.test(text)) return [{ action: 'auto_assign' }];
@@ -117,6 +125,7 @@ const SHAPES = `{"action":"create_class","name":"Period 4","students":["Liam","A
 {"action":"swap","a":"Liam","b":"Ana"}   {"action":"seat_near","a":"Liam","b":"Ana"}
 {"action":"pin","names":["Mia"]}   {"action":"unpin","names":["Mia"]}   {"action":"unseat","names":["Mia"]}
 {"action":"auto_assign"}
+{"action":"pick_name"}   (call on a random student)   {"action":"make_groups","size":4}   or   {"action":"make_groups","count":6}
 {"action":"where","name":"Liam"}   {"action":"neighbors","name":"Liam"}   {"action":"unplaced"}
 {"action":"check_rules"}   {"action":"list_rules"}   {"action":"list_tag","tag":"IEP"}
 {"action":"count"}   {"action":"list_students"}   {"action":"list_classes"}
@@ -143,7 +152,7 @@ Use names exactly as the teacher wrote them. Never invent students. If the messa
   ];
 }
 
-const KNOWN = new Set(['create_class', 'add_students', 'tag', 'untag', 'rules', 'new_chart', 'open_class', 'swap', 'seat_near', 'pin', 'unpin', 'unseat', 'auto_assign', 'where', 'neighbors', 'unplaced', 'check_rules', 'list_rules', 'list_tag', 'count', 'list_students', 'list_classes', 'help', 'none']);
+const KNOWN = new Set(['pick_name', 'make_groups', 'create_class', 'add_students', 'tag', 'untag', 'rules', 'new_chart', 'open_class', 'swap', 'seat_near', 'pin', 'unpin', 'unseat', 'auto_assign', 'where', 'neighbors', 'unplaced', 'check_rules', 'list_rules', 'list_tag', 'count', 'list_students', 'list_classes', 'help', 'none']);
 export function readModelCommand(reply) {
   const m = String(reply).match(/\[[\s\S]*\]|\{[\s\S]*\}/);
   if (!m) return null;
@@ -153,7 +162,8 @@ export function readModelCommand(reply) {
   // keep only the fields each action uses, as plain strings
   const str = x => typeof x === 'string' ? x.trim().slice(0, 80) : '';
   const list = x => (Array.isArray(x) ? x : typeof x === 'string' ? splitNames(x) : []).map(str).filter(Boolean).slice(0, 60);
-  return arr.map(c => ({ action: c.action, name: str(c.name), names: list(c.names), students: list(c.students), tag: str(c.tag), a: str(c.a), b: str(c.b), text: str(c.text), query: str(c.query) })).slice(0, 6);
+  const num = x => (Number.isFinite(+x) && +x > 0 && +x < 40 ? +x : null);
+  return arr.map(c => ({ action: c.action, size: num(c.size), count: num(c.count), name: str(c.name), names: list(c.names), students: list(c.students), tag: str(c.tag), a: str(c.a), b: str(c.b), text: str(c.text), query: str(c.query) })).slice(0, 6);
 }
 
 // ══ 3. Plans ══
@@ -229,6 +239,14 @@ function planOne(c, ctx) {
   const cls = ctx.cls;
   switch (c.action) {
     case 'help': return { kind: 'help', query: c.query || '' };
+    case 'pick_name':
+      if (!cls) return needClass();
+      openTools('picker');
+      return { kind: 'answer', html: 'Opened the name picker. Press Space to pick.' };
+    case 'make_groups':
+      if (!cls) return needClass();
+      openTools('groups', { ...(c.count ? { mode: 'count', count: c.count } : { mode: 'size', size: c.size || 4 }), make: true });
+      return { kind: 'answer', html: `Made ${c.count ? c.count + ' groups' : 'groups of ' + (c.size || 4)}. Press <b>Shuffle again</b> for a different mix.` };
     case 'none': return { kind: 'none' };
     case 'rules': return cls ? { kind: 'rules', text: c.text } : needClass();
 

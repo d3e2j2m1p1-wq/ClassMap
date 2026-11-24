@@ -55,6 +55,8 @@ import { toggleTheme } from './ui/theme.js';
 import { initAssistant, openPanel as openAssistant } from './ai/assistant.js';
 import { fitZoom, initZoom, setZoom, zoomOf } from './ui/zoom.js';
 import { classPanelTab, toggleClassPanel } from './assign/sidePanel.js';
+import { closeTools, openTools } from './tools/tools.js';
+import './styles/tools.css';
 
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
 // which only see global names — so they are put on window.
@@ -126,6 +128,8 @@ Object.assign(window, {
   toggleTheme,
   openAssistant,
   classPanelTab,
+  openTools,
+  closeTools,
   toggleClassPanel,
   undo,
   updateTempFormFields,

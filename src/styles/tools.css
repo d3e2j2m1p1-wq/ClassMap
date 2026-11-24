@@ -1,0 +1,87 @@
+/* ── Classroom tools (src/tools/tools.js) ── */
+
+/* Home page: Tools tab */
+.ld-tools { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; max-width: 760px; }
+.ld-tool-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.ld-tool-card {
+  display: flex; gap: 14px; align-items: flex-start; text-align: left; padding: 16px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; color: var(--text); font-family: 'Geist', sans-serif;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.ld-tool-card:hover { border-color: var(--blue); transform: translateY(-1px); }
+.ld-tool-card b { display: block; font-size: 0.95rem; margin-bottom: 4px; }
+.ld-tool-card small { display: block; font-size: 0.78rem; color: var(--text2); line-height: 1.45; }
+.ld-tool-icon { font-size: 1.6rem; width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: var(--blue-dim); flex-shrink: 0; }
+.ld-tools-more { font-size: 0.75rem; color: var(--text3); }
+
+/* Full screen */
+.tools-view {
+  position: fixed; inset: 0; z-index: 1000; background: var(--bg); color: var(--text);
+  display: flex; flex-direction: column; font-family: 'Geist', sans-serif;
+}
+.tools-bar { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.tools-title { font-family: 'Instrument Serif', serif; font-size: 1.7rem; margin-right: auto; }
+.tools-tabs { display: flex; gap: 2px; padding: 3px; background: var(--surface); border-radius: 10px; }
+.tools-tab { border: none; background: none; color: var(--text2); font: 500 0.88rem 'Geist', sans-serif; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+.tools-tab.active { background: var(--surface2); color: var(--text); box-shadow: var(--shadow-sm); }
+.tools-here, .tools-exit {
+  border: 1px solid var(--border2); background: transparent; color: var(--text2); border-radius: 9px; padding: 8px 12px;
+  font: 500 0.82rem 'Geist', sans-serif; cursor: pointer;
+}
+.tools-here.some-out { color: var(--amber); border-color: var(--amber); }
+.tools-exit kbd { font-family: inherit; font-size: 0.68rem; color: var(--text3); margin-left: 4px; }
+.tools-here-panel { padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.tools-here-panel p { font-size: 0.82rem; color: var(--text2); }
+.tools-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 32vh; overflow: auto; }
+.tools-chip { border: 1px solid var(--border2); background: var(--surface2); color: var(--text); border-radius: 18px; padding: 6px 12px; font: 0.82rem 'Geist', sans-serif; cursor: pointer; }
+.tools-chip.out { text-decoration: line-through; color: var(--text3); background: transparent; border-style: dashed; }
+.tools-stage { flex: 1; overflow: auto; display: flex; flex-direction: column; }
+.tools-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.tools-row.center { justify-content: center; }
+.tools-row.small { font-size: 0.82rem; }
+.tools-btn {
+  border: none; background: var(--blue); color: #fff; border-radius: 10px; padding: 10px 18px; cursor: pointer;
+  font: 600 0.9rem 'Geist', sans-serif;
+}
+.tools-btn:hover { filter: brightness(1.08); }
+.tools-btn:disabled { opacity: 0.5; cursor: default; }
+.tools-btn.ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+.tools-btn.big { font-size: 1.2rem; padding: 16px 34px; border-radius: 14px; }
+.tools-link { background: none; border: none; color: var(--blue); cursor: pointer; font: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.tools-check { display: inline-flex; align-items: center; gap: 6px; color: var(--text2); font-size: 0.85rem; cursor: pointer; }
+.tools-select { background: var(--surface2); border: 1px solid var(--border2); color: var(--text); border-radius: 9px; padding: 8px 10px; font: 0.88rem 'Geist', sans-serif; }
+.tools-tip { font-size: 0.75rem; color: var(--text3); text-align: center; }
+
+/* Name picker */
+.picker { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px; }
+.picker-name {
+  font-family: 'Instrument Serif', serif; font-size: clamp(3rem, 11vw, 9rem); line-height: 1.05; text-align: center;
+  min-height: 1.2em; color: var(--text); word-break: break-word; animation: picker-in 0.35s ease-out;
+}
+.picker-name.idle { color: var(--text3); }
+.picker-name.spinning { color: var(--text2); animation: none; }
+@keyframes picker-in { from { transform: scale(0.92); opacity: 0.3; } }
+.picker-left { font-size: 0.9rem; color: var(--text2); }
+.picker-recent { font-size: 0.85rem; color: var(--text3); text-align: center; max-width: 900px; }
+.picker-recent span { color: var(--text2); }
+
+/* Groups */
+.groups { padding: 18px 20px 28px; display: flex; flex-direction: column; gap: 16px; }
+.groups-controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.groups-note { font-size: 0.85rem; color: var(--amber); }
+.groups-empty { color: var(--text2); font-size: 1rem; text-align: center; margin-top: 12vh; }
+.groups-grid { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 14px; }
+.group-card { background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 14px 16px; }
+.group-h { font-size: 0.78rem; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.group-name { font-size: clamp(1rem, 2.2vw, 1.5rem); line-height: 1.45; }
+
+@media (max-width: 760px) {
+  .tools-bar { padding: 10px 12px; gap: 8px; }
+  .tools-title { font-size: 1.3rem; }
+  .tools-tabs { order: 3; width: 100%; }
+  .tools-tab { flex: 1; }
+  .groups-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ld-tools { padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .picker-name { animation: none; } }
+@media print { .tools-view { display: none; } }
