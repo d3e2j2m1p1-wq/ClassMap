@@ -10,14 +10,18 @@ self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      // only our own old caches — the on-device AI keeps its model in 'transformers-cache'
+      .then(keys => Promise.all(keys.filter(k => k.startsWith('classmap-') && k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return;
+  // AI model files are big and the AI caches them itself — don't keep a second copy
+  if (url.pathname.startsWith('/models/') || url.pathname.startsWith('/ai-runtime/')) return;
 
   if (req.mode === 'navigate') {
     e.respondWith(

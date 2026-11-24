@@ -14,4 +14,8 @@
     "bindings": [{ "name": "SHARE_ROOMS", "class_name": "ShareRoom" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ShareRoom"] }]
+  // Optional: keep our own copy of the on-device AI files in an R2 bucket (free egress).
+  // Without it, the Worker fetches them from Hugging Face on the way through.
+  // To use it: create a bucket named classmap-models, upload the files, then uncomment:
+  // ,"r2_buckets": [{ "binding": "MODELS", "bucket_name": "classmap-models" }]
 }

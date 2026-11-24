@@ -1,3 +1,4 @@
+import { setPresenting } from '../ai/assistant.js';
 // ═══════════════════════════════════════════════
 //  PRESENT & PRINT
 //  Both show a clean copy of the Assign tab's chart (no buttons, no selection),
@@ -76,6 +77,7 @@ export function openPresent() {
   const chart = cloneChart();
   stage.appendChild(chart);
   document.body.appendChild(ov);
+  setPresenting(true);
 
   const refit = () => fitInto(chart, stage, 4);
   const onKey = e => { if (e.key === 'Escape') { e.preventDefault(); closePresent(); } };
@@ -102,6 +104,7 @@ export function closePresent() {
   document.removeEventListener('fullscreenchange', onFs);
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   ov.remove();
+  setPresenting(false);
 }
 
 // ── Print ──

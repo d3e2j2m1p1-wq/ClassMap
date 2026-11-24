@@ -16,6 +16,7 @@ import './styles/table-groups.css';
 import './styles/touch.css';
 import './styles/dialogs.css';
 import './styles/features.css';
+import './styles/ai.css';
 
 import { store } from './core/store.js';
 import { autoAssign, clearAssignments, toggleAssignPanel } from './assign/autoAssign.js';
@@ -50,6 +51,7 @@ import { initDrive, signIn as driveSignIn, signOut as driveSignOut, syncNow as d
 import { initStorage } from './storage/landingData.js';
 import { exportData, importDataFromFile } from './storage/chartFile.js';
 import { toggleTheme } from './ui/theme.js';
+import { initAssistant, openPanel as openAssistant } from './ai/assistant.js';
 
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
 // which only see global names — so they are put on window.
@@ -119,13 +121,14 @@ Object.assign(window, {
   toggleMoreMenu,
   toggleTableToolMenu,
   toggleTheme,
+  openAssistant,
   undo,
   updateTempFormFields,
 });
 
 // Dev/test only: every module's exports in one place (used by tests/ and handy in the console)
 if (import.meta.env.DEV) {
-  const all = import.meta.glob(['./**/*.js', '!./main.js'], { eager: true });
+  const all = import.meta.glob(['./**/*.js', '!./main.js', '!./ai/aiWorker.js'], { eager: true });
   window.__cm = Object.assign({ store }, ...Object.values(all));
 }
 
@@ -181,6 +184,7 @@ try {
   initDrive();
   receiveFromLink();   // opened from a "Receive" link or QR code
   window.addEventListener('hashchange', receiveFromLink);   // …or a link opened while ClassMap was already open
+  initAssistant();       // help + on-device AI (lower right)
   // index.html shows a "couldn't start" screen if this line is never reached
   window.__classmapStarted = true;
 })();
