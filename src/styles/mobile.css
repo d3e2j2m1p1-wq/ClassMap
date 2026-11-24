@@ -59,7 +59,12 @@ body.presenting .zoom-bar { display: none; }
   /* ── Assign: controls become a sheet at the bottom; the room gets the screen ── */
   .assign-float-panel { top: auto; bottom: 10px; left: 10px; right: 66px; width: auto; max-height: 45%; overflow: auto; z-index: 85; }
   .screenshot-tip { display: none; }
-  #panel-assign .zoom-bar { bottom: 66px; }
+  #panel-assign .zoom-bar { bottom: 62px; }
+  /* the class panel is a sheet at the top; Auto-Assign is the one at the bottom */
+  .class-side-panel { left: 10px; right: 10px; width: auto; top: 10px; bottom: auto; max-height: 70%; z-index: 86; }
+  #panel-assign .assign-canvas-wrap { padding-top: 52px; }
+  .class-side-panel .assign-float-body { max-height: 55vh; }
+  .class-side-panel.collapsed .assign-float-body { max-height: 0; }
 
 
   /* ── Roster and Rules tabs: one column, comfortable taps ── */

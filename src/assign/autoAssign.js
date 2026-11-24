@@ -305,6 +305,7 @@ export function clearAssignments() {
 export function toggleAssignPanel() {
   const panel = document.getElementById('assignFloatPanel');
   panel.classList.toggle('collapsed');
+  if (innerWidth <= 760 && !panel.classList.contains('collapsed')) document.getElementById('classSidePanel')?.classList.add('collapsed');
 }
 
 export function shuffle(arr) {

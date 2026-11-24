@@ -69,8 +69,11 @@ test.describe('on a phone', () => {
     await chart(page);
     await page.locator('.tab-btn[data-panel=assign]').click();
     const z0 = await page.evaluate(() => window.__cm.zoomOf('assign'));
+    await expect(page.locator('#assignFloatPanel')).toHaveClass(/collapsed/);   // phones start with the room in view
+    await expect(page.locator('#classSidePanel')).toHaveClass(/collapsed/);
+    await page.locator('#assignFloatPanel .assign-float-header').tap();          // open Auto-Assign
     await page.locator('.chip-pill', { hasText: 'Leo' }).tap();
-    await page.locator('.assign-float-header').tap();            // fold the sheet away
+    await page.locator('#assignFloatPanel .assign-float-header').tap();          // fold it away again
     const empty = page.locator('#assignCanvas .seat-chip.empty').first();
     const id = await empty.getAttribute('data-seat-id');
     await empty.tap();
@@ -79,6 +82,21 @@ test.describe('on a phone', () => {
     expect(await page.evaluate(() => window.__cm.zoomOf('assign'))).toBeCloseTo(z0 * 1.2, 1);
     await page.locator('#panel-assign .zoom-bar .zoom-pct').tap();
     expect(await page.evaluate(() => window.__cm.zoomOf('assign'))).toBeCloseTo(z0, 1);
+  });
+
+  test('class sheet opens at the top; opening it folds Auto-Assign', async ({ page }) => {
+    await open(page);
+    await chart(page);
+    await page.locator('.tab-btn[data-panel=assign]').click();
+    await page.locator('#assignFloatPanel .assign-float-header').tap();
+    await page.locator('#classSidePanel .assign-float-header').tap();
+    await expect(page.locator('#assignFloatPanel')).toHaveClass(/collapsed/);
+    await expect(page.locator('#classSidePanel .csp-row')).toHaveCount(14);
+    const box = await page.locator('#classSidePanel').boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+    await page.locator('#classSidePanel .assign-float-header').tap();
+    await expect.poll(async () => (await page.locator('#classSidePanel').boundingBox()).height).toBeLessThan(60);   // folded to its bar
   });
 
   test('toasts sit above the helper button', async ({ page }) => {

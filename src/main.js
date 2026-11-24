@@ -54,6 +54,7 @@ import { exportData, importDataFromFile } from './storage/chartFile.js';
 import { toggleTheme } from './ui/theme.js';
 import { initAssistant, openPanel as openAssistant } from './ai/assistant.js';
 import { fitZoom, initZoom, setZoom, zoomOf } from './ui/zoom.js';
+import { classPanelTab, toggleClassPanel } from './assign/sidePanel.js';
 
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
 // which only see global names — so they are put on window.
@@ -124,6 +125,8 @@ Object.assign(window, {
   toggleTableToolMenu,
   toggleTheme,
   openAssistant,
+  classPanelTab,
+  toggleClassPanel,
   undo,
   updateTempFormFields,
 });

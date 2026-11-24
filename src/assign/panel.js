@@ -10,6 +10,7 @@ import { appendGroupOutlines } from '../layout/tableGroups.js';
 import { tableBBox } from '../layout/tables.js';
 import { markDirty } from '../storage/autosave.js';
 import { afterRender, toCanvas } from '../ui/zoom.js';
+import { renderClassPanel } from './sidePanel.js';
 
 // ═══════════════════════════════════════════════
 //  ASSIGN PANEL
@@ -67,6 +68,11 @@ export function renderAssignPanel() {
   const moving = store.selectedStudentId || (store.selectedSeatId && state.assignments[store.selectedSeatId]);
   if (moving) showSeatFit(moving); else clearSeatFit();
   afterRender('assign');
+  // phones: both sheets start folded so the room gets the screen
+  const left = document.getElementById('assignFloatPanel');
+  if (left && !left.dataset.ready && innerWidth <= 760 && document.getElementById('panel-assign').classList.contains('active')) { left.dataset.ready = '1'; left.classList.add('collapsed'); }
+  // the class panel shows whether each rule is met; don't redraw it under someone typing in it
+  if (!document.getElementById('classSidePanel')?.contains(document.activeElement)) renderClassPanel();
 }
 
 export function makeAssignTable(item) {

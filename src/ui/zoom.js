@@ -18,10 +18,10 @@ const els = which => ({ wrap: document.getElementById(VIEWS[which].wrap), canvas
 
 // Pointer position → room coordinates
 export function toCanvas(which, clientX, clientY) {
-  const { wrap } = els(which);
-  const r = wrap.getBoundingClientRect();
+  const { canvas } = els(which);
+  const r = canvas.getBoundingClientRect();     // already includes scrolling and any padding
   const z = zoomOf(which);
-  return { x: (clientX - r.left + wrap.scrollLeft) / z, y: (clientY - r.top + wrap.scrollTop) / z };
+  return { x: (clientX - r.left) / z, y: (clientY - r.top) / z };
 }
 
 function apply(which) {

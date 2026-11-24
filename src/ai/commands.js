@@ -514,7 +514,7 @@ export function snapshot() {
   return {
     data: structuredClone(store.landingData),
     active: store.activeClassId,
-    chart: editorOpen() ? structuredClone({ assignments: state.assignments, pins: state.pins, students: state.students, hardRules: state.hardRules }) : null,
+    chart: editorOpen() ? structuredClone({ assignments: state.assignments, pins: state.pins, students: state.students, hardRules: state.hardRules, tempRules: state.tempRules }) : null,
     chartClass: window._currentChartClassId,
   };
 }

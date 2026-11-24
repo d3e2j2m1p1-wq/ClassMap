@@ -1421,3 +1421,67 @@ test('Google Drive: sign in uploads; a change from another device comes back mer
     .toEqual(['Laptop class', 'iPad class']);
   await expect(page.locator('.class-list')).toContainText('iPad class');
 });
+
+// ── Class panel (right side of Assign): roster and rules without leaving the chart ──
+test('class panel: add, rename, tag and remove students; add and remove rules; see unmet rules', async ({ page }) => {
+  const errors = await open(page);
+  await classWithChart(page, 3, 3);
+  await page.evaluate(() => {
+    const cm = window.__cm;
+    const T = (id, x, y) => ({ id, type: 'table', x, y, rotation: 0, groups: 1, groupShift: 0, seatPositions: [{ x: 14, y: 14 }, { x: 76, y: 14 }, { x: 14, y: 76 }, { x: 76, y: 76 }] });
+    cm.state.layoutItems.push(T('ta', 420, 120), T('tb', 700, 120));
+    const seats = cm.getAllSeats();
+    cm.state.students.forEach((s, i) => { cm.state.assignments[seats[i].seatId] = s.id; });   // b0 b1 g0 g1 | b2 g2
+    cm.renderLayoutCanvas();
+    cm.switchPanel('assign', document.querySelector('.tab-btn[data-panel=assign]'));
+  });
+  const P = page.locator('#classSidePanel');
+  await expect(P).toBeVisible();
+  await expect(P.locator('.csp-count-roster')).toHaveText('6');
+  // add
+  await P.locator('.csp-add-in').fill('Zara Quinn');
+  await P.locator('.csp-add button').click();
+  const names = () => page.evaluate(() => [window.__cm.store.landingData.classes[0].students.map(s => s.name), window.__cm.state.students.map(s => s.name)]);
+  expect((await names())[0]).toContain('Zara Quinn');
+  expect((await names())[1]).toContain('Zara Quinn');
+  await expect(P.locator('.csp-row', { hasText: 'Zara Quinn' })).toContainText('no seat');
+  // a class rule that the chart breaks (b0 and b1 share a table), then rename b0: the rule follows
+  await P.locator('.csp-tab[data-tab=rules]').click();
+  await P.locator('.csp-type').selectOption('separate');
+  await P.locator('.csp-a').selectOption('Boy0 A');
+  await P.locator('.csp-b').selectOption('Boy1 A');
+  await P.locator('.csp-radd').click();
+  await expect(P.locator('.csp-rule.bad')).toHaveCount(1);
+  await expect(P.locator('.csp-sum')).toContainText('1 not met');
+  await P.locator('.csp-tab[data-tab=roster]').click();
+  await P.locator('.csp-row', { hasText: 'Boy0 A' }).locator('.csp-name').click();
+  await P.locator('.csp-rename').fill('Bo Diaz');
+  await P.locator('.csp-rename').press('Enter');
+  const rules = await page.evaluate(() => [window.__cm.store.landingData.classes[0].hardRules, window.__cm.state.hardRules]);
+  expect(rules[0]).toEqual([{ type: 'separate', studentA: 'Bo Diaz', studentB: 'Boy1 A' }]);
+  expect(rules[1]).toEqual(rules[0]);
+  // tag
+  await P.locator('.csp-row', { hasText: 'Girl0 B' }).locator('.csp-tag').click();
+  await page.locator('.tag-menu .tm-item', { hasText: 'IEP' }).click();
+  await page.keyboard.press('Escape');
+  expect(await page.evaluate(() => window.__cm.state.students.find(s => s.name === 'Girl0 B').tags)).toEqual(['IEP']);
+  await expect(P.locator('.csp-row', { hasText: 'Girl0 B' })).toContainText('IEP');
+  // remove (seat freed, rule about them dropped), then Undo brings it all back
+  await P.locator('.csp-row', { hasText: 'Boy1 A' }).locator('.csp-del').click();
+  let r = await page.evaluate(() => { const cm = window.__cm; return [cm.state.students.some(s => s.name === 'Boy1 A'), Object.values(cm.state.assignments).includes('b1'), cm.store.landingData.classes[0].hardRules.length]; });
+  expect(r).toEqual([false, false, 0]);
+  await page.locator('.cm-undo-toast .cm-undo-btn').last().click();
+  r = await page.evaluate(() => { const cm = window.__cm; return [cm.state.students.some(s => s.name === 'Boy1 A'), cm.store.landingData.classes[0].hardRules.length]; });
+  expect(r).toEqual([true, 1]);
+  // a this-chart-only rule, then delete it
+  await P.locator('.csp-tab[data-tab=rules]').click();
+  await P.locator('.csp-type').selectOption('front');
+  await P.locator('.csp-a').selectOption('Girl2 B');
+  await P.locator('.csp-temp input').check();
+  await P.locator('.csp-radd').click();
+  expect(await page.evaluate(() => window.__cm.state.tempRules.map(t => [t.type, t.studentA]))).toEqual([['front', 'Girl2 B']]);
+  await expect(P.locator('.csp-rule', { hasText: 'this chart only' })).toHaveCount(1);
+  await P.locator('.csp-rule', { hasText: 'this chart only' }).locator('.csp-rdel').click();
+  expect(await page.evaluate(() => window.__cm.state.tempRules.length)).toBe(0);
+  expect(errors).toEqual([]);
+});

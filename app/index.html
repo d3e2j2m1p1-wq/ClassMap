@@ -278,6 +278,21 @@
       </div>
     </div>
 
+    <!-- Right: the class's roster and rules, editable without leaving the chart -->
+    <div class="assign-float-panel class-side-panel" id="classSidePanel" hidden>
+      <div class="assign-float-header" onclick="toggleClassPanel()">
+        <span class="assign-float-title">👥 Class</span>
+        <span class="assign-float-chevron">▲</span>
+      </div>
+      <div class="assign-float-body">
+        <div class="csp-tabs" role="tablist">
+          <button type="button" class="csp-tab active" data-tab="roster" onclick="classPanelTab('roster')">Roster <span class="csp-count csp-count-roster"></span></button>
+          <button type="button" class="csp-tab" data-tab="rules" onclick="classPanelTab('rules')">Rules <span class="csp-count csp-count-rules"></span></button>
+        </div>
+        <div class="csp-body"></div>
+      </div>
+    </div>
+
     <!-- Full-size canvas -->
     <div class="assign-canvas-wrap" id="assignMain">
       <div style="position:relative;min-width:900px;min-height:600px;" id="assignCanvas"></div>
