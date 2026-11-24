@@ -4,6 +4,7 @@ import { updateSeatCount } from '../layout/selection.js';
 import { scheduleRoomCheck } from '../layout/roomCheck.js';
 import { afterRender } from '../ui/zoom.js';
 import { setAttendanceMode } from '../assign/attendanceMode.js';
+import { setPointsMode } from '../assign/participationMode.js';
 
 // ═══════════════════════════════════════════════
 //  PANEL SWITCHING
@@ -15,7 +16,7 @@ export function switchPanel(name, btn) {
   btn.classList.add('active');
 
   if (name === 'rules') { populateRuleSelects(); initRuleTypeaheads(); }
-  if (name !== 'assign') setAttendanceMode(false);
+  if (name !== 'assign') { setAttendanceMode(false); setPointsMode(false); }
   if (name === 'assign') renderAssignPanel();
   if (name === 'layout') { updateSeatCount(); scheduleRoomCheck(); afterRender('layout'); }   // the roster may have changed
 }

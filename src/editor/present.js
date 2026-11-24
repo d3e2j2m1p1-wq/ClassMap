@@ -23,6 +23,7 @@ function cloneChart() {
   c.removeAttribute('style');
   // Tags are for the teacher's eyes only — never on the projector or the printed chart
   c.querySelectorAll('.seat-unseat-btn, .seat-pin-btn, .seat-tag-badge, .drop-zone-hint').forEach(e => e.remove());
+  c.querySelectorAll('.pts-badge').forEach(e => e.remove());
   c.querySelectorAll('.selected-seat, .drop-target, .drag-source, .att-absent, .att-late').forEach(e => e.classList.remove('selected-seat', 'drop-target', 'drag-source', 'att-absent', 'att-late'));
   c.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
   c.querySelectorAll('[title]').forEach(e => e.removeAttribute('title'));

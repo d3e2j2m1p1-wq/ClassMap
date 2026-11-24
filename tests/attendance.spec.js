@@ -58,7 +58,7 @@ test('attendance on the chart: tap → absent → late → here; copy; skipped b
   const errors = await open(page);
   await chart(page);
   await page.locator('.att-toggle').click();
-  const banner = page.locator('.att-banner');
+  const banner = page.locator('.att-banner:not(.pts-banner)');
   await expect(banner).toBeVisible();
   // Ana (seat ta_0): absent
   await seatOf(page, 'ta_0').click();

@@ -12,6 +12,7 @@ import { markDirty } from '../storage/autosave.js';
 import { afterRender, toCanvas } from '../ui/zoom.js';
 import { renderClassPanel } from './sidePanel.js';
 import { decorateAttendance } from './attendanceMode.js';
+import { decoratePoints } from './participationMode.js';
 
 // ═══════════════════════════════════════════════
 //  ASSIGN PANEL
@@ -75,6 +76,7 @@ export function renderAssignPanel() {
   // the class panel shows whether each rule is met; don't redraw it under someone typing in it
   if (!document.getElementById('classSidePanel')?.contains(document.activeElement)) renderClassPanel();
   decorateAttendance();
+  decoratePoints();
 }
 
 export function makeAssignTable(item) {

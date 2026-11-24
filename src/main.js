@@ -57,6 +57,7 @@ import { fitZoom, initZoom, setZoom, zoomOf } from './ui/zoom.js';
 import { classPanelTab, toggleClassPanel } from './assign/sidePanel.js';
 import { closeTools, openTools } from './tools/tools.js';
 import { initAttendanceMode, setAttendanceMode } from './assign/attendanceMode.js';
+import { initParticipationMode, setPointsMode } from './assign/participationMode.js';
 import './styles/tools.css';
 
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
@@ -131,6 +132,7 @@ Object.assign(window, {
   classPanelTab,
   openTools,
   setAttendanceMode,
+  setPointsMode,
   closeTools,
   toggleClassPanel,
   undo,
@@ -197,6 +199,7 @@ try {
   window.addEventListener('hashchange', receiveFromLink);   // …or a link opened while ClassMap was already open
   initZoom();            // − / Fit / + and pinch on the room
   initAttendanceMode();  // ✓ Attendance in the Assign view
+  initParticipationMode(); // ★ Points in the Assign view
   initAssistant();       // help + on-device AI (lower right)
   // index.html shows a "couldn't start" screen if this line is never reached
   window.__classmapStarted = true;

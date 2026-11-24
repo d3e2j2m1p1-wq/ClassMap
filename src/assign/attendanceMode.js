@@ -52,6 +52,7 @@ export function initAttendanceMode() {
 
 export function setAttendanceMode(v) {
   on = !!v && !!cls();
+  if (on) import('./participationMode.js').then(m => m.pointsOn() && m.setPointsMode(false));   // one tap mode at a time
   const host = document.getElementById('panel-assign');
   if (!host) return;
   host.classList.toggle('att-mode', on);
@@ -76,7 +77,7 @@ export function decorateAttendance() {
     if (sid) mark(chip, sid); else chip.classList.remove('att-absent', 'att-late');
   });
   document.querySelectorAll('#unplacedChips .chip-pill').forEach(p => mark(p, p.dataset.id));
-  const banner = document.querySelector('#panel-assign .att-banner');
+  const banner = document.querySelector('#panel-assign .att-banner:not(.pts-banner)');
   if (!banner) return;
   banner.hidden = !on;
   if (!on) return;

@@ -62,6 +62,8 @@
       <div class="tool-menu more-menu"><div class="tm-inner">
         <button class="tm-item" onclick="openTools('picker');closeMoreMenu()"><span>🎲 Name picker</span><small>full screen, for the projector</small></button>
         <button class="tm-item" onclick="openTools('groups');closeMoreMenu()"><span>👥 Group maker</span><small>groups for an activity</small></button>
+        <button class="tm-item" onclick="openTools('timer');closeMoreMenu()"><span>⏱ Timer &amp; voice level</span><small>for the projector</small></button>
+        <button class="tm-item" onclick="openTools('print');closeMoreMenu()"><span>🏷 Name tents &amp; desk labels</span><small>labels print in seat order</small></button>
         <button class="tm-item phone-only" onclick="openPresent();closeMoreMenu()"><span>▶ Present</span><small>full screen, names only</small></button>
         <button class="tm-item phone-only" onclick="toggleTheme();closeMoreMenu()"><span>◐ Light / dark</span></button>
         <button class="tm-item" onclick="manualSave();closeMoreMenu()"><span>💾 Save now</span><small>also saves automatically</small></button>
@@ -439,8 +441,20 @@
                 <span class="ld-tool-icon">👥</span>
                 <span><b>Group maker</b><small>Groups for an activity that follow your rules: keep-aparts, spread-out tags, helpers.</small></span>
               </button>
+              <button type="button" class="ld-tool-card" onclick="openTools('timer')">
+                <span class="ld-tool-icon">⏱</span>
+                <span><b>Timer</b><small>A big countdown for the projector, with a gentle chime at the end.</small></span>
+              </button>
+              <button type="button" class="ld-tool-card" onclick="openTools('voice')">
+                <span class="ld-tool-icon">🔊</span>
+                <span><b>Voice level</b><small>Show the expected voice level, from 0 (silent) to 3 (presenting).</small></span>
+              </button>
+              <button type="button" class="ld-tool-card" onclick="openTools('print')">
+                <span class="ld-tool-icon">🏷</span>
+                <span><b>Name tents &amp; desk labels</b><small>Print fold-over name tents for the first week, or labels to tape on desks.</small></span>
+              </button>
             </div>
-            <p class="ld-tools-more">Both skip anyone you mark absent for today (“Here” at the top).</p>
+            <p class="ld-tools-more">The name picker and group maker skip anyone marked absent today (“Here” at the top). In a chart, the Assign tab also has ✓ Attendance and ★ Points.</p>
           </div>
         </div>
 

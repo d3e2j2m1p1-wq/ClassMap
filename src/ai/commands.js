@@ -93,6 +93,10 @@ export function readCommand(raw, ctx) {
   if (/^(?:take|do|start)\s+(?:the\s+)?attendance\b|^roll call$/i.test(text)) return [{ action: 'take_attendance' }];
 
   // ── classroom tools ──
+  if ((m = /\b(?:set|start|run|put up|give (?:them|us)|make)?\s*(?:a\s+)?(?:timer|countdown)\s+(?:for\s+)?(\d+)\s*(?:min|minutes?)\b|\b(\d+)[- ]?(?:min|minutes?)\s+(?:timer|countdown)\b/i.exec(text))) return [{ action: 'timer', minutes: +(m[1] || m[2]) }];
+  if (/^(?:open|show|start)?\s*(?:the\s+|a\s+)?(?:timer|countdown)$/i.test(text)) return [{ action: 'timer' }];
+  if ((m = /\bvoice(?:\s+level)?\s*(?:to|at|is|=)?\s*([0-3])\b|\blevel\s+([0-3])\s+voices?\b/i.exec(text))) return [{ action: 'voice', level: +(m[1] || m[2]) }];
+  if (/\b(name tents?|desk (labels?|tags?|name ?tags?)|name (cards?|tags?|labels?))\b/i.test(text)) return [{ action: 'name_tents' }];
   if (/\b(pick|choose|call on|draw)\s+(a\s+|one\s+)?(random\s+)?(name|student|kid|someone|person)\b|\bname picker\b|\brandom (name|student)\b/i.test(text)) return [{ action: 'pick_name' }];
   if ((m = /\b(?:make|create|split (?:the class |them |everyone )?into|put (?:them |everyone |the class )?(?:in|into)|form)\s+(?:some\s+)?(?:(\d+|two|three|four|five|six|seven|eight)\s+)?(?:random\s+)?groups?(?:\s+of\s+(\d+|two|three|four|five|six))?\b|\bgroup maker\b/i.exec(text))) {
     const num = w => w ? (+w || ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'].indexOf(String(w).toLowerCase())) : null;
@@ -137,6 +141,7 @@ const SHAPES = `{"action":"create_class","name":"Period 4","students":["Liam","A
 {"action":"pin","names":["Mia"]}   {"action":"unpin","names":["Mia"]}   {"action":"unseat","names":["Mia"]}
 {"action":"auto_assign"}
 {"action":"attendance","names":["Liam"],"status":"absent"}   (status: absent, tardy or here; for today)   {"action":"list_absent"}   {"action":"take_attendance"}
+{"action":"timer","minutes":5}   {"action":"voice","level":0}   (voice level 0–3)   {"action":"name_tents"}   (print name tents or desk labels)
 {"action":"pick_name"}   (call on a random student)   {"action":"make_groups","size":4}   or   {"action":"make_groups","count":6}
 {"action":"where","name":"Liam"}   {"action":"neighbors","name":"Liam"}   {"action":"unplaced"}
 {"action":"check_rules"}   {"action":"list_rules"}   {"action":"list_tag","tag":"IEP"}
@@ -164,7 +169,7 @@ Use names exactly as the teacher wrote them. Never invent students. If the messa
   ];
 }
 
-const KNOWN = new Set(['attendance', 'list_absent', 'take_attendance', 'pick_name', 'make_groups', 'create_class', 'add_students', 'tag', 'untag', 'rules', 'new_chart', 'open_class', 'swap', 'seat_near', 'pin', 'unpin', 'unseat', 'auto_assign', 'where', 'neighbors', 'unplaced', 'check_rules', 'list_rules', 'list_tag', 'count', 'list_students', 'list_classes', 'help', 'none']);
+const KNOWN = new Set(['timer', 'voice', 'name_tents', 'attendance', 'list_absent', 'take_attendance', 'pick_name', 'make_groups', 'create_class', 'add_students', 'tag', 'untag', 'rules', 'new_chart', 'open_class', 'swap', 'seat_near', 'pin', 'unpin', 'unseat', 'auto_assign', 'where', 'neighbors', 'unplaced', 'check_rules', 'list_rules', 'list_tag', 'count', 'list_students', 'list_classes', 'help', 'none']);
 export function readModelCommand(reply) {
   const m = String(reply).match(/\[[\s\S]*\]|\{[\s\S]*\}/);
   if (!m) return null;
@@ -175,7 +180,7 @@ export function readModelCommand(reply) {
   const str = x => typeof x === 'string' ? x.trim().slice(0, 80) : '';
   const list = x => (Array.isArray(x) ? x : typeof x === 'string' ? splitNames(x) : []).map(str).filter(Boolean).slice(0, 60);
   const num = x => (Number.isFinite(+x) && +x > 0 && +x < 40 ? +x : null);
-  return arr.map(c => ({ action: c.action, status: ['absent', 'tardy', 'here'].includes(c.status) ? c.status : 'absent', size: num(c.size), count: num(c.count), name: str(c.name), names: list(c.names), students: list(c.students), tag: str(c.tag), a: str(c.a), b: str(c.b), text: str(c.text), query: str(c.query) })).slice(0, 6);
+  return arr.map(c => ({ action: c.action, minutes: num(c.minutes), level: [0, 1, 2, 3].includes(+c.level) ? +c.level : null, status: ['absent', 'tardy', 'here'].includes(c.status) ? c.status : 'absent', size: num(c.size), count: num(c.count), name: str(c.name), names: list(c.names), students: list(c.students), tag: str(c.tag), a: str(c.a), b: str(c.b), text: str(c.text), query: str(c.query) })).slice(0, 6);
 }
 
 // ══ 3. Plans ══
@@ -282,6 +287,18 @@ function planOne(c, ctx) {
       }
       openTools('picker', { here: true });
       return { kind: 'answer', html: 'Tap each absent student (tap again for late).' };
+    case 'timer':
+      if (!cls) return needClass();
+      openTools('timer', c.minutes ? { minutes: c.minutes, start: true } : {});
+      return { kind: 'answer', html: c.minutes ? `Started a ${c.minutes}-minute timer. Space pauses it.` : 'Opened the timer.' };
+    case 'voice':
+      if (!cls) return needClass();
+      openTools('voice', { level: c.level ?? 0 });
+      return { kind: 'answer', html: `Showing voice level ${c.level ?? 0}.` };
+    case 'name_tents':
+      if (!cls) return needClass();
+      openTools('print');
+      return { kind: 'answer', html: 'Opened name tents and desk labels. Choose one, then Print.' };
     case 'pick_name':
       if (!cls) return needClass();
       openTools('picker');
