@@ -172,6 +172,11 @@ export function toggleTableToolMenu(e) {
   dd.classList.toggle('open', open);
   if (open) {
     renderTableToolMenu();
+    const menu = dd.querySelector('.tool-menu');
+    if (innerWidth <= 760) {
+      const r = dd.getBoundingClientRect();
+      Object.assign(menu.style, { position: 'fixed', top: r.bottom + 'px', left: Math.max(8, Math.min(r.left, innerWidth - 268)) + 'px' });
+    } else Object.assign(menu.style, { position: '', top: '', left: '' });
     const outside = ev => {
       if (dd.contains(ev.target)) return;
       dd.classList.remove('open');

@@ -2,6 +2,7 @@ import { renderAssignPanel } from '../assign/panel.js';
 import { initRuleTypeaheads, populateRuleSelects } from './rules.js';
 import { updateSeatCount } from '../layout/selection.js';
 import { scheduleRoomCheck } from '../layout/roomCheck.js';
+import { afterRender } from '../ui/zoom.js';
 
 // ═══════════════════════════════════════════════
 //  PANEL SWITCHING
@@ -14,7 +15,7 @@ export function switchPanel(name, btn) {
 
   if (name === 'rules') { populateRuleSelects(); initRuleTypeaheads(); }
   if (name === 'assign') renderAssignPanel();
-  if (name === 'layout') { updateSeatCount(); scheduleRoomCheck(); }   // the roster may have changed
+  if (name === 'layout') { updateSeatCount(); scheduleRoomCheck(); afterRender('layout'); }   // the roster may have changed
 }
 
 // Header "⋯" menu (Save now, Export / Import chart file)

@@ -9,6 +9,7 @@ import { clearSeatFit, fitNote, showSeatFit } from './seatFit.js';
 import { appendGroupOutlines } from '../layout/tableGroups.js';
 import { tableBBox } from '../layout/tables.js';
 import { markDirty } from '../storage/autosave.js';
+import { afterRender, toCanvas } from '../ui/zoom.js';
 
 // ═══════════════════════════════════════════════
 //  ASSIGN PANEL
@@ -65,6 +66,7 @@ export function renderAssignPanel() {
   // a student picked by tap and waiting for a seat: show which seats keep the rules
   const moving = store.selectedStudentId || (store.selectedSeatId && state.assignments[store.selectedSeatId]);
   if (moving) showSeatFit(moving); else clearSeatFit();
+  afterRender('assign');
 }
 
 export function makeAssignTable(item) {
@@ -103,14 +105,12 @@ export function makeAssignTable(item) {
   bg.addEventListener('pointerdown', e => {
     if (e.target !== bg || e.button !== 0) return;
     e.stopPropagation();
-    const mainEl = document.getElementById('assignMain');
-    const r0 = mainEl.getBoundingClientRect();
-    const offX = e.clientX - r0.left + mainEl.scrollLeft - item.x;
-    const offY = e.clientY - r0.top + mainEl.scrollTop - item.y;
+    const p0 = toCanvas('assign', e.clientX, e.clientY);
+    const offX = p0.x - item.x, offY = p0.y - item.y;
     function onMove(mv) {
-      const r = mainEl.getBoundingClientRect();
-      item.x = Math.max(0, mv.clientX - r.left + mainEl.scrollLeft - offX);
-      item.y = Math.max(0, mv.clientY - r.top + mainEl.scrollTop - offY);
+      const p = toCanvas('assign', mv.clientX, mv.clientY);
+      item.x = Math.max(0, p.x - offX);
+      item.y = Math.max(0, p.y - offY);
       wrap.style.left = item.x + 'px';
       wrap.style.top = item.y + 'px';
     }

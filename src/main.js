@@ -17,6 +17,7 @@ import './styles/touch.css';
 import './styles/dialogs.css';
 import './styles/features.css';
 import './styles/ai.css';
+import './styles/mobile.css';
 
 import { store } from './core/store.js';
 import { autoAssign, clearAssignments, toggleAssignPanel } from './assign/autoAssign.js';
@@ -52,6 +53,7 @@ import { initStorage } from './storage/landingData.js';
 import { exportData, importDataFromFile } from './storage/chartFile.js';
 import { toggleTheme } from './ui/theme.js';
 import { initAssistant, openPanel as openAssistant } from './ai/assistant.js';
+import { fitZoom, initZoom, setZoom, zoomOf } from './ui/zoom.js';
 
 // index.html (and HTML built in JS strings) calls these from onclick/onchange/… attributes,
 // which only see global names — so they are put on window.
@@ -184,6 +186,7 @@ try {
   initDrive();
   receiveFromLink();   // opened from a "Receive" link or QR code
   window.addEventListener('hashchange', receiveFromLink);   // …or a link opened while ClassMap was already open
+  initZoom();            // − / Fit / + and pinch on the room
   initAssistant();       // help + on-device AI (lower right)
   // index.html shows a "couldn't start" screen if this line is never reached
   window.__classmapStarted = true;

@@ -14,6 +14,7 @@ import { editorOpen, markDirty } from '../storage/autosave.js';
 import { renderLayoutCanvas } from './canvas.js';
 import { undo } from '../editor/undo.js';
 import { snapToWall } from './roomEditor.js';
+import { zoomOf } from '../ui/zoom.js';
 
 export const GRID = 14;        // half the background dot spacing, so items sit on the dots
 const SNAP_DIST = 7;           // px: how close an edge must come to a neighbour's edge to snap
@@ -122,8 +123,9 @@ function startGroupDrag(e, item, additive) {
   };
 
   function onMove(mv) {
-    let dx = mv.clientX - sx, dy = mv.clientY - sy;
-    if (!moved && Math.hypot(dx, dy) < 4) return;
+    if (!moved && Math.hypot(mv.clientX - sx, mv.clientY - sy) < 4) return;
+    const z = zoomOf('layout');
+    let dx = (mv.clientX - sx) / z, dy = (mv.clientY - sy) / z;
     moved = true;
     const guides = [];
     if (!mv.altKey) {
@@ -180,13 +182,14 @@ export function startMarquee(e) {
   if (e.pointerType === 'touch') return;
   const c = canvasEl();
   const cr0 = c.getBoundingClientRect();
-  const x0 = e.clientX - cr0.left, y0 = e.clientY - cr0.top;
+  const z = zoomOf('layout');
+  const x0 = (e.clientX - cr0.left) / z, y0 = (e.clientY - cr0.top) / z;
   const keep = e.shiftKey || e.ctrlKey || e.metaKey ? [...store.selectedIds] : [];
   let box = null;
   function onMove(mv) {
     const cr = c.getBoundingClientRect();
-    const x1 = mv.clientX - cr.left, y1 = mv.clientY - cr.top;
-    if (!box && Math.hypot(x1 - x0, y1 - y0) < 8) return;
+    const x1 = (mv.clientX - cr.left) / z, y1 = (mv.clientY - cr.top) / z;
+    if (!box && Math.hypot(x1 - x0, y1 - y0) * z < 8) return;
     if (!box) { box = document.createElement('div'); box.className = 'layout-marquee'; c.appendChild(box); }
     const r = { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) };
     Object.assign(box.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
@@ -227,7 +230,7 @@ export function duplicateSelection() {
   const bx = boxes();
   const gb = unionBox(items.map(i => bx.get(i.id)).filter(Boolean));
   const wrap = document.getElementById('layoutCanvasWrap');
-  const roomRight = Math.max(900, wrap.clientWidth + wrap.scrollLeft);
+  const roomRight = Math.max(900, (wrap.clientWidth + wrap.scrollLeft) / zoomOf('layout'));
   // Next to the selection with the same gap a row would have; below it if there's no room to the right
   const gap = GRID * 2;
   let ox = snapGrid(gb.w + gap), oy = 0;

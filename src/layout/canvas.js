@@ -7,6 +7,7 @@ import { GRID, clearSelection, editItemName, onItemPointerDown, refreshSelection
 import { scheduleRoomCheck } from './roomCheck.js';
 import { decorateRoom, snapToWall } from './roomEditor.js';
 import { FIXTURE_SIZE, MIN_SIZE, RESIZE, fixtureSize, isFixture, makeFixture, sizeFixture } from './fixtures.js';
+import { afterRender, toCanvas, zoomOf } from '../ui/zoom.js';
 
 // ═══════════════════════════════════════════════
 //  LAYOUT CANVAS
@@ -79,9 +80,7 @@ export function initLayoutCanvas() {
                  !!e.target.closest('.drop-zone-hint');
     if (!onBg) return;
 
-    const rect = wrap.getBoundingClientRect();
-    const x = e.clientX - rect.left + wrap.scrollLeft;
-    const y = e.clientY - rect.top + wrap.scrollTop;
+    const { x, y } = toCanvas('layout', e.clientX, e.clientY);
     placeLayoutItem(x, y, e.altKey);
   });
   wrap.addEventListener('pointercancel', () => { store._canvasMouseDownTime = 0; });
@@ -156,6 +155,7 @@ export function renderLayoutCanvas() {
   });
   refreshSelection();
   scheduleRoomCheck();
+  afterRender('layout');
 }
 
 export const layer = i => i.type === 'room' ? 0 : i.type === 'zone' ? 1 : 2;
@@ -333,7 +333,8 @@ function startResize(e, item, wrap, el) {
   const sx = e.clientX, sy = e.clientY;
   let changed = false;
   function onMove(mv) {
-    const dx = mv.clientX - sx, dy = mv.clientY - sy;
+    const z = zoomOf('layout');
+    const dx = (mv.clientX - sx) / z, dy = (mv.clientY - sy) / z;
     const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos;      // pointer movement along the item
     const snap = v => mv.altKey ? v : Math.round(v / GRID) * GRID;
     const min = MIN_SIZE[item.type] || GRID;

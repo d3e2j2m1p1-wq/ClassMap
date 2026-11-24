@@ -7,6 +7,7 @@ import { state } from '../core/state.js';
 import { dragOffset, renderLayoutCanvas } from './canvas.js';
 import { markDirty } from '../storage/autosave.js';
 import { setSelection } from './selection.js';
+import { toCanvas, zoomOf } from '../ui/zoom.js';
 
 export function tableBBox(item) {
   if (!item.seatPositions || item.seatPositions.length === 0) return { w: 110, h: 90 };
@@ -56,7 +57,8 @@ export function makeFreeTableSeat(item, idx, pos) {
     const c = Math.cos(th), sn = Math.sin(th);
 
     function onMove(mv) {
-      const dx = mv.clientX - sx, dy = mv.clientY - sy;
+      const z = zoomOf('layout');
+      const dx = (mv.clientX - sx) / z, dy = (mv.clientY - sy) / z;
       const lx = dx * c + dy * sn;
       const ly = -dx * sn + dy * c;
       const pos2 = item.seatPositions[idx];
@@ -118,10 +120,9 @@ export function moveItem(e) {
   if (!store.draggingItemId) return;
   const item = state.layoutItems.find(i => i.id === store.draggingItemId);
   if (!item) return;
-  const wrap = document.getElementById('layoutCanvasWrap');
-  const rect = wrap.getBoundingClientRect();
-  item.x = Math.max(0, e.clientX - rect.left + wrap.scrollLeft - dragOffset.x);
-  item.y = Math.max(0, e.clientY - rect.top + wrap.scrollTop - dragOffset.y);
+  const p = toCanvas('layout', e.clientX, e.clientY);
+  item.x = Math.max(0, p.x - dragOffset.x);
+  item.y = Math.max(0, p.y - dragOffset.y);
   const el = document.querySelector(`.canvas-item[data-id="${store.draggingItemId}"]`);
   if (el) { el.style.left = item.x + 'px'; el.style.top = item.y + 'px'; }
 }

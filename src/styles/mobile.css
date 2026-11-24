@@ -1,0 +1,106 @@
+/* ═══════════════════════════════════════════════
+   PHONES (and narrow windows)
+   Loaded last, so these win over the desktop layout.
+═══════════════════════════════════════════════ */
+
+/* Zoom buttons for the room (Layout and Assign) — every screen size */
+.zoom-bar {
+  position: absolute; left: 12px; bottom: 12px; z-index: 80; display: flex; gap: 2px; padding: 3px;
+  background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.zoom-bar button {
+  min-width: 34px; height: 32px; border: none; border-radius: 7px; background: transparent; color: var(--text2);
+  font: 600 0.95rem 'Geist', sans-serif; cursor: pointer; padding: 0 6px;
+}
+.zoom-bar .zoom-pct { font-size: 0.72rem; min-width: 48px; }
+.zoom-bar button:hover { background: var(--surface2); color: var(--text); }
+@media print { .zoom-bar { display: none !important; } }
+body.presenting .zoom-bar { display: none; }
+#assignCanvas, #layoutCanvas { will-change: auto; }
+
+.phone-only { display: none !important; }
+/* toasts sit above the helper button (lower right) */
+.toast { bottom: 84px; }
+
+@media (max-width: 760px) {
+  .phone-only { display: flex !important; }
+  .hb-label { display: none; }
+
+  /* ── Editor header: name + buttons on one row, the four tabs full width below ── */
+  header { height: auto; flex-wrap: wrap; padding: 8px 10px; gap: 8px; }
+  .logo { font-size: 0; gap: 0; }
+  .class-name-input { min-width: 0; flex: 1; width: 0; padding-left: 10px; font-size: 0.95rem; }
+  .header-spacer { display: none; }
+  .header-actions { order: 2; margin-left: 0; gap: 4px; }
+  .header-actions .hbtn { padding: 8px 9px; min-width: 38px; min-height: 38px; font-size: 0.95rem; }
+  .header-actions .hb-theme, .header-actions [onclick="openPresent()"] { display: none; }
+  .tab-bar { order: 3; width: 100%; }
+  .tab-btn { flex: 1; padding: 9px 4px; font-size: 0.86rem; }
+  .more-menu { right: 0; left: auto; }
+  .more-menu .tm-inner { min-width: 240px; }
+  .more-menu .tm-item { flex-direction: column; align-items: flex-start; gap: 1px; }
+  .more-menu .tm-item small { margin-left: 0; }
+
+  /* ── Layout: the toolbar is one row you swipe sideways ── */
+  .layout-toolbar {
+    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; padding: 6px 10px !important; gap: 6px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch; min-height: 0;
+  }
+  .layout-toolbar::-webkit-scrollbar { display: none; }
+  /* a fade on the right edge says "there's more this way" */
+  .layout-toolbar { -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); padding-right: 40px !important; }
+  .layout-toolbar > * { flex-shrink: 0; }
+  .layout-toolbar .tool-sep, #toolHint { display: none; }
+  .tool-btn { padding: 8px 11px; font-size: 0.8rem; }
+  .seat-count { order: -1; }
+  .room-check-panel { left: 8px; right: 8px; width: auto; top: 8px; max-height: calc(100% - 64px); }
+  .sel-tools { order: -2; }
+
+  /* ── Assign: controls become a sheet at the bottom; the room gets the screen ── */
+  .assign-float-panel { top: auto; bottom: 10px; left: 10px; right: 66px; width: auto; max-height: 45%; overflow: auto; z-index: 85; }
+  .screenshot-tip { display: none; }
+  #panel-assign .zoom-bar { bottom: 66px; }
+
+
+  /* ── Roster and Rules tabs: one column, comfortable taps ── */
+  .rules-grid { grid-template-columns: 1fr !important; padding: 12px !important; gap: 12px !important; }
+  .rule-form-row { flex-wrap: wrap; }
+  .roster-columns { grid-template-columns: 1fr; padding: 10px; gap: 10px; overflow: visible; }
+  #panel-roster, #panel-rules { overflow: auto; }
+
+  /* Dialogs and menus fit the screen */
+  .ar-dialog, .cm-dialog { max-width: calc(100vw - 20px) !important; }
+  .tm-inner { max-width: calc(100vw - 16px); }
+
+  /* Toasts sit above the helper button instead of under it */
+  .cm-undo-toast, .cm-undo-toast.show { left: 10px; right: 10px; transform: none; bottom: 70px; max-width: none; }
+  .toast { left: 10px; right: 10px; bottom: 70px; }
+  .ai-bubble { width: 46px; height: 46px; }
+}
+
+/* Inputs at 16px stop iPhone Safari from zooming the page when you tap them */
+@media (max-width: 760px) and (pointer: coarse) {
+  input[type="text"], input[type="search"], input:not([type]), select, textarea { font-size: 16px !important; }
+}
+
+/* ── Phones sideways (short screens): one header row, and pages that scroll ── */
+@media (max-height: 500px) and (min-width: 761px) {
+  header { height: 48px; padding: 0 10px; gap: 8px; }
+  .logo { font-size: 0; gap: 0; }
+  .class-name-input { min-width: 0; flex: 1; width: 0; }
+  .header-spacer { display: none; }
+  .hb-label { display: none; }
+  .header-actions .hb-theme { display: none; }
+  .layout-toolbar { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 4px 10px !important; }
+  .layout-toolbar > * { flex-shrink: 0; }
+  .layout-toolbar .tool-sep, #toolHint { display: none; }
+  .assign-float-panel { max-height: calc(100% - 28px); overflow: auto; }
+  .screenshot-tip { display: none; }
+}
+@media (max-height: 500px) {
+  #landing-page { overflow-y: auto; }
+  .landing-header { padding: 12px 20px 10px; }
+  .landing-logo { font-size: 1.4rem; }
+  .landing-body { overflow: visible; min-height: 0; flex: none; }
+  .landing-classes, .landing-detail { max-height: none; min-height: 340px; }
+}

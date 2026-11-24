@@ -18,6 +18,7 @@ import { SHAPES, nearestWall, pointInPoly, roomPoints, setRoomPoints, shapePoint
 import { closeFloatMenu, openFloatMenu, tmDiv, tmItem } from './tableGroups.js';
 import { pxPerFt } from './roomModel.js';
 import { wallsAround } from './templates.js';
+import { zoomOf } from '../ui/zoom.js';
 
 const SNAP = 10;   // px: how close to straight / 45° before a corner snaps
 
@@ -48,7 +49,7 @@ export function decorateRoom(wrap, item) {
   if (svg) svg.querySelector('.room-wall').addEventListener('dblclick', e => {
     e.stopPropagation();
     const cr = document.getElementById('layoutCanvas').getBoundingClientRect();
-    addCorner(item, e.clientX - cr.left, e.clientY - cr.top);
+    addCorner(item, (e.clientX - cr.left) / zoomOf('layout'), (e.clientY - cr.top) / zoomOf('layout'));
   });
 }
 
@@ -75,7 +76,8 @@ function startCornerDrag(e, item, i, wrap) {
   function onMove(mv) {
     if (!moved && Math.hypot(mv.clientX - sx, mv.clientY - sy) < 3) return;
     moved = true;
-    let x = x0 + mv.clientX - sx, y = y0 + mv.clientY - sy;
+    const z = zoomOf('layout');
+    let x = x0 + (mv.clientX - sx) / z, y = y0 + (mv.clientY - sy) / z;
     if (!mv.altKey) {
       x = Math.round(x / GRID) * GRID; y = Math.round(y / GRID) * GRID;
       // straight lines and 45° with the two neighbouring corners
