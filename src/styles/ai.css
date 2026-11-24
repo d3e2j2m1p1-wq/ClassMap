@@ -116,3 +116,29 @@
 body.presenting .ai-root { display: none !important; }
 @media print { .ai-root { display: none !important; } }
 @media (prefers-reduced-motion: reduce) { .ai-bubble, .ai-tip, .ai-progress > div { transition: none; animation: none; } }
+
+/* ── Chat ── */
+.ai-chat { display: flex; flex-direction: column; gap: 8px; max-height: 340px; min-height: 60px; overflow-y: auto; padding-right: 2px; }
+.ai-say { max-width: 92%; border-radius: 12px; padding: 8px 11px; line-height: 1.45; }
+.ai-me { align-self: flex-end; background: var(--blue); color: #fff; border-bottom-right-radius: 4px; white-space: pre-wrap; }
+.ai-bot { align-self: flex-start; background: var(--surface2); color: var(--text); border-bottom-left-radius: 4px; display: flex; flex-direction: column; gap: 8px; }
+.ai-bot ul { color: var(--text); margin-top: 4px; }
+.ai-bot .ai-plan { background: var(--surface); }
+.ai-bot .ai-plan li { display: list-item; margin-left: 16px; list-style: disc; }
+.ai-bot .ai-plan ul { list-style: disc; }
+.ai-part:empty { display: none; }
+.ai-warn-line { display: block; color: var(--amber); margin-top: 4px; }
+.ai-examples { display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-examples p { width: 100%; }
+.ai-ex, .ai-pick.ai-chip { font: inherit; font-size: 0.74rem; }
+.ai-compose { display: flex; gap: 6px; align-items: flex-end; }
+.ai-ask-in {
+  flex: 1; resize: none; overflow-y: auto; max-height: 140px; background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border2); border-radius: 10px; padding: 9px 11px; font: inherit; outline: none; line-height: 1.4;
+}
+.ai-ask-in:focus { border-color: var(--blue); }
+.ai-send { width: 38px; height: 38px; border-radius: 10px; border: none; background: var(--blue); color: #fff; cursor: pointer; font-size: 0.95rem; flex-shrink: 0; }
+.ai-send:hover { filter: brightness(1.1); }
+.ai-tools { flex-direction: row; }
+.ai-tools .ai-tool { flex: 1; padding: 7px 8px; }
+.ai-tools .ai-tool-i { width: 26px; height: 26px; }

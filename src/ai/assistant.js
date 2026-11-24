@@ -17,7 +17,8 @@ import { DEFAULT_MODEL, MODELS, loadPrefs, savePrefs } from './config.js';
 import { checkDevice, downloadSize, fmtGB } from './device.js';
 import { getEngine, isDownloaded, removeModelFiles } from './engine.js';
 import { describe, parseRules, planRules, readModelRules, rulesPrompt } from './rulesNL.js';
-import { helpPrompt, searchHelp } from './help.js';
+import { FAQ, searchHelp } from './help.js';
+import { commandPrompt, context, planCommands, readCommand, readModelCommand, restore, snapshot } from './commands.js';
 
 let prefs = loadPrefs();
 let root, bubble, panel, tip;
@@ -60,6 +61,8 @@ export async function initAssistant() {
 
   device = await checkDevice();
   if (!device.webgpu && prefs.enabled) set({ enabled: false });
+  // Larger model by default on laptops with 8 GB+ (it's much more reliable); the teacher's own choice wins
+  if (!prefs.modelPicked && !prefs.enabled) set({ model: device.memoryGB >= 8 && !device.mobile ? 'large' : 'small' });
   // First visit on a device that can run it: a one-time tip, then just the quiet button
   if (device.webgpu && !prefs.tipSeen && !prefs.enabled) setTimeout(showTip, 1500);
 }
@@ -149,12 +152,15 @@ function togglePanel() { panel.hidden ? openPanel() : closePanel(); }
 function render() {
   const head = `<div class="ai-head">
       ${view !== 'home' && view !== 'loading' ? '<button type="button" class="ai-icon ai-back" aria-label="Back">‹</button>' : ''}
-      <div class="ai-title">${{ home: 'ClassMap helper', info: 'On-device AI', loading: 'On-device AI', rules: 'Seating rules', email: 'Parent email', accom: 'Accommodation summary', help: 'Help' }[view]}
+      <div class="ai-title">${{ home: 'ClassMap helper', info: 'On-device AI', loading: 'On-device AI', email: 'Parent email', accom: 'Accommodation summary' }[view]}
         <small>${status()}</small></div>
       <button type="button" class="ai-icon ai-menu-btn" aria-label="AI settings">⋮</button>
       <button type="button" class="ai-icon ai-close" aria-label="Close">✕</button>
     </div>`;
+  const typed = panel.querySelector('.ai-ask-in')?.value || '';     // keep what's being typed across redraws
   panel.innerHTML = head + `<div class="ai-body">${VIEWS[view]()}</div>`;
+  const askIn = panel.querySelector('.ai-ask-in');
+  if (askIn && typed) askIn.value = typed;
   panel.querySelector('.ai-close').onclick = closePanel;
   panel.querySelector('.ai-back')?.addEventListener('click', () => { view = 'home'; render(); });
   panel.querySelector('.ai-menu-btn').onclick = e => settingsMenu(e.currentTarget);
@@ -173,18 +179,20 @@ function refresh() {
 // ── Home: what the helper can do ──
 const VIEWS = {
   home() {
-    const cls = currentClass();
     const can = device && device.webgpu;
     return `
-      <div class="ai-search"><input type="search" class="ai-help-q" placeholder="Search help…" aria-label="Search help"></div>
+      <div class="ai-chat-slot"></div>
+      <div class="ai-compose">
+        <textarea class="ai-ask-in" rows="1" placeholder="Ask or tell ClassMap…" aria-label="Ask or tell ClassMap"></textarea>
+        <button type="button" class="ai-send" aria-label="Send">➤</button>
+      </div>
       <div class="ai-tools">
-        ${tool('rules', '⇄', 'Seating rules in plain English', cls ? `For ${esc(cls.name)}. “Keep Liam and Owen apart.”` : 'Pick a class first')}
         ${tool('email', '✉', 'Polish a parent email', aiOn() ? 'Clearer, warmer, or in Spanish' : 'Needs the on-device AI', !aiOn())}
-        ${tool('accom', '☰', 'Accommodation summary', aiOn() ? (cls ? 'Short seating notes from an IEP or 504' : 'Pick a class first') : 'Needs the on-device AI', !aiOn())}
+        ${tool('accom', '☰', 'Accommodation summary', aiOn() ? 'Short seating notes from an IEP or 504' : 'Needs the on-device AI', !aiOn())}
       </div>
       ${aiOn() ? (loadError ? `<div class="ai-note warn">${esc(loadError)} <button type="button" class="ai-link ai-retry">Try again</button></div>` : '')
-        : can ? `<div class="ai-card"><b>Turn on the on-device AI</b><p>Runs in this browser. Student information never leaves this device.</p><button type="button" class="rc-btn primary ai-learn">Learn more</button></div>`
-        : `<p class="ai-fine">The on-device AI needs a browser with WebGPU (recent Chrome or Edge on a laptop). Help search and plain-English rules still work here.</p>`}`;
+        : can ? `<div class="ai-card"><b>Turn on the on-device AI</b><p>Understands more ways of asking, polishes emails and sums up accommodations. Runs in this browser; student information never leaves this device.</p><button type="button" class="rc-btn primary ai-learn">Learn more</button></div>`
+        : `<p class="ai-fine">The on-device AI needs a browser with WebGPU (recent Chrome or Edge on a laptop). The helper still understands the usual ways of asking.</p>`}`;
   },
   info() {
     const m = MODELS[prefs.model] || MODELS[DEFAULT_MODEL];
@@ -193,10 +201,11 @@ const VIEWS = {
     return `
       <p class="ai-lead">A small AI model that runs on this computer, inside your browser.</p>
       <h4>What it does</h4>
-      <ul><li>Turns seating wishes into rules: “Keep Liam and Owen apart, Ana needs the front.”</li>
+      <ul><li>Understands what you ask in your own words, and ClassMap does it: “Make a class called Period 4”, “Swap Ana and Mia”, “Who’s tagged IEP?”</li>
+        <li>Turns seating wishes into rules: “Keep Liam and Owen apart, Ana needs the front.”</li>
         <li>Polishes emails to parents, or puts them in Spanish.</li>
         <li>Sums up an IEP or 504 into short seating notes and suggested tags.</li>
-        <li>It never changes your chart on its own. You see what it will do and press Apply.</li>
+        <li>Answers come from your real class data, not the AI’s memory. It never changes anything on its own: you see what it will do and press Apply.</li>
         <li>Like any AI, it can make mistakes. Read what it writes before you use it.</li></ul>
       <h4>Privacy</h4>
       <p>The model runs in this browser. What you type, and your students’ names and information, never leave this device. The only thing downloaded is the model itself, once, from classmap.dev.</p>
@@ -231,15 +240,6 @@ const VIEWS = {
       <p class="ai-fine">You can keep working; it continues in the background while this tab is open.</p>
       <div class="ai-row end"><button type="button" class="rc-btn ai-cancel">Cancel</button></div>`;
   },
-  rules() {
-    const cls = currentClass();
-    if (!cls) return '<p class="ai-lead">Pick a class on the home page first, then come back here.</p>';
-    return `
-      <p class="ai-lead">Type how you want <b>${esc(cls.name)}</b> seated. One wish per sentence works best.</p>
-      <textarea class="ai-input" rows="4" placeholder="Keep Liam and Owen apart. Ana needs to sit near the front. Spread out the IEP students."></textarea>
-      <div class="ai-row end"><button type="button" class="rc-btn primary ai-go">Read it</button></div>
-      <div class="ai-out"></div>`;
-  },
   email() {
     return `
       <p class="ai-lead">Paste your draft. Names and facts stay as you wrote them.</p>
@@ -262,9 +262,6 @@ const VIEWS = {
       <div class="ai-row end"><button type="button" class="rc-btn primary ai-go">Summarize</button></div>
       <div class="ai-out"></div>`;
   },
-  help() {
-    return `<div class="ai-search"><input type="search" class="ai-help-q" placeholder="Search help…" aria-label="Search help"></div><div class="ai-out"></div>`;
-  },
 };
 const tool = (v, icon, title, sub, off = false) =>
   `<button type="button" class="ai-tool" data-v="${v}" ${off ? 'data-off="1"' : ''}><span class="ai-tool-i">${icon}</span><span><b>${title}</b><small>${sub}</small></span></button>`;
@@ -278,12 +275,12 @@ const WIRE = {
     });
     panel.querySelector('.ai-learn')?.addEventListener('click', () => openPanel('info'));
     panel.querySelector('.ai-retry')?.addEventListener('click', () => { loadError = ''; startEngine(); });
-    wireSearch(true);
+    wireChat();
   },
   info() {
     const notnow = panel.querySelector('.ai-notnow');
     notnow.onclick = () => { view = 'home'; render(); };
-    panel.querySelectorAll('input[name=aiModel]').forEach(r => r.onchange = () => { set({ model: r.value }); sizeLabel(); });
+    panel.querySelectorAll('input[name=aiModel]').forEach(r => r.onchange = () => { set({ model: r.value, modelPicked: true }); sizeLabel(); });
     panel.querySelector('.ai-turnon').onclick = () => {
       const pick = panel.querySelector('input[name=aiModel]:checked')?.value || DEFAULT_MODEL;
       set({ enabled: true, model: pick, tipSeen: true });
@@ -299,12 +296,6 @@ const WIRE = {
     });
   },
   loading() { panel.querySelector('.ai-cancel').onclick = () => { engine().unload(); set({ enabled: false }); view = 'info'; render(); }; },
-  rules() {
-    const go = panel.querySelector('.ai-go');
-    if (!go) return;
-    go.onclick = () => runRules(panel.querySelector('.ai-input').value);
-    ctrlEnter(go);
-  },
   email() {
     const go = panel.querySelector('.ai-go');
     go.onclick = () => runEmail();
@@ -316,7 +307,6 @@ const WIRE = {
     go.onclick = () => runAccom();
     ctrlEnter(go);
   },
-  help() { wireSearch(false); },
 };
 function ctrlEnter(btn) {
   panel.querySelector('.ai-input')?.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); btn.click(); } });
@@ -397,7 +387,7 @@ function settingsMenu(anchor) {
     if (!k) return;
     m.remove();
     document.removeEventListener('pointerdown', close, true);
-    if (k === 'switch') { set({ model: prefs.model === 'small' ? 'large' : 'small' }); openPanel('info'); }
+    if (k === 'switch') { set({ model: prefs.model === 'small' ? 'large' : 'small', modelPicked: true }); openPanel('info'); }
     else if (k === 'on' || k === 'about') openPanel('info');
     else if (k === 'off') { engine().unload(); set({ enabled: false }); loadError = ''; view = 'home'; render(); showToast('AI turned off'); }
     else if (k === 'remove') removeAI();
@@ -419,34 +409,112 @@ export async function removeAI() {
   showToast(freed > 1e6 ? `AI removed · ${fmtGB(freed / 1e9)} freed` : 'AI removed from this device');
 }
 
-// ── Help search ──
-function wireSearch(compact) {
-  const q = panel.querySelector('.ai-help-q');
-  if (!q) return;
-  let t = null;
-  const out = () => panel.querySelector('.ai-out') || (() => { const d = document.createElement('div'); d.className = 'ai-out'; q.parentElement.after(d); return d; })();
-  q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => showHelp(q.value, out(), compact), 200); });
-  q.addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(t); showHelp(q.value, out(), compact, true); } });
+// ── The chat: understand → answer from real data, or show a plan to Apply ──
+let chatLog = null;          // kept between redraws of the panel
+function chatEl() {
+  if (!chatLog) { chatLog = document.createElement('div'); chatLog.className = 'ai-chat'; }
+  return chatLog;
 }
-async function showHelp(query, out, compact, ask = false) {
-  if (!query.trim()) { out.innerHTML = ''; return; }
-  const hits = await searchHelp(query, compact ? 3 : 6);
-  out.innerHTML = (hits.length ? hits.map(h => `
-    <div class="ai-hit"><b>${esc(h.title)}</b><p>${esc(h.text.length > 260 ? h.text.slice(0, 260) + '…' : h.text)}</p>
-      ${h.url ? `<a href="${esc(h.url)}" target="_blank" rel="noopener">Read the guide ↗</a>` : ''}</div>`).join('')
-    : '<p class="ai-fine">Nothing found. Try other words.</p>')
-    + (aiOn() && hits.length ? `<button type="button" class="ai-link ai-ask">Ask the AI about this</button><div class="ai-answer"></div>` : '');
-  const askBtn = out.querySelector('.ai-ask');
-  if (askBtn) {
-    askBtn.onclick = () => askHelp(query, hits, out.querySelector('.ai-answer'), askBtn);
-    if (ask && aiReady()) askBtn.click();
+function wireChat() {
+  panel.querySelector('.ai-chat-slot').replaceWith(chatEl());
+  if (!chatEl().children.length) chatEl().appendChild(examples());
+  const input = panel.querySelector('.ai-ask-in');
+  const grow = () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 140) + 'px'; };
+  const go = () => { const t = input.value.trim(); if (!t || busy) return; input.value = ''; grow(); send(t); };
+  input.addEventListener('input', grow);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); go(); } });
+  panel.querySelector('.ai-send').onclick = go;
+  setTimeout(() => { input.focus(); chatEl().scrollTop = chatEl().scrollHeight; });
+}
+// Example requests, using real names from the class when there is one
+function examples() {
+  const ctx = context();
+  const ss = ctx.editing ? state.students : (ctx.cls?.students || []);
+  const first = i => (ss[i]?.name || ['Liam', 'Ana', 'Owen', 'Mia'][i]).split(' ')[0];
+  const ex = !ctx.cls ? ['Make a class called Period 4', 'What classes do I have?', 'How do I print a chart?']
+    : ctx.editing ? [`Swap ${first(0)} and ${first(1)}`, `Who sits next to ${first(2)}?`, 'Check the rules', `Keep ${first(0)} and ${first(3)} apart`, 'Who doesn’t have a seat?']
+    : [`Keep ${first(0)} and ${first(1)} apart`, 'Who’s tagged IEP?', 'Add students: Jo Smith, Sam Lee', 'Make a class called Period 4', 'Start a new chart'];
+  const d = document.createElement('div');
+  d.className = 'ai-examples';
+  d.innerHTML = `<p class="ai-fine">Ask a question or tell ClassMap what to do. Nothing changes until you press Apply.</p>` +
+    ex.map(t => `<button type="button" class="ai-chip ai-ex">${esc(t)}</button>`).join('');
+  d.querySelectorAll('.ai-ex').forEach(b => b.onclick = () => { const i = panel.querySelector('.ai-ask-in'); i.value = b.textContent; i.focus(); });
+  return d;
+}
+function say(who, html) {
+  const log = chatEl();
+  log.querySelector('.ai-examples')?.remove();
+  const d = document.createElement('div');
+  d.className = `ai-say ai-${who}`;
+  d.innerHTML = html;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  return d;
+}
+
+export async function send(text) {
+  say('me', esc(text));
+  const box = say('bot', '<span class="ai-fine typing">Thinking</span>');
+  const ctx = context();
+  let cmds = readCommand(text, ctx);
+  // not one of the usual phrasings: the on-device model works out what was meant (and only that)
+  if (!cmds && aiOn() && (await needAI(box))) {
+    box.innerHTML = '<span class="ai-fine typing">Thinking</span>';
+    busy = true;
+    try { cmds = readModelCommand(await engine().chat(commandPrompt(ctx, text), { maxTokens: 220 })); } catch { cmds = null; }
+    busy = false;
+  }
+  box.innerHTML = '';
+  const results = cmds && cmds.length ? planCommands(cmds, context()) : [{ kind: 'none' }];
+  for (const r of results) await showResult(r, box, text);
+  chatEl().scrollTop = chatEl().scrollHeight;
+}
+
+async function showResult(r, box, text) {
+  const part = document.createElement('div');
+  part.className = 'ai-part';
+  box.appendChild(part);
+  if (r.kind === 'answer') { part.innerHTML = r.html; return; }
+  if (r.kind === 'help' || r.kind === 'none') {
+    let hits = await searchHelp(r.query || text, 2);
+    hits = hits.filter((h, i) => i === 0 || h.score >= hits[0].score * 0.8);   // a second answer only if it's as good a match
+    if (hits.length && (r.kind === 'help' || hits[0].score >= 4)) { part.innerHTML = hits.map(helpHTML).join(''); wireHelp(part); return; }
+    part.innerHTML = r.kind === 'help' ? 'I couldn’t find that in the help. Try other words.'
+      : `I can’t do that yet. I can make classes, add or tag students, set seating rules, swap or move seats, pin, auto-assign, and answer questions about your class and chart.${!aiOn() && device?.webgpu ? ' <button type="button" class="ai-link ai-learn">Turn on the AI</button> to understand more ways of asking.' : ''}`;
+    part.querySelector('.ai-learn')?.addEventListener('click', () => openPanel('info'));
+    return;
+  }
+  if (r.kind === 'pick') {
+    part.innerHTML = `Which “${esc(r.text.replace(/\b\w/g, c => c.toUpperCase()))}”? ` + r.options.map(o => `<button type="button" class="ai-chip ai-pick" data-to="${esc(o.name)}">${esc(o.name)}</button>`).join(' ');
+    part.querySelectorAll('.ai-pick').forEach(b => b.onclick = () => send(swapName(text, r.text, b.dataset.to)));
+    return;
+  }
+  if (r.kind === 'rules') { await runRules(r.text, part, (from, to) => send(swapName(text, from, to))); return; }
+  if (r.kind === 'plan') {
+    part.innerHTML = `<div class="ai-plan"><b>Here’s what I’ll do:</b><ul>${r.items.map(t => `<li>${t}</li>`).join('')}</ul>${r.note || ''}
+      <div class="ai-row end"><button type="button" class="rc-btn ai-cancel">Cancel</button><button type="button" class="rc-btn primary ai-apply">Apply</button></div></div>`;
+    part.querySelector('.ai-cancel').onclick = () => { part.innerHTML = '<span class="ai-fine">Canceled. Nothing changed.</span>'; };
+    part.querySelector('.ai-apply').onclick = () => {
+      const snap = snapshot();
+      try { r.apply(); } catch (e) { part.innerHTML = `<span class="ai-err">That didn’t work: ${esc(e.message)}</span>`; return; }
+      const undone = () => { part.innerHTML = '<span class="ai-fine">Undone.</span>'; };
+      part.innerHTML = `<span class="ai-note ok">✓ ${esc(r.done || 'Done.')} <button type="button" class="ai-link ai-undo">Undo</button></span>`;
+      part.querySelector('.ai-undo').onclick = () => { restore(snap); undone(); };
+      if (!r.quiet) undoToast(r.done || 'Done', () => { restore(snap); undone(); });
+    };
   }
 }
-async function askHelp(query, hits, box, btn) {
-  if (busy || !(await needAI())) return;
-  btn.remove();
-  box.className = 'ai-answer ai-msg';
-  await stream(helpPrompt(query, hits), box, 220);
+const swapName = (text, from, to) => text.replace(new RegExp(`\\b${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'), to);
+
+// Help answers are shown exactly as written; the AI never rewords them
+function helpHTML(h) {
+  const faq = FAQ.find(f => f.q === h.title);
+  return `<div class="ai-hit"><b>${esc(h.title)}</b><p>${esc(h.text.length > 320 ? h.text.slice(0, 320) + '…' : h.text)}</p>
+    ${faq && faq.do ? `<button type="button" class="ai-link ai-doit" data-do="${esc(faq.do)}">Or I can do it: “${esc(faq.do.trim())}…”</button>` : ''}
+    ${h.url ? `<a href="${esc(h.url)}" target="_blank" rel="noopener">Read the guide ↗</a>` : ''}</div>`;
+}
+function wireHelp(el) {
+  el.querySelectorAll('.ai-doit').forEach(b => b.onclick = () => { const i = panel.querySelector('.ai-ask-in'); i.value = b.dataset.do; i.focus(); });
 }
 
 // ── Streaming answer into a box ──
@@ -468,11 +536,10 @@ async function stream(messages, box, maxTokens) {
 }
 
 // ═══ 1. Seating rules ═══
-async function runRules(text) {
+async function runRules(text, out, onPick) {
   const cls = currentClass();
-  const out = panel.querySelector('.ai-out');
   if (!cls || !text.trim()) return;
-  if (!(cls.students || []).length) { out.innerHTML = '<p class="ai-note warn">This class has no students yet. Add them in the Roster tab first.</p>'; return; }
+  if (!(cls.students || []).length) { out.innerHTML = '<p class="ai-note warn">This class has no students yet. Say “Add students: …” or use the Roster tab.</p>'; return; }
   const parsed = parseRules(text, cls);
   let rules = parsed.rules, unclear = parsed.unclear, leftover = parsed.leftover;
   // what the pattern reader couldn't read goes to the AI (if it's on)
@@ -490,11 +557,11 @@ async function runRules(text) {
       busy = false;
     }
   }
-  showRulePlan(out, cls, rules, { unclear, leftover });
+  showRulePlan(out, cls, rules, { unclear, leftover, onPick });
 }
 
 // "Here's what I'll do — Apply?"
-function showRulePlan(out, cls, rules, { unclear = [], leftover = [], extra = null } = {}) {
+function showRulePlan(out, cls, rules, { unclear = [], leftover = [], extra = null, onPick = null } = {}) {
   const plan = planRules(rules, cls.hardRules || []);
   const fresh = plan.filter(p => p.status !== 'duplicate');
   const whichAna = unclear.filter(u => u.options.length > 1);
@@ -509,12 +576,7 @@ function showRulePlan(out, cls, rules, { unclear = [], leftover = [], extra = nu
     ${!plan.length && !extra && !unclear.length && !leftover.length ? '<p class="ai-fine">I didn’t find a seating rule there. Try “Keep Ana and Liam apart.”</p>' : ''}
     ${plan.length && !fresh.length && !extra ? '<p class="ai-fine">Those rules are already set.</p>' : ''}`;
   out.querySelector('.ai-learn')?.addEventListener('click', () => openPanel('info'));
-  out.querySelectorAll('.ai-pick').forEach(b => b.onclick = () => {
-    const input = panel.querySelector('.ai-input');
-    const re = new RegExp(`\\b${b.dataset.from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
-    input.value = input.value.replace(re, b.dataset.to);
-    runRules(input.value);
-  });
+  out.querySelectorAll('.ai-pick').forEach(b => b.onclick = () => onPick && onPick(b.dataset.from, b.dataset.to));
   out.querySelector('.ai-cancel')?.addEventListener('click', () => { out.innerHTML = ''; });
   const apply = out.querySelector('.ai-apply');
   if (!apply) return;
@@ -525,7 +587,7 @@ function showRulePlan(out, cls, rules, { unclear = [], leftover = [], extra = nu
     const picked = [...out.querySelectorAll('.ai-plan input[data-i]:checked')].map(c => plan[+c.dataset.i].rule);
     const extraOn = extra && out.querySelector('.ai-plan input[data-extra]:checked');
     applyToClass(cls, { rules: picked, tags: extraOn ? extra.tags : null, studentId: extra?.studentId });
-    out.innerHTML = '<p class="ai-note ok">✓ Done. You’ll find the rules in the Rules tab.</p>';
+    out.innerHTML = '<p class="ai-note ok">✓ Done. You’ll find them in the Rules tab.</p>';
   };
 }
 

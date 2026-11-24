@@ -32,13 +32,13 @@ async function mockEngine(page, replies = {}) {
       async chat(messages, { onToken = () => {} } = {}) {
         calls.push(messages);
         const sys = messages[0].content;
-        const reply = /seating wishes into rules/.test(sys) ? r.rules : /edit emails/.test(sys) ? r.email : /plan seating and daily support/.test(sys) ? r.accom : r.help;
+        const reply = /command reader/.test(sys) ? r.command : /seating wishes into rules/.test(sys) ? r.rules : /edit emails/.test(sys) ? r.email : /plan seating and daily support/.test(sys) ? r.accom : r.help;
         for (const w of String(reply).split(/(?<= )/)) onToken(w);
         return String(reply);
       },
       stop() {}, unload() { this.state = 'off'; },
     });
-  }, { rules: '[]', email: 'Hello.', accom: '- Seat near the front', help: 'Use the Rules tab.', ...replies });
+  }, { command: '[{"action":"none"}]', rules: '[]', email: 'Hello.', accom: '- Seat near the front', help: 'Use the Rules tab.', ...replies });
 }
 
 // A class with real-looking names, on the home page
@@ -74,39 +74,90 @@ test('helper button: first-visit tip once, then quiet', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('no WebGPU: no tip, no AI offer, help search still works', async ({ page }) => {
+// Type into the helper and send
+async function ask(page, text) {
+  await page.locator('.ai-ask-in').fill(text);
+  await page.locator('.ai-send').click();
+  return page.locator('.ai-bot').last();
+}
+// A chart for the class on screen: two tables of four, everyone seated in order
+async function chartWithSeats(page) {
+  await page.evaluate(() => {
+    const cm = window.__cm;
+    cm.createNewChart();
+    const T = (id, x, y, label) => ({ id, type: 'table', x, y, rotation: 0, groups: 2, groupShift: 0, ...(label ? { label } : {}),
+      seatPositions: [{ x: 14, y: 14 }, { x: 76, y: 14 }, { x: 138, y: 14 }, { x: 200, y: 14 }] });
+    cm.state.layoutItems.push(T('ta', 420, 120, 'Red table'), T('tb', 420, 400));
+    const seats = cm.getAllSeats();
+    cm.state.students.forEach((s, i) => { if (seats[i]) cm.state.assignments[seats[i].seatId] = s.id; });
+    cm.renderLayoutCanvas();
+  });
+}
+
+test('no WebGPU: no tip, no AI offer; how-to questions get the written answer', async ({ page }) => {
   await open(page, { device: { ...GOOD_DEVICE, webgpu: false, gpu: '' } });
   await page.waitForTimeout(2000);
   await expect(page.locator('.ai-tip')).toHaveCount(0);
   await bubble(page).click();
-  await expect(panel(page)).toBeVisible();
   await expect(panel(page)).toContainText('needs a browser with WebGPU');
   await expect(panel(page).locator('.ai-learn')).toHaveCount(0);
-  await panel(page).locator('.ai-help-q').fill('keep two students apart');
-  await expect(panel(page).locator('.ai-hit').first()).toContainText('keep two students apart', { ignoreCase: true });
-  await expect(panel(page).locator('.ai-ask')).toHaveCount(0);   // no AI to ask
+  const reply = await ask(page, 'how do I keep two students apart?');
+  await expect(reply.locator('.ai-hit').first()).toContainText('Keep apart');
 });
 
-test('help search finds guide sections too', async ({ page }) => {
+test('“how do I add a class” gives the real steps, and offers to do it', async ({ page }) => {
   await open(page, { prefs: { tipSeen: true } });
   await bubble(page).click();
-  await panel(page).locator('.ai-help-q').fill('substitute');
-  await expect(panel(page).locator('.ai-hit').first()).toBeVisible();
-  const r = await page.evaluate(async () => (await window.__cm.searchHelp('substitute teacher seating chart', 6)).map(h => h.kind));
-  expect(r).toContain('guide');
+  const reply = await ask(page, 'How do I add a new class?');
+  await expect(reply.locator('.ai-hit').first()).toContainText('“New class name…” box');
+  await expect(reply).not.toContainText('plus');
+  await reply.locator('.ai-doit').click();
+  await expect(page.locator('.ai-ask-in')).toHaveValue('Make a class called ');
 });
 
-test('plain-English rules without the AI: preview, Apply, Undo', async ({ page }) => {
+test('chat makes a class with students, only after Apply; Undo takes it back', async ({ page }) => {
+  await open(page, { prefs: { tipSeen: true } });
+  await bubble(page).click();
+  const reply = await ask(page, 'Can you create a new class called Period 4 with Jo Smith, Sam Lee and Ana Diaz?');
+  await expect(reply.locator('.ai-plan')).toContainText('Create the class Period 4');
+  await expect(reply.locator('.ai-plan')).toContainText('Add 3 students: Jo Smith, Sam Lee and Ana Diaz');
+  expect(await page.evaluate(() => window.__cm.store.landingData.classes.length)).toBe(0);
+  await reply.locator('.ai-apply').click();
+  const cls = await page.evaluate(() => window.__cm.store.landingData.classes.map(c => [c.name, c.students.map(s => s.name)]));
+  expect(cls).toEqual([['Period 4', ['Jo Smith', 'Sam Lee', 'Ana Diaz']]]);
+  await expect(page.locator('#landingDetailClassName')).toHaveText('Period 4');
+  await reply.locator('.ai-undo').click();
+  expect(await page.evaluate(() => window.__cm.store.landingData.classes.length)).toBe(0);
+});
+
+test('chat: add and tag students, answer from the real roster', async ({ page }) => {
   await open(page, { prefs: { tipSeen: true } });
   await classOnHome(page);
   await bubble(page).click();
-  await panel(page).locator('.ai-tool[data-v="rules"]').click();
-  await panel(page).locator('.ai-input').fill('Keep Liam and Owen apart. Sofia needs to sit near the front. Spread out the IEP kids.');
-  await panel(page).locator('.ai-go').click();
-  const plan = panel(page).locator('.ai-plan');
+  let reply = await ask(page, 'add students: Jo Smith, Liam Johnson');
+  await expect(reply.locator('.ai-plan')).toContainText('Add 1 student to Period 3: Jo Smith');
+  await expect(reply.locator('.ai-plan')).toContainText('Already there: Liam Johnson');
+  await reply.locator('.ai-apply').click();
+  reply = await ask(page, 'Tag Jayden and Jo as 504');
+  await reply.locator('.ai-apply').click();
+  reply = await ask(page, 'who has a 504?');
+  await expect(reply).toContainText('2 students tagged “504”: Jayden Smith and Jo Smith.');
+  reply = await ask(page, 'how many students are in this class?');
+  await expect(reply).toContainText('Period 3 has 8 students.');
+  reply = await ask(page, 'who is tagged IEP?');
+  await expect(reply).toContainText('Owen Park and Sofia Kim');
+  reply = await ask(page, 'who is tagged ELD?');
+  await expect(reply).toContainText('Nobody in Period 3 is tagged “ELD”');
+});
+
+test('plain-English rules in the chat: preview, Apply, Undo', async ({ page }) => {
+  await open(page, { prefs: { tipSeen: true } });
+  await classOnHome(page);
+  await bubble(page).click();
+  const reply = await ask(page, 'Keep Liam and Owen apart. Sofia needs to sit near the front. Spread out the IEP kids.');
+  const plan = reply.locator('.ai-plan');
   await expect(plan).toContainText('Here’s what I’ll do for Period 3');
   await expect(plan.locator('li')).toHaveCount(3);
-  // nothing changed yet
   expect(await page.evaluate(() => window.__cm.store.landingData.classes[0].hardRules.length)).toBe(0);
   await plan.locator('.ai-apply').click();
   const rules = await page.evaluate(() => window.__cm.store.landingData.classes[0].hardRules);
@@ -118,6 +169,8 @@ test('plain-English rules without the AI: preview, Apply, Undo', async ({ page }
   await expect(page.locator('#ldRulesList')).toContainText('Liam Johnson');
   await page.locator('.cm-undo-toast .cm-undo-btn').click();
   expect(await page.evaluate(() => window.__cm.store.landingData.classes[0].hardRules.length)).toBe(0);
+  const list = await ask(page, 'what are the rules?');
+  await expect(list).toContainText('no rules yet');
 });
 
 test('rules: unclear names ask which one; existing rules are marked', async ({ page }) => {
@@ -125,43 +178,59 @@ test('rules: unclear names ask which one; existing rules are marked', async ({ p
   await classOnHome(page);
   await page.evaluate(() => { const c = window.__cm.store.landingData.classes[0]; c.hardRules.push({ type: 'separate', studentA: 'Liam Johnson', studentB: 'Owen Park' }); });
   await bubble(page).click();
-  await panel(page).locator('.ai-tool[data-v="rules"]').click();
-  await panel(page).locator('.ai-input').fill('Ana and Jayden apart. Liam and Owen should not sit together.');
-  await panel(page).locator('.ai-go').click();
-  await expect(panel(page).locator('.ai-note')).toContainText('Which “Ana”?');
-  await expect(panel(page).locator('li.duplicate')).toContainText('already a rule');
-  await panel(page).locator('.ai-pick', { hasText: 'Ana Lopez' }).click();
-  await expect(panel(page).locator('.ai-input')).toHaveValue(/Ana Lopez and Jayden apart/);
-  await expect(panel(page).locator('.ai-plan li.new')).toContainText('Keep Ana Lopez and Jayden Smith apart');
+  const reply = await ask(page, 'Ana and Jayden apart. Liam and Owen should not sit together.');
+  await expect(reply.locator('.ai-note').first()).toContainText('Which “Ana”?');
+  await expect(reply.locator('li.duplicate')).toContainText('already a rule');
+  await reply.locator('.ai-pick', { hasText: 'Ana Lopez' }).click();
+  const next = page.locator('.ai-bot').last();
+  await expect(next.locator('.ai-plan li.new')).toContainText('Keep Ana Lopez and Jayden Smith apart');
 });
 
-test('rules the pattern reader can’t read go to the AI, names checked against the class', async ({ page }) => {
+test('chart questions and seat changes come from the real chart', async ({ page }) => {
+  await open(page, { prefs: { tipSeen: true } });
+  await classOnHome(page);
+  await chartWithSeats(page);
+  await bubble(page).click();
+  // seats in order: Red table = Liam, Owen | Ana R, Ana L ; table 2 = Sofia, Jayden | Mia
+  let reply = await ask(page, 'Where is Liam sitting?');
+  await expect(reply).toContainText('Liam Johnson sits at “Red table”');
+  await expect(reply).toContainText('In the same group: Owen Park.');
+  reply = await ask(page, 'who sits next to Mia?');
+  await expect(reply).toContainText('Nobody shares a group with Mia Chen');
+  reply = await ask(page, 'swap Liam and Mia');
+  await expect(reply.locator('.ai-plan')).toContainText('Swap seats: Liam Johnson ↔ Mia Chen');
+  await reply.locator('.ai-apply').click();
+  const seatOf = name => page.evaluate(n => { const cm = window.__cm; const s = cm.state.students.find(x => x.name === n); return Object.keys(cm.state.assignments).find(k => cm.state.assignments[k] === s.id); }, name);
+  expect(await seatOf('Mia Chen')).toBe('ta_0');
+  expect(await seatOf('Liam Johnson')).toBe('tb_2');
+  await reply.locator('.ai-undo').click();
+  expect(await seatOf('Liam Johnson')).toBe('ta_0');
+  reply = await ask(page, 'Pin Sofia');
+  await reply.locator('.ai-apply').click();
+  expect(await page.evaluate(() => window.__cm.state.pins.length)).toBe(1);
+  reply = await ask(page, 'who doesnt have a seat?');
+  await expect(reply).toContainText('Everyone has a seat. 1 empty seat.');
+  await page.evaluate(() => { const c = window.__cm; c.state.hardRules.push({ type: 'separate', studentA: 'Liam Johnson', studentB: 'Owen Park' }); });
+  reply = await ask(page, 'check the rules');
+  await expect(reply).toContainText('1 rule not met');
+  await expect(reply).toContainText('Liam & Owen should be separated');
+});
+
+test('requests the reader can’t follow go to the AI, which only picks the action', async ({ page }) => {
   await open(page, { prefs: { tipSeen: true, enabled: true, model: 'small' } });
-  await mockEngine(page, { rules: 'Here you go: [{"type":"separate","a":"Liam","b":"Jaden"},{"type":"front","a":"Zed"}]' });
+  await mockEngine(page, { command: '[{"action":"rules","text":"Keep Liam and Jaden apart"},{"action":"create_class","name":"Sixth Period"}]' });
   await classOnHome(page);
   await bubble(page).click();
   await expect(panel(page)).toContainText('AI on');
-  await panel(page).locator('.ai-tool[data-v="rules"]').click();
-  await panel(page).locator('.ai-input').fill('Liam does better when he is not distracted by Jaden.');
-  await panel(page).locator('.ai-go').click();
-  await expect(panel(page).locator('.ai-plan')).toContainText('Keep Liam Johnson and Jayden Smith apart');
-  await expect(panel(page).locator('.ai-note.warn')).toContainText('Not in this class: “Zed”');
-  const asked = await page.evaluate(() => window.__aiCalls[0][1].content);
-  expect(asked).toBe('Liam does better when he is not distracted by Jaden.');
-});
-
-test('rules applied while a chart is open reach the chart too', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true } });
-  await classOnHome(page);
-  await page.evaluate(() => window.__cm.createNewChart());
-  await bubble(page).click();
-  await panel(page).locator('.ai-tool[data-v="rules"]').click();
-  await panel(page).locator('.ai-input').fill('Put Mia and Ana Ruiz in the same group');
-  await panel(page).locator('.ai-go').click();
-  await panel(page).locator('.ai-apply').click();
-  const r = await page.evaluate(() => [window.__cm.state.hardRules, window.__cm.store.landingData.classes[0].hardRules]);
-  expect(r[0]).toEqual(r[1]);
-  expect(r[0][0]).toMatchObject({ type: 'partners', studentA: 'Mia Chen', studentB: 'Ana Ruiz' });
+  const reply = await ask(page, 'Liam does better when he is not distracted by Jaden, and I am picking up a sixth period group');
+  await expect(reply.locator('.ai-plan').first()).toContainText('Keep Liam Johnson and Jayden Smith apart');
+  await expect(reply.locator('.ai-plan').nth(1)).toContainText('Create the class Sixth Period');
+  const sys = await page.evaluate(() => window.__aiCalls[0][0].content);
+  expect(sys).toContain('Students: Liam Johnson, Owen Park');
+  // made-up actions are ignored
+  await mockEngine(page, { command: '[{"action":"delete_everything"}]' });
+  const r2 = await ask(page, 'do the thing with the stuff');
+  await expect(r2).toContainText('I can’t do that yet');
 });
 
 test('Learn more: device check, turn on with progress, then Remove AI', async ({ page }) => {
@@ -172,10 +241,10 @@ test('Learn more: device check, turn on with progress, then Remove AI', async ({
   await expect(p).toContainText('never leave this device');
   await expect(p.locator('.ai-check')).toContainText('Test GPU');
   await expect(p.locator('.ai-check')).toContainText('8 GB or more');
-  await expect(p.locator('input[name=aiModel][value=small]')).toBeChecked();
+  await expect(p.locator('input[name=aiModel][value=large]')).toBeChecked();   // 8 GB → the larger model
   await p.locator('.ai-turnon').click();
   await expect(p).toContainText('ClassMap helper', { timeout: 5000 });
-  await expect(p).toContainText('AI on · Small');
+  await expect(p).toContainText('AI on · Larger');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cm-ai')).enabled)).toBe(true);
   // ⋮ → Remove
   await p.locator('.ai-menu-btn').click();

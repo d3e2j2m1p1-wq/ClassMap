@@ -11,7 +11,7 @@ export const MODELS = {
     label: 'Small',
     params: '0.8B',
     approxGB: 0.8,
-    blurb: 'Faster, smaller download. Good for rules and short text.',
+    blurb: 'Smaller download for older or low-memory devices. Understands less and makes more mistakes.',
   },
   large: {
     id: 'onnx-community/Qwen3.5-2B-ONNX-OPT',
@@ -19,7 +19,7 @@ export const MODELS = {
     label: 'Larger',
     params: '2B',
     approxGB: 1.8,
-    blurb: 'Better writing. Best on newer laptops with 8 GB of memory or more.',
+    blurb: 'Recommended. Understands requests and writes much better. Needs 8 GB of memory or more.',
     minMemoryGB: 8,
   },
 };

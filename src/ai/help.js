@@ -4,15 +4,17 @@
 //  With the AI on, the best matches are handed to the model as its only source.
 // ═══════════════════════════════════════════════
 
+// `do`: what to type into the helper to have it done for you
 export const FAQ = [
-  { q: 'How do I add students?', a: 'Pick a class on the home page, open the Roster tab, and paste your list (one name per line) or type names one at a time.', k: 'add students roster paste list names import' },
+  { q: 'How do I add a class?', a: 'On the home page, type the class name in the “New class name…” box at the bottom of the class list (left side), then press Add.', k: 'add class create new class make period section', do: 'Make a class called ' },
+  { q: 'How do I add students?', a: 'Pick a class on the home page, open the Roster tab, and paste your list (one name per line) or type names one at a time.', k: 'add students roster paste list names import', do: 'Add students: ' },
   { q: 'How do I make a new chart?', a: 'Pick a class on the home page and press + New Chart. A new chart starts from the same room as the class’s last chart, with nobody seated.', k: 'new chart create start' },
   { q: 'How do I build the room?', a: 'In a chart, open the Layout tab. Place tables one at a time with the Table tool, then add the board, teacher’s desk, doors and windows. Drag to move, use the corner handle to resize, and rotate in 45° steps (hold Shift for free rotation).', k: 'layout room tables desk board door window build resize rotate walls' },
   { q: 'How do I change the shape of the room?', a: 'In the Layout tab, open Walls. You can draw an L-shape or other outline instead of a rectangle.', k: 'walls shape room outline l-shaped' },
-  { q: 'How do I keep two students apart?', a: 'Open the Rules tab (on the home page for rules that always apply, or in a chart for this chart only) and add “Keep apart”. Or type it into the helper: “Keep Liam and Owen apart.”', k: 'keep apart separate rule distract not together' },
-  { q: 'How do I seat students automatically?', a: 'Open Auto-Assign in a chart and press Assign. It follows your rules and tag settings, and keeps pinned students where they are.', k: 'auto assign automatic seat everyone shuffle random' },
+  { q: 'How do I keep two students apart?', a: 'Open the Rules tab (on the home page for rules that always apply, or in a chart for this chart only) and add “Keep apart”. Or type it into the helper: “Keep Liam and Owen apart.”', k: 'keep apart separate rule distract not together', do: 'Keep  and  apart' },
+  { q: 'How do I seat students automatically?', a: 'Open Auto-Assign in a chart and press Assign. It follows your rules and tag settings, and keeps pinned students where they are.', k: 'auto assign automatic seat everyone shuffle random', do: 'Auto-assign seats' },
   { q: 'How do I keep a student in their seat when I re-assign?', a: 'Pin them: click their seat and press P, or use the pin next to their name in the Auto-Assign panel. Auto-Assign leaves pinned students alone.', k: 'pin lock keep seat' },
-  { q: 'What are tags?', a: 'Tags (IEP, 504, ELL, Strong reader …) mark students so rules can use them, like spreading IEP students across groups or seating ELL students with a strong reader. Add them with 🏷 in the Roster tab. Tags never show on the projector or the printed chart; private tags also stay off the substitute page.', k: 'tags iep 504 ell label mark private badge' },
+  { q: 'What are tags?', a: 'Tags (IEP, 504, ELL, Strong reader …) mark students so rules can use them, like spreading IEP students across groups or seating ELL students with a strong reader. Add them with 🏷 next to a name in the Roster tab, or tell the helper: “Tag Owen as IEP.” Tags never show on the projector or the printed chart; private tags also stay off the substitute page.', k: 'tags iep 504 ell label mark private badge' },
   { q: 'How do I show the chart on the projector?', a: 'In a chart, press Present. It opens full screen with names only; tags and notes stay hidden. Press Esc to leave.', k: 'present projector full screen show class' },
   { q: 'How do I print the chart or make a sub plan?', a: 'In a chart, use Print. You can print the seating chart, and a substitute page with the class’s rules (private tags left out).', k: 'print substitute sub plan paper pdf' },
   { q: 'How do I move a chart to another device or teacher?', a: 'Use ⋯ → Send to another device. The other device opens classmap.dev, chooses Receive, and enters the code. It’s encrypted from end to end and nothing is stored on a server.', k: 'send receive share transfer another device teacher airdrop code' },
@@ -20,7 +22,7 @@ export const FAQ = [
   { q: 'How do I back up or restore?', a: 'On the home page, use “Back up everything” to download every class and chart as one file, and Import file to restore it on any device.', k: 'backup restore export import file' },
   { q: 'How do I undo?', a: 'Press Ctrl+Z (⌘Z on a Mac) or the ↶ button at the top. Deleted charts and classes also show an Undo button for a few seconds.', k: 'undo mistake deleted back' },
   { q: 'Can ClassMap arrange the tables for me?', a: 'Yes. In the Layout tab, Room check points out blocked doors and walkways, Tidy up straightens tables, and Arrange for me suggests a whole layout. Nothing moves until you press Apply.', k: 'arrange tidy room check walkway smart layout suggest' },
-  { q: 'What does the on-device AI do?', a: 'It turns plain-English seating wishes into rules, polishes emails to parents, and summarizes accommodations into seating notes. It runs in your browser; student information never leaves this device.', k: 'ai assistant helper model on-device private chat' },
+  { q: 'What can the helper do?', a: 'Type what you want in your own words. It can make classes, add and tag students, set seating rules, swap or move seats, pin students, auto-assign, and answer questions like “Who’s tagged IEP?” or “Who sits next to Owen?”. Answers come from your real class data, and nothing changes until you press Apply. With the on-device AI on, it also understands more ways of asking, polishes parent emails and sums up accommodations; it runs in your browser and student information never leaves this device.', k: 'ai assistant helper model on-device private chat what can you do' },
 ];
 
 const GUIDES = [
@@ -71,12 +73,4 @@ export async function searchHelp(query, limit = 5) {
   const faq = FAQ.map(f => ({ kind: 'faq', title: f.q, text: f.a, score: score(q, f.q + ' ' + f.k, 1.5) + score(q, f.a, 0.5) }));
   const guides = (await loadGuides()).map(g => ({ kind: 'guide', title: g.heading ? `${g.title} — ${g.heading}` : g.title, text: g.text.trim(), url: g.url, score: score(q, g.heading, 1.2) + score(q, g.text, 0.4) + score(q, g.title, 0.6) }));
   return [...faq, ...guides].filter(r => r.score >= 2).sort((a, b) => b.score - a.score).slice(0, limit);
-}
-
-export function helpPrompt(question, hits) {
-  const ctx = hits.slice(0, 3).map((h, i) => `[${i + 1}] ${h.title}\n${h.text.slice(0, 700)}`).join('\n\n');
-  return [
-    { role: 'system', content: `You answer questions about ClassMap, a seating chart app for teachers. Use only the notes below. If they don't answer the question, say you're not sure and suggest the closest note. Two to four sentences, plain words.\n\nNotes:\n${ctx || '(none)'}` },
-    { role: 'user', content: question },
-  ];
 }
