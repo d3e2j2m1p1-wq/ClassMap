@@ -34,7 +34,8 @@
 }
 </script>
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" href="/icons/icon-192.png">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/src/site/home.css">
 </head>
@@ -63,12 +64,6 @@
     <symbol id="leaf" viewBox="0 -14 44 28">
       <path d="M1 0 C 10 -13, 30 -13, 43 0 C 30 13, 10 13, 1 0 Z" fill="#0B6A78" stroke="#2B1D1A" stroke-width="1.8" stroke-linejoin="round"/>
       <path d="M3 0 C 15 -1, 28 -1, 40 0 M 14 -1 L 20 -7 M 24 -1 L 30 -7 M 18 0 L 24 6" stroke="#2B1D1A" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-    </symbol>
-    <symbol id="plane" viewBox="0 0 60 40">
-      <g stroke="#2B1D1A" stroke-width="1.8" stroke-linejoin="round">
-        <path d="M2 20 L58 2 L30 38 L24 24 Z" fill="#FFF8EC"/>
-        <path d="M24 24 L58 2 L30 26 Z" fill="#DDEFF0"/>
-      </g>
     </symbol>
   </defs>
 </svg>
@@ -102,6 +97,7 @@
     <div class="hero-art" aria-hidden="true">
       <!-- blossom branch, top right, with the wren -->
       <img class="layer branch" data-speed="-0.1" src="/art/branch.webp" width="1057" height="762" alt="">
+      <img class="layer wren-flying" data-speed="-0.1" src="/art/wren-fly.webp" width="700" height="578" alt="">
       <img class="layer wren" data-speed="-0.1" src="/art/wren.webp" width="804" height="728" alt="">
 
       <!-- the teacher, with papers and name cards flying up from her stack -->
@@ -207,11 +203,11 @@
           <g fill="#F25F6B"><circle cx="96" cy="70" r="5"/><circle cx="124" cy="70" r="5"/><circle cx="196" cy="120" r="5"/><circle cx="224" cy="70" r="5"/></g>
           <path d="M160 92 c -8 0 -12 6 -12 12 v 4 h 24 v -4 c 0 -6 -4 -12 -12 -12 z M152 104 v-4 a8 8 0 0 1 16 0 v4" fill="#FFF8EC" stroke="#2B1D1A" stroke-width="2"/>
         </svg>
-        <svg class="ps-plane" viewBox="0 0 60 40"><use href="#plane"/></svg>
-        <svg class="ps-plane" viewBox="0 0 60 40"><use href="#plane"/></svg>
-        <svg class="ps-plane" viewBox="0 0 60 40"><use href="#plane"/></svg>
-        <svg class="ps-plane" viewBox="0 0 60 40"><use href="#plane"/></svg>
-        <svg class="ps-plane" viewBox="0 0 60 40"><use href="#plane"/></svg>
+        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
+        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
+        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
+        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
+        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
       </div>
       <div class="ps-copy">
         <h2 id="privacy-title">Your class lists never leave your device.</h2>
@@ -252,7 +248,10 @@ Jay Moore</textarea>
         <div class="room-board">Board</div>
         <div class="try-tables"></div>
       </div>
-      <a class="btn btn-teal try-go" id="tryGo" href="app/" hidden>Keep going in ClassMap <span aria-hidden="true">→</span></a>
+      <div class="try-go-row">
+        <img class="try-wren" id="tryWren" src="/art/wren-card.webp" width="600" height="495" alt="" hidden>
+        <a class="btn btn-teal try-go" id="tryGo" href="app/" hidden>Keep going in ClassMap <span aria-hidden="true">→</span></a>
+      </div>
     </div>
   </section>
 

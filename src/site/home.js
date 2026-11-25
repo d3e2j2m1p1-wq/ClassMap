@@ -160,6 +160,7 @@ function seatThem() {
   }
   tryShuffle.hidden = false;
   tryGo.hidden = false;
+  $('#tryWren').hidden = false;
 }
 $('#tryMake').addEventListener('click', seatThem);
 tryShuffle.addEventListener('click', seatThem);

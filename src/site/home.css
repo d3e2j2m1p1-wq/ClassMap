@@ -15,6 +15,7 @@ html { scroll-behavior: smooth; }
 body.home { font-family: var(--sans); color: var(--ink); background: var(--cream); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 img, svg { display: block; }
 a { color: inherit; }
+[hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ── Buttons ── */
@@ -77,13 +78,17 @@ a { color: inherit; }
 .layer { position: absolute; will-change: transform; }
 img.layer:not(.teacher) { height: auto; } img.layer { user-select: none; -webkit-user-drag: none; }
 .branch { width: 68%; right: -18%; top: 0; }
-.wren { width: 18%; max-width: 120px; right: 9%; top: -3%; animation: wren-land 1.6s 0.3s cubic-bezier(.3,.7,.3,1) both; }
-@keyframes wren-land {
-  0% { opacity: 0; transform: translate(240px, -160px) rotate(14deg) scale(0.8); }
-  55% { opacity: 1; transform: translate(26px, -26px) rotate(4deg) scale(1.04); }
-  80% { transform: translate(0, 4px) rotate(-2deg); }
-  100% { opacity: 1; transform: none; }
+.wren { width: 18%; max-width: 120px; right: 9%; top: -3%; animation: wren-perch 1.6s 0.3s both; }
+/* the flying wren swoops in, then the perched one takes its place on the branch
+   (individual translate/rotate/scale so the scroll effect on transform keeps working) */
+.wren-flying { width: 30%; max-width: 200px; right: 2%; top: -14%; pointer-events: none; animation: wren-fly-in 1.6s 0.3s cubic-bezier(.3,.7,.3,1) both; }
+@keyframes wren-fly-in {
+  0% { opacity: 0; translate: 300px -220px; rotate: 12deg; scale: 0.8; }
+  12% { opacity: 1; }
+  80% { opacity: 1; translate: 0 0; rotate: 0deg; scale: 1; }
+  100% { opacity: 0; translate: 0 8px; scale: 0.96; }
 }
+@keyframes wren-perch { 0%, 76% { opacity: 0; scale: 0.94; } 100% { opacity: 1; scale: 1; } }
 .teacher { height: 100%; width: auto; left: 8%; bottom: -4%; animation: teacher-in 1s 0.1s cubic-bezier(.3,.8,.3,1) both; }
 @keyframes teacher-in { from { opacity: 0; translate: -30px 0; } }
 .fly { animation: float 6s ease-in-out infinite, fly-in 0.9s cubic-bezier(.3,.8,.3,1) both; }
@@ -174,7 +179,7 @@ img.layer:not(.teacher) { height: auto; } img.layer { user-select: none; -webkit
 .ps-sticky { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 40px; padding: 40px clamp(20px, 6vw, 96px); }
 .ps-art { position: relative; height: min(70vh, 520px); }
 .laptop { position: absolute; left: 50%; top: 50%; width: min(340px, 80%); translate: -50% -40%; }
-.ps-plane { position: absolute; left: 50%; top: 50%; width: 60px; will-change: transform; }
+.ps-plane { position: absolute; left: 50%; top: 50%; width: 96px; height: auto; will-change: transform; }
 .ps-copy h2 { font-size: clamp(2rem, 3.8vw, 3.2rem); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 26px; }
 .ps-copy ul { list-style: none; display: flex; flex-direction: column; gap: 16px; margin-bottom: 26px; }
 .ps-copy li { padding-left: 34px; position: relative; line-height: 1.55; font-weight: 600; color: #DFF6F3; }
@@ -191,6 +196,9 @@ img.layer:not(.teacher) { height: auto; } img.layer { user-select: none; -webkit
 .try-buttons { display: flex; gap: 12px; margin: 18px 0 10px; flex-wrap: wrap; }
 .try-fine { font-size: 0.85rem !important; color: var(--ink-2); }
 .try-result { display: flex; flex-direction: column; align-items: flex-end; gap: 20px; }
+.try-go-row { display: flex; align-items: center; gap: 6px; }
+.try-wren { width: 120px; height: auto; animation: wren-deliver 0.9s cubic-bezier(.3,.8,.3,1) both; }
+@keyframes wren-deliver { from { opacity: 0; translate: -120px -60px; rotate: -10deg; } }
 .try-room { position: relative; width: 100%; min-height: 360px; background: var(--paper); border: 3.5px solid var(--ink); border-radius: 18px; box-shadow: 10px 10px 0 var(--coral); padding: 70px 24px 26px; }
 .try-room .room-board { top: 16px; }
 .try-tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 20px; }
@@ -276,6 +284,7 @@ img.layer:not(.teacher) { height: auto; } img.layer { user-select: none; -webkit
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .reveal { opacity: 1; translate: none; }
+  .wren-flying { display: none; }
   .builder, .privacy-story { height: auto; }
   .builder-sticky, .ps-sticky { position: relative; height: auto; min-height: 100vh; }
 }
