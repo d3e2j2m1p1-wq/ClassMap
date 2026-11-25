@@ -336,13 +336,14 @@
 <div id="landing-page">
   <div class="landing-header">
     <span class="landing-sprig-wrap" aria-hidden="true"><img class="landing-sprig" src="/art/sprig.webp" width="560" height="584" alt=""></span>
-    <div class="landing-logo">
+    <a class="landing-logo" href="/" title="Go to the ClassMap website">
       <img class="landing-logo-wren" src="/art/wren.webp" width="804" height="728" alt="">
       ClassMap
-    </div>
+    </a>
     <div class="landing-subtitle">Your classroom seating organizer</div>
     <div class="landing-header-actions" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
       <div id="syncArea" class="sync-area"></div>
+      <a class="btn btn-ghost btn-sm site-link" href="/" title="Back to the ClassMap website: guides, privacy, contact">← Website</a>
       <button class="share-btn" onclick="openShare()" title="Send classes and charts to another device or teacher, or receive them — no files, no accounts">
         <img src="/art/wren-card.webp" width="600" height="495" alt=""><span><b>Send or receive classes</b><small>to a device or teacher</small></span>
       </button>
@@ -353,6 +354,10 @@
           <button role="menuitem" onclick="closeHomeMore();exportEverything()"><span>⬇ Back up everything</span><small>every class and chart in one file</small></button>
           <button role="menuitem" onclick="closeHomeMore();document.getElementById('restoreFile').click()"><span>📂 Import file</span><small>a chart file or a full backup</small></button>
           <button role="menuitem" onclick="closeHomeMore();openNameList()"><span>📖 Name list</span><small>names learned for sorting</small></button>
+          <div class="home-more-sep" role="separator"></div>
+          <a role="menuitem" href="/"><span>🌐 ClassMap website</span><small>the home page</small></a>
+          <a role="menuitem" href="/guides/"><span>📘 Guides</span><small>seating ideas and how-tos</small></a>
+          <a role="menuitem" href="/contact/"><span>✉ Contact</span><small>questions, bugs and ideas</small></a>
         </div>
       </div>
       <button class="theme-switch lg" id="themeSwitchHome" title="Light / dark — tap, or drag the lens" aria-label="Dark mode"></button>

@@ -241,6 +241,16 @@ img.layer:not(.teacher) { height: auto; } img.layer { user-select: none; -webkit
 .footer { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; padding: 30px 20px 40px; background: var(--teal-3); color: #CDEFEA; font-weight: 700; font-size: 0.9rem; }
 .footer a { text-decoration: none; }
 .footer a:hover { text-decoration: underline; }
+.to-top-link { color: #fff !important; }
+.to-top {
+  position: fixed; right: 22px; bottom: 22px; z-index: 50; width: 54px; height: 54px; display: grid; place-items: center;
+  background: #fff; border: 2.5px solid var(--ink); border-radius: 50%; box-shadow: 3px 3px 0 var(--ink); text-decoration: none;
+  opacity: 0; translate: 0 20px; pointer-events: none; transition: opacity 0.25s, translate 0.25s, box-shadow 0.15s;
+}
+.to-top.show { opacity: 1; translate: 0 0; pointer-events: auto; }
+.to-top:hover { box-shadow: 4px 4px 0 var(--coral); }
+.to-top img { width: 36px; height: auto; transform: rotate(-30deg) translate(1px, 2px); }
+.to-top::after { content: '↑'; position: absolute; top: -9px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--coral); color: #fff; font: 900 0.78rem/20px var(--sans); text-align: center; border: 2px solid var(--ink); }
 
 /* ── Reveal on scroll ── */
 .reveal { opacity: 0; translate: 0 40px; transition: opacity 0.7s, translate 0.7s cubic-bezier(.2,.8,.2,1); }

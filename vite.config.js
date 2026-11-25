@@ -28,6 +28,7 @@ export default defineConfig({
         app: resolve(__dirname, 'app/index.html'),            // the app          →  /app/
         privacy: resolve(__dirname, 'privacy/index.html'),    // privacy policy   →  /privacy/
         guides: resolve(__dirname, 'guides/index.html'),      // guides list      →  /guides/
+        contact: resolve(__dirname, 'contact/index.html'),    // contact page     →  /contact/
         ...guides,                                            // each guide       →  /guides/<name>/
       },
     },

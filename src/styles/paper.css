@@ -192,8 +192,8 @@ body:not(.light) .share-btn { border-color: #000; box-shadow: 3px 3px 0 #000; }
   position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; min-width: 250px; padding: 6px;
   background: var(--surface); color: var(--text); border: 2px solid var(--line); border-radius: 12px; box-shadow: 4px 4px 0 var(--pop);
 }
-.home-more-menu button { display: block; width: 100%; text-align: left; padding: 9px 12px; border: 0; border-radius: 8px; background: none; color: var(--text); cursor: pointer; font-family: var(--font); }
-.home-more-menu button:hover, .home-more-menu button:focus-visible { background: var(--surface2); outline: none; }
+.home-more-menu button, .home-more-menu a { display: block; text-decoration: none; width: 100%; text-align: left; padding: 9px 12px; border: 0; border-radius: 8px; background: none; color: var(--text); cursor: pointer; font-family: var(--font); }
+.home-more-menu a:hover, .home-more-menu a:focus-visible, .home-more-menu button:hover, .home-more-menu button:focus-visible { background: var(--surface2); outline: none; }
 .home-more-menu span { display: block; font-weight: 700; font-size: 0.88rem; }
 .home-more-menu small { display: block; color: var(--text3); font-size: 0.74rem; margin-top: 1px; }
 
@@ -249,3 +249,10 @@ body:not(.light) .share-btn { border-color: #000; box-shadow: 3px 3px 0 #000; }
   .share-btn img { width: 38px; }
 }
 @media (prefers-reduced-motion: reduce) { .share-card, .share-card-art, .share-btn img { animation: none !important; transition: none !important; } }
+
+.home-more-sep { height: 1.5px; background: var(--border); margin: 4px 6px; }
+a.landing-logo { text-decoration: none; display: inline-flex; align-items: center; }
+a.landing-logo:hover .landing-logo-wren { transform: rotate(-8deg); }
+.landing-logo-wren { transition: transform 0.2s; }
+.landing-header .site-link { color: #fff; text-decoration: none; }
+@media (max-width: 700px) { .landing-header .site-link { display: none; } }

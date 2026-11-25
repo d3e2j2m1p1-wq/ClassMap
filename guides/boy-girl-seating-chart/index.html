@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Boy-Girl Seating Chart: How to Alternate Seats — ClassMap</title>
 <meta name="description" content="How to make a boy-girl seating chart: alternate seats in rows like a checkerboard, mix every pair and table group, and what to do when the numbers are uneven.">
-<meta name="theme-color" content="#0f1117">
+<meta name="theme-color" content="#0E8A9E">
 <link rel="canonical" href="https://classmap.dev/guides/boy-girl-seating-chart/">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="ClassMap">
@@ -16,7 +16,6 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
 <link rel="icon" href="/icons/icon-192.png" sizes="192x192">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/src/site/site.css">
 <script type="application/ld+json">
 {
@@ -43,20 +42,26 @@
 </head>
 <body>
 
-<header class="nav">
-  <a class="brand" href="../../"><span class="brand-dot"></span>ClassMap</a>
-  <nav>
-    <a href="../../guides/">Guides</a>
-    <a href="../../privacy/">Privacy</a>
-    <a class="btn btn-small" href="../../app/">Open ClassMap</a>
-  </nav>
-</header>
+<div class="site-top" id="top">
+  <header class="nav">
+    <a class="brand" href="/" aria-label="ClassMap home"><img src="/art/wren.webp" width="804" height="728" alt="">ClassMap</a>
+    <nav aria-label="Main">
+      <a href="/guides/" aria-current="page">Guides</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/contact/">Contact</a>
+      <a class="btn btn-small" href="/app/">Open ClassMap</a>
+    </nav>
+  </header>
+  <div class="page-head">
+    <p class="crumbs"><a href="../../">ClassMap</a> › <a href="../../guides/">Guides</a></p>
+    <h1>Boy-girl seating chart</h1>
+    <p class="lede">Alternating boys and girls is one of the oldest seating strategies. Teachers use it to break up friend groups, reduce side conversations, and mix the voices in group work.</p>
+  </div>
+  <img class="head-sprig" src="/art/sprig.webp" width="560" height="584" alt="" aria-hidden="true">
+</div>
 
-<main class="doc guide">
-  <p class="crumbs"><a href="../../">ClassMap</a> › <a href="../../guides/">Guides</a></p>
-  <h1>Boy-girl seating chart</h1>
-  <p class="lede">Alternating boys and girls is one of the oldest seating strategies. Teachers use it to break up friend groups, reduce side conversations, and mix the voices in group work.</p>
-  <h2>In rows: a checkerboard</h2>
+<main class="doc guide"><div class="sheet">
+<h2>In rows: a checkerboard</h2>
   <p>Alternating along a row isn't enough — if the row behind starts with the same, students end up with same-gender neighbours in front and behind. Shift every other row so the pattern makes a checkerboard:</p>
   <svg class="diagram" viewBox="0 0 300 170" role="img" aria-label="Rows: six desks across, four rows deep, boys and girls alternating like a checkerboard"><title>Rows: six desks across, four rows deep, boys and girls alternating like a checkerboard</title><rect x="90" y="8" width="120" height="12" rx="6" class="db"/><text x="150.0" y="17" class="dbt">BOARD</text><circle cx="30" cy="50" r="11" class="ds b"/><circle cx="70" cy="50" r="11" class="ds g"/><circle cx="110" cy="50" r="11" class="ds b"/><circle cx="150" cy="50" r="11" class="ds g"/><circle cx="190" cy="50" r="11" class="ds b"/><circle cx="230" cy="50" r="11" class="ds g"/><circle cx="30" cy="84" r="11" class="ds g"/><circle cx="70" cy="84" r="11" class="ds b"/><circle cx="110" cy="84" r="11" class="ds g"/><circle cx="150" cy="84" r="11" class="ds b"/><circle cx="190" cy="84" r="11" class="ds g"/><circle cx="230" cy="84" r="11" class="ds b"/><circle cx="30" cy="118" r="11" class="ds b"/><circle cx="70" cy="118" r="11" class="ds g"/><circle cx="110" cy="118" r="11" class="ds b"/><circle cx="150" cy="118" r="11" class="ds g"/><circle cx="190" cy="118" r="11" class="ds b"/><circle cx="230" cy="118" r="11" class="ds g"/><circle cx="30" cy="152" r="11" class="ds g"/><circle cx="70" cy="152" r="11" class="ds b"/><circle cx="110" cy="152" r="11" class="ds g"/><circle cx="150" cy="152" r="11" class="ds b"/><circle cx="190" cy="152" r="11" class="ds g"/><circle cx="230" cy="152" r="11" class="ds b"/></svg>
   <h2>At tables: mix each group</h2>
@@ -72,13 +77,18 @@
     <a class="btn" href="../../app/">Make a mixed seating chart</a>
     <span>Free, no account needed. Class lists stay on your device.</span>
   </div>
-</main>
+</div></main>
+
+<a class="to-top" href="#top" aria-label="Back to top" title="Back to top"><img src="/art/wren-fly.webp" width="700" height="578" alt=""></a>
 
 <footer class="footer">
-  <span>© 2026 ClassMap</span>
-  <a href="../../">Home</a>
-  <a href="../../guides/">Guides</a>
-  <a href="../../privacy/">Privacy policy</a>
+  <span>© <span data-year>2026</span> ClassMap</span>
+  <a href="/">Home</a>
+  <a href="/guides/">Guides</a>
+  <a href="/privacy/">Privacy policy</a>
+  <a href="/contact/">Contact</a>
+  <a class="to-top-link" href="#top">↑ Back to top</a>
 </footer>
+<script type="module" src="/src/site/sub.js"></script>
 </body>
 </html>

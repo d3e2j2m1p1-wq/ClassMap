@@ -33,7 +33,7 @@ test('More menu holds backup, import and name list; Escape and outside clicks cl
   await expect(menu).toBeHidden();
   await page.locator('#homeMore [aria-haspopup]').click();
   await expect(menu).toBeVisible();
-  await expect(menu.getByRole('menuitem')).toHaveCount(3);
+  await expect(menu.getByRole('menuitem')).toHaveCount(6);   // backup, import, name list + website, guides, contact
   await page.keyboard.press('Escape');
   await expect(menu).toBeHidden();
   await page.locator('#homeMore [aria-haspopup]').click();

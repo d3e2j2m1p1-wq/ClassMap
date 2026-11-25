@@ -24,6 +24,12 @@ const seg = (p, a, b) => clamp((p - a) / (b - a));
 
 document.getElementById('year').textContent = new Date().getFullYear();
 
+// Back to top: appears once you've scrolled past the first screen
+const upBtn = document.querySelector('.to-top');
+const showUp = () => upBtn?.classList.toggle('show', scrollY > innerHeight * 1.2);
+addEventListener('scroll', showUp, { passive: true });
+showUp();
+
 // ── Reveal on scroll ──
 const io = new IntersectionObserver(es => es.forEach(e => {
   if (!e.isIntersecting) return;

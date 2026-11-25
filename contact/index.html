@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact — ClassMap</title>
+<meta name="description" content="Questions, bug reports, ideas, or using ClassMap at your school — get in touch.">
+<meta name="theme-color" content="#0E8A9E">
+<link rel="canonical" href="https://classmap.dev/contact/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ClassMap">
+<meta property="og:url" content="https://classmap.dev/contact/">
+<meta property="og:title" content="Contact — ClassMap">
+<meta property="og:description" content="Questions, bug reports, ideas, or using ClassMap at your school — get in touch.">
+<meta property="og:image" content="https://classmap.dev/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="stylesheet" href="/src/site/site.css">
+</head>
+<body>
+
+<div class="site-top" id="top">
+  <header class="nav">
+    <a class="brand" href="/" aria-label="ClassMap home"><img src="/art/wren.webp" width="804" height="728" alt="">ClassMap</a>
+    <nav aria-label="Main">
+      <a href="/guides/">Guides</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/contact/" aria-current="page">Contact</a>
+      <a class="btn btn-small" href="/app/">Open ClassMap</a>
+    </nav>
+  </header>
+  <div class="page-head">
+    <h1>Say hello</h1>
+    <p class="lede">A question, a bug, an idea for a feature, or ClassMap for your whole school — I read every message.</p>
+  </div>
+  <img class="head-sprig" src="/art/sprig.webp" width="560" height="584" alt="" aria-hidden="true">
+</div>
+
+<main class="doc contact"><div class="sheet">
+<div class="contact-grid">
+    <form class="contact-form" id="contactForm" novalidate>
+      <fieldset class="topics">
+        <legend>What’s it about?</legend>
+        <label><input type="radio" name="topic" value="Question" checked><span>Question</span></label>
+        <label><input type="radio" name="topic" value="Something isn't working"><span>Something isn’t working</span></label>
+        <label><input type="radio" name="topic" value="Feature idea"><span>Feature idea</span></label>
+        <label><input type="radio" name="topic" value="For my school or district"><span>For my school</span></label>
+        <label><input type="radio" name="topic" value="Privacy"><span>Privacy</span></label>
+      </fieldset>
+      <label><span>Your name <small>(optional)</small></span><input name="name" autocomplete="name"></label>
+      <label><span>School or role <small>(optional)</small></span><input name="school" placeholder="e.g. 4th grade, Lincoln Elementary"></label>
+      <label>Message<textarea name="message" required placeholder="What happened, or what would help?"></textarea></label>
+      <p class="warn">Please don’t include students’ names or details. If something isn’t working, describe it with made-up names.</p>
+      <div><button class="btn" type="submit">Write the email →</button></div>
+      <p class="form-note">This opens your own email app with the message filled in — you press Send there. Nothing is sent through ClassMap’s server.</p>
+      <p class="form-note" id="contactSent" hidden>Didn’t open? Copy the address on the right and paste your message into any email.</p>
+    </form>
+
+    <aside class="contact-side">
+      <img class="contact-art" src="/art/wren-card.webp" width="600" height="495" alt="">
+      <div class="contact-card">
+        <h3>Email directly</h3>
+        <div class="email-row"><code>MiguelDavila94@gmail.com</code><button type="button" class="copy-btn">Copy</button></div>
+      </div>
+      <div class="contact-card">
+        <h3>Before you write</h3>
+        <p>Many answers are in the <a href="/guides/">guides</a>. For how your data is handled, see the <a href="/privacy/">privacy policy</a>.</p>
+        <p>Lost your classes after clearing the browser? Only a backup file or Google Drive sync can bring them back — ClassMap never has a copy.</p>
+      </div>
+    </aside>
+  </div>
+</div></main>
+
+<a class="to-top" href="#top" aria-label="Back to top" title="Back to top"><img src="/art/wren-fly.webp" width="700" height="578" alt=""></a>
+
+<footer class="footer">
+  <span>© <span data-year>2026</span> ClassMap</span>
+  <a href="/">Home</a>
+  <a href="/guides/">Guides</a>
+  <a href="/privacy/">Privacy policy</a>
+  <a href="/contact/">Contact</a>
+  <a class="to-top-link" href="#top">↑ Back to top</a>
+</footer>
+<script type="module" src="/src/site/sub.js"></script>
+</body>
+</html>
