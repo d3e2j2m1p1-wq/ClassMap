@@ -219,3 +219,29 @@ body.presenting .pts-toggle { display: none; }
   .tools-tab { padding: 7px 4px; font-size: 0.72rem; }
   .pt-scale { zoom: 0.3; }
 }
+
+/* ── Skip list: by tag (tags hidden until asked for) ── */
+.skip-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border: 1.5px dashed var(--border2); border-radius: 10px; }
+.skip-tags-label { font-weight: 800; font-size: 0.8rem; color: var(--text2); margin-right: 2px; }
+.skip-tags-note { font-size: 0.76rem; color: var(--text3); }
+.skip-tags .tools-link { margin-left: auto; }
+.skip-tags.hidden-tags .tools-link { margin-left: 0; }
+.tools-chip.skip-tag { font-weight: 700; }
+.tools-chip.skip-tag.skip { background: var(--rose-dim); color: var(--rose); border-color: var(--rose); border-style: solid; }
+.tools-chip.by-tag { border-style: dotted; }
+.skip-chip-tag { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 8px; font-size: 0.66rem; font-weight: 800; background: var(--amber-dim); color: var(--amber); vertical-align: 1px; }
+
+/* ── Timer sound settings ── */
+.snd-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.snd-opt { display: flex; align-items: stretch; border: 2px solid var(--border2); border-radius: 12px; overflow: hidden; background: var(--surface2); }
+.snd-opt.on { border-color: var(--line); background: var(--cream); box-shadow: 2px 2px 0 var(--pop); }
+body:not(.light) .snd-opt.on { background: var(--surface3); }
+.snd-pick { border: 0; background: none; color: var(--text); font: 700 0.86rem var(--font); padding: 8px 12px; cursor: pointer; }
+.snd-opt.on .snd-pick { color: var(--ink); }
+body:not(.light) .snd-opt.on .snd-pick { color: var(--text); }
+.snd-try { border: 0; border-left: 1.5px solid var(--border2); background: none; color: var(--blue); font-size: 0.8rem; padding: 0 11px; cursor: pointer; }
+.snd-try:hover { background: var(--blue-dim); }
+.snd-loops { display: flex; align-items: center; gap: 8px; font-size: 0.86rem; font-weight: 700; color: var(--text2); }
+.snd-loops .tools-btn { min-width: 36px; padding: 4px 0; }
+.snd-count { min-width: 1.6em; text-align: center; font-size: 1.1rem; color: var(--text); }
+.timer-stop { font-size: 1rem; }

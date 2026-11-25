@@ -15,12 +15,16 @@ import { clearDay, cycleStatus, getDay, summaryText } from './attendance.js';
 import { addPoint, dayPoints } from './participation.js';
 import { state } from '../core/state.js';
 import { getAllSeats } from '../assign/seats.js';
+import { classTags, hasTag, tagKey } from '../landing/tags.js';
+import { MAX_LOOPS, SOUNDS, chimeSettings, isRinging, playChime, saveChimeSettings, stopChime, unlockAudio } from './chime.js';
 
 let ov = null;
 let tool = 'picker';
 let classId = null;
 let showHere = false;     // the attendance list
 let showSkip = false;     // the picker's skip list
+let showTags = false;     // tags in the skip list stay hidden until asked for (the screen is often projected)
+let showSound = false;    // the timer's sound settings
 let groupsOut = null;
 let spinTimer = null;
 const opts = { size: 4, mode: 'size', count: 6, followRules: true, mix: false, avoidRecent: true };
@@ -37,9 +41,13 @@ function mem() {
 function saveMem(m) { try { localStorage.setItem(KEY(), JSON.stringify(m)); } catch { /* private mode */ } }
 // Everyone who isn't marked absent today (late counts as here)
 const here = () => { const out = getDay(classId).absent; return (cls()?.students || []).filter(s => !out.includes(s.id)); };
-// The picker also leaves out the class's skip list
+// The picker also leaves out the class's skip list: chosen students, and everyone with a chosen tag
 const skipList = () => cls()?.pickerSkip || [];
-const pickable = () => here().filter(s => !skipList().includes(s.id));
+const skipTags = () => cls()?.pickerSkipTags || [];
+const skipTagOf = s => (s.tags || []).find(t => skipTags().includes(tagKey(t)));
+const isSkipped = s => skipList().includes(s.id) || !!skipTagOf(s);
+const skippedCount = () => (cls()?.students || []).filter(isSkipped).length;
+const pickable = () => here().filter(s => !isSkipped(s));
 
 // ── Open / close ──
 export function openTools(which = 'picker', options = {}) {
@@ -53,7 +61,7 @@ export function openTools(which = 'picker', options = {}) {
   if (which === 'voice' && options.level != null) { const m = mem(); m.voice = options.level; saveMem(m); }
   groupsOut = null;
   showHere = !!options.here;
-  showSkip = false;
+  showSkip = showSound = showTags = false;
   closeTools();
   ov = document.createElement('div');
   ov.className = 'tools-view';
@@ -70,6 +78,7 @@ export function closeTools() {
   if (!ov) return;
   clearInterval(spinTimer);
   stopTick();
+  stopChime();
   Object.assign(timer, { left: timer.total, running: false, done: false });
   ov.remove();
   ov = null;
@@ -78,10 +87,10 @@ export function closeTools() {
 }
 function onKey(e) {
   if (!ov) return;
-  if (e.key === 'Escape') { e.preventDefault(); if (showHere || showSkip) { showHere = showSkip = false; render(); } else closeTools(); return; }
+  if (e.key === 'Escape') { e.preventDefault(); if (isRinging()) { stopChime(); return; } if (showHere || showSkip || showSound) { showHere = showSkip = showSound = false; render(); } else closeTools(); return; }
   if (e.target.closest('input, select, textarea')) return;
   if (tool === 'picker' && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); pick(); }
-  if (tool === 'timer' && e.key === ' ') { e.preventDefault(); toggleTimer(); }
+  if (tool === 'timer' && e.key === ' ') { e.preventDefault(); if (isRinging()) stopChime(); else toggleTimer(); }
   if (tool === 'voice' && /^[0-3]$/.test(e.key)) { e.preventDefault(); setVoice(+e.key); }
 }
 
@@ -102,13 +111,14 @@ function render() {
       <button type="button" class="tools-here ${n < total ? 'some-out' : ''}" aria-expanded="${showHere}">Here: ${n}/${total}</button>
       <button type="button" class="tools-exit">Exit <kbd>Esc</kbd></button>
     </div>
-    ${showHere ? hereHTML(c) : showSkip ? skipHTML(c) : ''}
+    ${showHere ? hereHTML(c) : showSkip ? skipHTML(c) : showSound ? soundHTML() : ''}
     <div class="tools-stage">${{ picker: () => pickerHTML(c, m), groups: () => groupsHTML(c), timer: timerHTML, voice: () => voiceHTML(m), print: printHTML }[tool]()}</div>`;
-  ov.querySelectorAll('.tools-tab').forEach(b => b.onclick = () => { tool = b.dataset.t; render(); });
+  ov.querySelectorAll('.tools-tab').forEach(b => b.onclick = () => { tool = b.dataset.t; showSkip = showSound = false; render(); });
   ov.querySelector('.tools-exit').onclick = closeTools;
-  ov.querySelector('.tools-here').onclick = () => { showHere = !showHere; showSkip = false; render(); };
+  ov.querySelector('.tools-here').onclick = () => { showHere = !showHere; showSkip = showSound = false; render(); };
   if (showHere) wireHere();
   if (showSkip) wireSkip();
+  if (showSound) wireSound();
   ({ picker: wirePicker, groups: wireGroups, timer: wireTimer, voice: wireVoice, print: wirePrint })[tool]();
 }
 
@@ -137,26 +147,51 @@ function wireHere() {
 }
 
 // ── The picker's skip list (saved with the class) ──
+//    Students can be skipped one by one, or everyone with a tag (e.g. IEP) — new students with that tag are skipped too.
+//    Tags stay hidden until "Show tags", since this screen is usually on the projector.
 function skipHTML(c) {
   const kids = [...c.students].sort((a, b) => a.name.localeCompare(b.name));
-  const skip = skipList();
+  const tags = classTags(c);
+  const byTag = skipTags();
+  const tagRow = !tags.length ? '' : showTags
+    ? `<div class="skip-tags"><span class="skip-tags-label">Skip everyone tagged:</span>${tags.map(t => {
+        const n = c.students.filter(st => hasTag(st, t)).length, on = byTag.includes(tagKey(t));
+        return `<button type="button" class="tools-chip skip-tag ${on ? 'skip' : ''}" data-tag="${esc(t)}" aria-pressed="${on}">${esc(t)} <small>${n}</small></button>`;
+      }).join('')}<button type="button" class="tools-link skip-tags-toggle">Hide tags</button></div>`
+    : `<div class="skip-tags hidden-tags"><button type="button" class="tools-link skip-tags-toggle">🏷 Show tags</button><span class="skip-tags-note">Hidden so they don’t show on the projector${byTag.length ? ` · ${byTag.length} tag${byTag.length !== 1 ? 's' : ''} skipped` : ''}</span></div>`;
   return `<div class="tools-here-panel">
       <p>Students on this list are never picked at random (they still join groups). Tap a name to add or remove them.</p>
-      <div class="tools-chips">${kids.map(s => `<button type="button" class="tools-chip ${skip.includes(s.id) ? 'skip' : ''}" data-id="${esc(s.id)}" aria-pressed="${skip.includes(s.id)}">${esc(s.name)}</button>`).join('')}</div>
-      <div class="tools-row">${skip.length ? '<button type="button" class="tools-btn ghost tools-skip-clear">Clear the list</button>' : ''}<button type="button" class="tools-btn tools-skip-done">Done</button></div>
+      ${tagRow}
+      <div class="tools-chips">${kids.map(st => {
+        const viaTag = skipTagOf(st), one = skipList().includes(st.id), on = one || !!viaTag;
+        const chips = showTags ? (st.tags || []).map(t => `<span class="skip-chip-tag">${esc(t)}</span>`).join('') : '';
+        return `<button type="button" class="tools-chip ${on ? 'skip' : ''} ${viaTag && !one ? 'by-tag' : ''}" data-id="${esc(st.id)}" aria-pressed="${on}"${viaTag && !one && showTags ? ` title="Skipped: tagged ${esc(viaTag)}"` : ''}>${esc(st.name)}${chips}</button>`;
+      }).join('')}</div>
+      <div class="tools-row">${skipList().length || byTag.length ? '<button type="button" class="tools-btn ghost tools-skip-clear">Clear the list</button>' : ''}<button type="button" class="tools-btn tools-skip-done">Done</button></div>
     </div>`;
 }
 function wireSkip() {
   const c = cls();
-  ov.querySelectorAll('.tools-here-panel .tools-chip').forEach(b => b.onclick = () => {
-    const id = b.dataset.id;
+  ov.querySelectorAll('.tools-here-panel .tools-chip[data-id]').forEach(b => b.onclick = () => {
+    const st = c.students.find(x => x.id === b.dataset.id);
     const list = skipList();
-    c.pickerSkip = list.includes(id) ? list.filter(x => x !== id) : [...list, id];
+    if (!list.includes(st.id) && skipTagOf(st)) {
+      showToast(showTags ? `Skipped because of the “${skipTagOf(st)}” tag — turn the tag off to change it` : 'Skipped because of a tag — Show tags to change it');
+      return;
+    }
+    c.pickerSkip = list.includes(st.id) ? list.filter(x => x !== st.id) : [...list, st.id];
     saveLandingData();
     render();
   });
-  ov.querySelector('.tools-skip-clear')?.addEventListener('click', () => { c.pickerSkip = []; saveLandingData(); render(); });
-  ov.querySelector('.tools-skip-done').onclick = () => { showSkip = false; render(); };
+  ov.querySelectorAll('.skip-tag').forEach(b => b.onclick = () => {
+    const k = tagKey(b.dataset.tag), list = skipTags();
+    c.pickerSkipTags = list.includes(k) ? list.filter(x => x !== k) : [...list, k];
+    saveLandingData();
+    render();
+  });
+  ov.querySelector('.skip-tags-toggle')?.addEventListener('click', () => { showTags = !showTags; render(); });
+  ov.querySelector('.tools-skip-clear')?.addEventListener('click', () => { c.pickerSkip = []; c.pickerSkipTags = []; saveLandingData(); render(); });
+  ov.querySelector('.tools-skip-done').onclick = () => { showSkip = showTags = false; render(); };
 }
 
 // ══ 🎲 Name picker ══
@@ -183,7 +218,7 @@ function pickerHTML(c, m) {
         <label class="tools-check"><input type="checkbox" class="picker-norep" ${m.noRepeats ? 'checked' : ''}> Everyone once before repeats</label>
         <label class="tools-check" title="Students with fewer participation points today are more likely to be picked"><input type="checkbox" class="picker-favor" ${m.favor ? 'checked' : ''}> Favor fewer points</label>
         <label class="tools-check"><input type="checkbox" class="picker-award" ${m.award ? 'checked' : ''}> A pick earns a point</label>
-        <button type="button" class="tools-link picker-skip">Skip list${skipList().length ? ` (${skipList().length})` : ''}</button>
+        <button type="button" class="tools-link picker-skip">Skip list${skippedCount() ? ` (${skippedCount()})` : ''}</button>
         ${m.picked.length ? '<button type="button" class="tools-link picker-undo">Put the last name back</button><button type="button" class="tools-link picker-reset">Start over</button>' : ''}
       </div>
       ${recent.length ? `<div class="picker-recent"><span>Called:</span> ${recent.map(s => esc(s.name)).join(' · ')}</div>` : ''}
@@ -193,7 +228,7 @@ function pickerHTML(c, m) {
 function wirePicker() {
   ov.querySelector('.picker-go')?.addEventListener('click', pick);
   ov.querySelector('.picker-new')?.addEventListener('click', () => { const m = mem(); m.picked = []; saveMem(m); current = null; render(); });
-  ov.querySelector('.picker-skip').onclick = () => { showSkip = !showSkip; showHere = false; render(); };
+  ov.querySelector('.picker-skip').onclick = () => { showSkip = !showSkip; showHere = showSound = showTags = false; render(); };
   ov.querySelector('.picker-favor').onchange = e => { const m = mem(); m.favor = e.target.checked; saveMem(m); };
   ov.querySelector('.picker-award').onchange = e => { const m = mem(); m.award = e.target.checked; saveMem(m); };
   ov.querySelector('.picker-norep').onchange = e => { const m = mem(); m.noRepeats = e.target.checked; saveMem(m); render(); };
@@ -293,7 +328,7 @@ export function makeNow() {
 
 // ══ ⏱ Timer ══
 // Keeps running while you switch tools; stops when the tools close.
-const timer = { total: 300, left: 300, running: false, endAt: 0, done: false, tick: null, sound: true };
+const timer = { total: 300, left: 300, running: false, endAt: 0, done: false, tick: null };
 const fmt = s => { s = Math.max(0, Math.ceil(Math.round(s * 10) / 10)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 function timerHTML() {
   const pct = timer.total ? (1 - timer.left / timer.total) * 100 : 0;
@@ -309,9 +344,10 @@ function timerHTML() {
       <div class="tools-row center timer-presets">
         ${[1, 2, 3, 5, 10, 15, 20, 30].map(n => `<button type="button" class="tools-chip timer-set ${timer.total === n * 60 ? 'on' : ''}" data-m="${n}">${n} min</button>`).join('')}
       </div>
+      ${isRinging() ? '<div class="tools-row center"><button type="button" class="tools-btn timer-stop">🔕 Stop the sound</button></div>' : ''}
       <div class="tools-row center small">
         <button type="button" class="tools-link timer-reset">Reset</button>
-        <label class="tools-check"><input type="checkbox" class="timer-sound" ${timer.sound ? 'checked' : ''}> Chime at the end</label>
+        <button type="button" class="tools-link timer-sound-btn" aria-expanded="${showSound}">${soundLabel()}</button>
       </div>
       <p class="tools-tip">Space starts and pauses.</p>
     </div>`;
@@ -322,7 +358,8 @@ function wireTimer() {
   q('.timer-plus').onclick = () => adjustTimer(60);
   q('.timer-minus').onclick = () => adjustTimer(-60);
   q('.timer-reset').onclick = () => setTimer(timer.total);
-  q('.timer-sound').onchange = e => { timer.sound = e.target.checked; };
+  q('.timer-sound-btn').onclick = () => { showSound = !showSound; showSkip = showHere = false; render(); };
+  q('.timer-stop')?.addEventListener('click', () => stopChime());
   ov.querySelectorAll('.timer-set').forEach(b => b.onclick = () => setTimer(+b.dataset.m * 60));
 }
 function setTimer(sec) {
@@ -336,6 +373,8 @@ function adjustTimer(d) {
   render();
 }
 export function toggleTimer() {
+  unlockAudio();          // a tap now lets the sound play later
+  stopChime();
   if (timer.done) { timer.left = timer.total; timer.done = false; }
   if (timer.running) { timer.left = (timer.endAt - Date.now()) / 1000; timer.running = false; stopTick(); }
   else { timer.endAt = Date.now() + timer.left * 1000; timer.running = true; startTick(); }
@@ -345,7 +384,7 @@ function startTick() {
   stopTick();
   timer.tick = setInterval(() => {
     timer.left = (timer.endAt - Date.now()) / 1000;
-    if (timer.left <= 0) { timer.left = 0; timer.running = false; timer.done = true; stopTick(); if (timer.sound) chime(); if (ov) render(); return; }
+    if (timer.left <= 0) { timer.left = 0; timer.running = false; timer.done = true; stopTick(); ring(); if (ov) render(); return; }
     if (!ov) return;
     const dg = ov.querySelector('.timer-digits'), bar = ov.querySelector('.timer-bar > div');
     if (dg) dg.textContent = fmt(timer.left);
@@ -355,22 +394,48 @@ function startTick() {
   }, 200);
 }
 function stopTick() { clearInterval(timer.tick); timer.tick = null; }
-function chime() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [0, 0.35, 0.7].forEach((t, i) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'sine';
-      o.frequency.value = [880, 988, 1175][i];
-      g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
-      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.6);
-      o.connect(g).connect(ctx.destination);
-      o.start(ctx.currentTime + t);
-      o.stop(ctx.currentTime + t + 0.65);
-    });
-    setTimeout(() => ctx.close(), 1800);
-  } catch { /* no sound on this device */ }
+// ── End-of-timer sound: picked sound, played a set number of times (saved on this device) ──
+function ring() {
+  const st = chimeSettings();
+  if (!st.on) return;
+  playChime(st.sound, st.loops, () => { if (ov && tool === 'timer') render(); });
+}
+function soundLabel() {
+  const st = chimeSettings();
+  if (!st.on) return '🔕 Sound off';
+  const snd = SOUNDS.find(x => x.id === st.sound);
+  return `🔔 ${snd.name} · ${st.loops}×`;
+}
+function soundHTML() {
+  const st = chimeSettings();
+  return `<div class="tools-here-panel timer-sound-panel">
+      <p>The sound when the timer ends. Saved on this device.</p>
+      <label class="tools-check"><input type="checkbox" class="snd-on" ${st.on ? 'checked' : ''}> Play a sound at the end</label>
+      <div class="snd-list" role="radiogroup" aria-label="Sound">${SOUNDS.map(x => `
+        <div class="snd-opt ${st.sound === x.id ? 'on' : ''}">
+          <button type="button" class="snd-pick" role="radio" aria-checked="${st.sound === x.id}" data-s="${x.id}"><span aria-hidden="true">${x.icon}</span> ${esc(x.name)}</button>
+          <button type="button" class="snd-try" data-s="${x.id}" aria-label="Play ${esc(x.name)}" title="Listen">▶</button>
+        </div>`).join('')}
+      </div>
+      <div class="snd-loops">
+        <span>Plays</span>
+        <button type="button" class="tools-btn ghost snd-less" aria-label="Fewer times" ${st.loops <= 1 ? 'disabled' : ''}>−</button>
+        <b class="snd-count">${st.loops}</b>
+        <button type="button" class="tools-btn ghost snd-more" aria-label="More times" ${st.loops >= MAX_LOOPS ? 'disabled' : ''}>+</button>
+        <span>${st.loops === 1 ? 'time' : 'times'}</span>
+      </div>
+      <div class="tools-row"><button type="button" class="tools-btn tools-sound-done">Done</button></div>
+    </div>`;
+}
+function wireSound() {
+  const q = x => ov.querySelector(x);
+  q('.snd-on').onchange = e => { saveChimeSettings({ on: e.target.checked }); render(); };
+  ov.querySelectorAll('.snd-pick').forEach(b => b.onclick = () => { saveChimeSettings({ sound: b.dataset.s, on: true }); playChime(b.dataset.s, 1); render(); });
+  ov.querySelectorAll('.snd-try').forEach(b => b.onclick = () => playChime(b.dataset.s, 1));
+  const loops = d => { saveChimeSettings({ loops: chimeSettings().loops + d }); render(); };
+  q('.snd-less').onclick = () => loops(-1);
+  q('.snd-more').onclick = () => loops(1);
+  q('.tools-sound-done').onclick = () => { stopChime(); showSound = false; render(); };
 }
 
 // ══ 🔊 Voice level ══
