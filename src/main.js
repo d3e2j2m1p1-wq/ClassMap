@@ -24,7 +24,7 @@ import { autoAssign, clearAssignments, toggleAssignPanel } from './assign/autoAs
 import { initAssignInteractions } from './assign/interactions.js';
 import { closeViolationBanner } from './assign/rulesEngine.js';
 import { esc } from './core/state.js';
-import { closeModal } from './core/ui.js';
+import { closeModal, showToast } from './core/ui.js';
 import { closeMoreMenu, switchPanel, toggleMoreMenu } from './editor/panels.js';
 import { initPrint, openPresent, printChart } from './editor/present.js';
 import { initUndo, redo, undo } from './editor/undo.js';
@@ -32,7 +32,7 @@ import { createSampleClass, initErrorBanner, snoozeBackupReminder } from './land
 import { renderRoster } from './editor/roster.js';
 import { addTempRule, removeTempRule, updateTempFormFields } from './editor/rules.js';
 import { createNewChart, deleteChart, duplicateChart, goHome, goHomeToRoster } from './landing/chartOpen.js';
-import { addLandingClass, deleteClass, showLanding, switchLandingTab } from './landing/landing.js';
+import { addLandingClass, deleteClass, renderClassList, selectClass, showLanding, switchLandingTab } from './landing/landing.js';
 import { exportNameList, importNameListFile, learnFromRosters, openNameList, renderNameList } from './landing/nameListViewer.js';
 import { ldAddStudent, ldClearRoster, ldDeleteGroup, ldParseRoster, ldToggleGender } from './landing/roster.js';
 import { ldAddRule, ldDeleteRule } from './landing/rules.js';
@@ -49,7 +49,8 @@ import { clearLayout } from './layout/tables.js';
 import { flushSave, manualSave, markDirty } from './storage/autosave.js';
 import { exportEverything, restoreEverything } from './storage/backup.js';
 import { initDrive, signIn as driveSignIn, signOut as driveSignOut, syncNow as driveSyncNow } from './storage/drive.js';
-import { initStorage } from './storage/landingData.js';
+import { CLASS_COLORS, initStorage, saveLandingData } from './storage/landingData.js';
+import { guessGroupForClass } from './roster/nameList.js';
 import { exportData, importDataFromFile } from './storage/chartFile.js';
 import { toggleTheme } from './ui/theme.js';
 import { initAssistant, openPanel as openAssistant } from './ai/assistant.js';
@@ -145,7 +146,7 @@ Object.assign(window, {
 
 // Dev/test only: every module's exports in one place (used by tests/ and handy in the console)
 if (import.meta.env.DEV) {
-  const all = import.meta.glob(['./**/*.js', '!./main.js', '!./ai/aiWorker.js'], { eager: true });
+  const all = import.meta.glob(['./**/*.js', '!./main.js', '!./ai/aiWorker.js', '!./site/**'], { eager: true });
   window.__cm = Object.assign({ store }, ...Object.values(all));
 }
 
@@ -199,6 +200,7 @@ try {
   await initStorage();
   window.__cm_refreshLanding = showLanding;     // Drive sync redraws the home page with new data
   showLanding();
+  takeHandoff();       // names typed into "Try it" on the home page
   shrinkStoredImages();
   initDrive();
   receiveFromLink();   // opened from a "Receive" link or QR code
@@ -230,4 +232,23 @@ function langButtons() {
 function toggleLanguage() {
   setLanguage(getLang() === 'es' ? 'en' : 'es');
   langButtons();
+}
+
+// ── "Try it" on the home page → a class here (same browser; nothing is sent anywhere) ──
+function takeHandoff() {
+  let h = null;
+  try { h = JSON.parse(localStorage.getItem('cm-handoff') || 'null'); localStorage.removeItem('cm-handoff'); } catch { return; }
+  if (!h || !Array.isArray(h.names) || !h.names.length || Date.now() - (h.at || 0) > 30 * 60000) return;
+  const classes = store.landingData.classes;
+  let name = 'My class', n = 2;
+  while (classes.some(c => c.name === name)) name = `My class ${n++}`;
+  const cls = { id: 'cls_' + Date.now(), name, color: CLASS_COLORS[classes.length % CLASS_COLORS.length], students: [], hardRules: [], genderMode: false };
+  h.names.slice(0, 60).map(x => String(x).trim().slice(0, 60)).filter(Boolean).forEach((nm, i) =>
+    cls.students.push({ id: 'st_' + Date.now() + '_' + i, name: nm, gender: guessGroupForClass(cls, nm) || null }));
+  classes.push(cls);
+  saveLandingData();
+  renderClassList();
+  selectClass(cls.id);
+  switchLandingTab('roster');
+  showToast(`✓ ${name} is ready with ${cls.students.length} students. Next: + New Chart to build your room.`);
 }

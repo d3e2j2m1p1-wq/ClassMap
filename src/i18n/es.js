@@ -1048,5 +1048,6 @@ export default {
 "Students already in ClassMap are left as they are, with their tags and seats. Nobody is removed.": "Los estudiantes que ya están en ClassMap se quedan como están, con sus etiquetas y asientos. No se quita a nadie.",
 "Import": "Importar",
 "Imported {n} students from Google Classroom": "Se importaron {n} estudiantes de Google Classroom",
-"Imported 1 student from Google Classroom": "Se importó 1 estudiante de Google Classroom"
+"Imported 1 student from Google Classroom": "Se importó 1 estudiante de Google Classroom",
+"✓ {} is ready with {n} students. Next: + New Chart to build your room.": "✓ {} está lista con {n} estudiantes. Ahora: + Nuevo mapa para armar tu salón."
 };
