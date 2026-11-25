@@ -13,7 +13,7 @@ export function renderTimeline(classId) {
 
   if (charts.length === 0) {
     content.className = 'timeline-empty';
-    content.innerHTML = '<div class="ti">📋</div><p>No seating charts yet.<br>Click "+ New Chart" to create one.</p>';
+    content.innerHTML = '<img class="empty-art" src="/art/wren-nap.webp" width="640" height="589" alt=""><p>No seating charts yet.<br>Click "+ New Chart" to create one.</p>';
     return;
   }
 

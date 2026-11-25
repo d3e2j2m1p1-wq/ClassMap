@@ -92,8 +92,9 @@ export function makeAssignTable(item) {
 
   const bg = document.createElement('div');
   bg.style.cssText = `position:absolute;left:0;top:0;width:${bbox.w}px;height:${bbox.h}px;
-    background:rgba(79,142,247,0.04);border:1.5px dashed rgba(79,142,247,0.25);
-    border-radius:10px;cursor:move;`;
+    background:var(--desk);border:2px solid var(--desk-edge);
+    border-radius:14px;cursor:move;`;
+  bg.className = 'assign-table-bg';
   bg.title = 'Drag to move table';
   appendGroupOutlines(bg, item);
 

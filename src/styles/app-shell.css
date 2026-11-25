@@ -12,7 +12,7 @@ header {
 }
 
 .logo {
-  font-family: 'Instrument Serif', serif;
+  font-family: var(--display); font-weight: 900; letter-spacing: -0.01em;
   font-size: 1.25rem;
   color: var(--text);
   letter-spacing: -0.01em;
@@ -32,7 +32,7 @@ header {
   background: transparent;
   border: none;
   color: var(--text);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   font-size: 0.92rem;
   font-weight: 600;
   outline: none;
@@ -59,7 +59,7 @@ header {
   background: none;
   border: 1px solid transparent;
   color: var(--text);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   font-size: 0.8rem;
   font-weight: 500;
   padding: 5px 14px;
@@ -73,7 +73,7 @@ header {
 .tab-btn.active { background: var(--surface2); color: var(--text); box-shadow: var(--shadow-sm); opacity: 1; border-color: var(--border2); }
 
 .hbtn {
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   font-size: 0.78rem;
   font-weight: 500;
   padding: 7px 14px;

@@ -10,7 +10,7 @@
 }
 .zoom-bar button {
   min-width: 34px; height: 32px; border: none; border-radius: 7px; background: transparent; color: var(--text2);
-  font: 600 0.95rem 'Geist', sans-serif; cursor: pointer; padding: 0 6px;
+  font: 600 0.95rem var(--font); cursor: pointer; padding: 0 6px;
 }
 .zoom-bar .zoom-pct { font-size: 0.72rem; min-width: 48px; }
 .zoom-bar button:hover { background: var(--surface2); color: var(--text); }

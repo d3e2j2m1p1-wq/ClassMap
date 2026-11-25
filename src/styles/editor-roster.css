@@ -39,7 +39,7 @@
   background: transparent;
   border: none;
   color: var(--text);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   font-size: 0.82rem;
   resize: none;
   outline: none;
@@ -55,7 +55,7 @@
 }
 
 .btn {
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   font-size: 0.78rem;
   font-weight: 500;
   padding: 6px 12px;
@@ -225,7 +225,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r);
   color: var(--text);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   font-size: 0.8rem;
   padding: 5px 9px;
   outline: none;

@@ -17,7 +17,7 @@
   flex-shrink: 0;
 }
 .landing-logo {
-  font-family: 'Instrument Serif', serif;
+  font-family: var(--display); font-weight: 900; letter-spacing: -0.01em;
   font-size: 2rem;
   color: var(--text);
   display: flex;
@@ -136,7 +136,7 @@
   border: 1px solid var(--border);
   border-radius: var(--r);
   color: var(--text);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   font-size: 0.82rem;
   padding: 7px 10px;
   outline: none;
@@ -191,7 +191,7 @@
   background: none;
   border: 1px solid transparent;
   color: var(--text2);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   font-size: 0.78rem;
   font-weight: 500;
   padding: 5px 12px;
@@ -201,7 +201,7 @@
 }
 .ld-tab:hover { background: var(--surface2); color: var(--text); }
 .ld-tab.active { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); font-weight: 600; }
-body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #818cf8; }
+body.light .ld-tab.active { background: var(--blue-dim); color: #0A5361; border-color: var(--blue); }
 
 .ld-panel { display: none; flex: 1; overflow-y: auto; }
 .ld-panel.active { display: flex; flex-direction: column; }
@@ -212,7 +212,7 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
 .ld-roster-import textarea {
   width: 100%; background: var(--surface); border: 1px solid var(--border);
   color: var(--text); border-radius: var(--r); padding: 8px 10px;
-  font-family: 'Geist', sans-serif; font-size: 0.8rem; resize: vertical;
+  font-family: var(--font); font-size: 0.8rem; resize: vertical;
   min-height: 72px;
 }
 .ld-roster-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
@@ -258,7 +258,7 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
 .ld-group-color::-moz-color-swatch { border: none; border-radius: 50%; }
 .ld-group-name {
   background: none; border: none; outline: none; color: var(--text); font-size: 0.78rem;
-  font-weight: 600; width: 80px; font-family: 'Geist', sans-serif;
+  font-weight: 600; width: 80px; font-family: var(--font);
 }
 .ld-group-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 0.7rem; padding: 0 2px; }
 .ld-group-del:hover { color: var(--rose); }
@@ -273,7 +273,7 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
 .ld-student-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; }
 .ld-student-del:hover { color: var(--rose); background: var(--rose-dim); }
 .ld-add-student { display: flex; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--border); }
-.ld-add-student input { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-family: 'Geist', sans-serif; font-size: 0.78rem; outline: none; }
+.ld-add-student input { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-family: var(--font); font-size: 0.78rem; outline: none; }
 .ld-add-student input:focus { border-color: var(--blue); }
 
 /* Rules tab */
@@ -296,13 +296,13 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
 }
 .ld-add-rule select {
   background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-  border-radius: 6px; padding: 5px 8px; font-family: 'Geist', sans-serif; font-size: 0.78rem;
+  border-radius: 6px; padding: 5px 8px; font-family: var(--font); font-size: 0.78rem;
 }
 .ld-typeahead-wrap { position: relative; flex: 1; min-width: 120px; }
 .ld-typeahead-wrap input {
   width: 100%; background: var(--surface2); border: 1px solid var(--border);
   color: var(--text); border-radius: 6px; padding: 5px 8px;
-  font-family: 'Geist', sans-serif; font-size: 0.78rem; outline: none;
+  font-family: var(--font); font-size: 0.78rem; outline: none;
 }
 .ld-typeahead-wrap input:focus { border-color: var(--blue); }
 .ld-typeahead-wrap .typeahead-dropdown {
@@ -353,13 +353,13 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
 .landing-detail-tabs { display: flex; gap: 4px; flex: 1; }
 .ld-tab {
   background: none; border: 1px solid transparent;
-  color: var(--text2); font-family: 'Geist', sans-serif;
+  color: var(--text2); font-family: var(--font);
   font-size: 0.78rem; font-weight: 500; padding: 5px 12px;
   border-radius: 6px; cursor: pointer; transition: all 0.15s;
 }
 .ld-tab:hover { background: var(--surface2); color: var(--text); }
 .ld-tab.active { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); font-weight: 600; }
-body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #818cf8; }
+body.light .ld-tab.active { background: var(--blue-dim); color: #0A5361; border-color: var(--blue); }
 .ld-panel { display: none; flex: 1; overflow-y: auto; }
 .ld-panel.active { display: flex; flex-direction: column; }
 
@@ -369,7 +369,7 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
 .ld-roster-import textarea {
   width: 100%; background: var(--surface); border: 1px solid var(--border);
   color: var(--text); border-radius: var(--r); padding: 8px 10px;
-  font-family: 'Geist', sans-serif; font-size: 0.8rem; resize: vertical; min-height: 72px;
+  font-family: var(--font); font-size: 0.8rem; resize: vertical; min-height: 72px;
 }
 .ld-roster-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
 .ld-student-cols { display: flex; gap: 12px; flex: 1; min-height: 200px; }
@@ -403,7 +403,7 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
 .ld-group-color::-moz-color-swatch { border: none; border-radius: 50%; }
 .ld-group-name {
   background: none; border: none; outline: none; color: var(--text); font-size: 0.78rem;
-  font-weight: 600; width: 80px; font-family: 'Geist', sans-serif;
+  font-weight: 600; width: 80px; font-family: var(--font);
 }
 .ld-group-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 0.7rem; padding: 0 2px; }
 .ld-group-del:hover { color: var(--rose); }
@@ -418,7 +418,7 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
 .ld-student-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 0.8rem; padding: 2px 4px; border-radius: 4px; }
 .ld-student-del:hover { color: var(--rose); background: var(--rose-dim); }
 .ld-add-student { display: flex; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--border); }
-.ld-add-student input { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-family: 'Geist', sans-serif; font-size: 0.78rem; outline: none; }
+.ld-add-student input { flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 4px 8px; font-family: var(--font); font-size: 0.78rem; outline: none; }
 .ld-add-student input:focus { border-color: var(--blue); }
 
 /* Rules tab inside landing */
@@ -429,9 +429,9 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
 .ld-rule-del { margin-left: auto; background: none; border: none; color: var(--text3); cursor: pointer; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; }
 .ld-rule-del:hover { color: var(--rose); }
 .ld-add-rule { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 10px 12px; }
-.ld-add-rule select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 5px 8px; font-family: 'Geist', sans-serif; font-size: 0.78rem; }
+.ld-add-rule select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 5px 8px; font-family: var(--font); font-size: 0.78rem; }
 .ld-typeahead-wrap { position: relative; flex: 1; min-width: 120px; }
-.ld-typeahead-wrap input { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 5px 8px; font-family: 'Geist', sans-serif; font-size: 0.78rem; outline: none; }
+.ld-typeahead-wrap input { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 5px 8px; font-family: var(--font); font-size: 0.78rem; outline: none; }
 .ld-typeahead-wrap input:focus { border-color: var(--blue); }
 .ld-typeahead-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 200; background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); box-shadow: var(--shadow); max-height: 160px; overflow-y: auto; }
 .ld-typeahead-item { padding: 6px 10px; font-size: 0.78rem; cursor: pointer; color: var(--text); }
@@ -452,7 +452,7 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
   justify-content: space-between;
 }
 .timeline-class-name {
-  font-family: 'Instrument Serif', serif;
+  font-family: var(--display); font-weight: 900; letter-spacing: -0.01em;
   font-size: 1.4rem;
   color: var(--text);
 }
@@ -528,7 +528,7 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
   border-color: var(--blue);
   background: var(--surface3);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(79,142,247,0.15);
+  box-shadow: 0 4px 16px rgba(14,138,158,0.15);
 }
 .chart-card-date {
   font-size: 0.7rem;
@@ -546,7 +546,7 @@ body.light .ld-tab.active { background: #e0e7ff; color: #4338ca; border-color: #
   border-bottom: 1px dashed var(--border2);
   padding: 1px 2px;
   cursor: pointer;
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   outline: none;
   width: auto;
   color-scheme: dark;

@@ -182,8 +182,8 @@ export function makeLayoutElement(item) {
     const inner = document.createElement('div');
     inner.className = 'canvas-table-free';
     inner.style.cssText = `position:relative;width:${bbox.w}px;height:${bbox.h}px;
-      background:rgba(79,142,247,0.04);border:1.5px dashed rgba(79,142,247,0.25);
-      border-radius:10px;`;
+      background:var(--desk);border:2px solid var(--desk-edge);
+      border-radius:14px;`;
     inner.dataset.label = `Table · ${seatCount} seats`;
 
 

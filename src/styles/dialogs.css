@@ -10,7 +10,7 @@
   width: 100%; max-width: 400px;
   background: var(--surface); border: 1px solid var(--border2); border-radius: 14px;
   padding: 22px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-  font-family: 'Geist', sans-serif;
+  font-family: var(--font);
   transform: translateY(8px) scale(0.98); transition: transform 0.16s ease;
 }
 .cm-dialog-backdrop.open .cm-dialog { transform: none; }
@@ -22,14 +22,14 @@
 }
 .cm-dialog.danger .cm-dialog-icon { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 .cm-dialog h3 {
-  margin: 0 0 6px; font-family: 'Geist', sans-serif;
+  margin: 0 0 6px; font-family: var(--font);
   font-size: 1rem; font-weight: 600; line-height: 1.35; color: var(--text);
 }
 .cm-dialog-details { margin: 0 0 6px; font-size: 0.8rem; color: var(--text2); }
 .cm-dialog-msg { margin: 0; font-size: 0.82rem; line-height: 1.55; color: var(--text2); white-space: pre-line; }
 .cm-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .cm-btn {
-  font-family: 'Geist', sans-serif; font-size: 0.82rem; font-weight: 500;
+  font-family: var(--font); font-size: 0.82rem; font-weight: 500;
   border-radius: 8px; padding: 8px 16px; cursor: pointer; border: 1px solid transparent;
 }
 .cm-btn-cancel { background: transparent; color: var(--text); border-color: var(--border2); }
@@ -58,7 +58,7 @@
   min-width: 280px; max-width: calc(100vw - 32px);
   padding: 8px 8px 8px 16px; overflow: hidden;
   background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px;
-  box-shadow: var(--shadow); font-family: 'Geist', sans-serif;
+  box-shadow: var(--shadow); font-family: var(--font);
   opacity: 0; transform: translate(-50%, 10px); transition: opacity 0.2s, transform 0.2s;
 }
 .cm-undo-toast.show { opacity: 1; transform: translate(-50%, 0); }

@@ -68,7 +68,7 @@ body.light #violationBannerText { color: #1a1d35; }
 .ld-group-kind {
   background: var(--surface2); border: 1px solid var(--border); color: var(--text2);
   border-radius: 12px; font-size: 0.68rem; font-weight: 600; padding: 2px 4px;
-  font-family: 'Geist', sans-serif; cursor: pointer; outline: none;
+  font-family: var(--font); cursor: pointer; outline: none;
 }
 .ld-group-kind:hover { border-color: var(--border2); color: var(--text); }
 .ld-new-kind { border-radius: 8px; padding: 5px 6px; font-size: 0.72rem; }
@@ -81,7 +81,7 @@ body.light #violationBannerText { color: #1a1d35; }
 .nl-summary { font-size: 0.74rem; color: var(--text3); margin: -6px 0 10px; }
 .nl-search {
   width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-  border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; outline: none; font-family: 'Geist', sans-serif;
+  border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; outline: none; font-family: var(--font);
 }
 .nl-search:focus { border-color: var(--blue); }
 .nl-body { overflow-y: auto; flex: 1; min-height: 120px; margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; }
@@ -92,7 +92,7 @@ body.light #violationBannerText { color: #1a1d35; }
 .nl-name { font-weight: 600; color: var(--text); min-width: 90px; }
 .nl-info { flex: 1; color: var(--text2); font-size: 0.74rem; }
 .nl-chip { display: inline-block; border-radius: 10px; padding: 1px 8px; font-size: 0.68rem; font-weight: 700; margin-right: 6px; }
-.nl-chip.boys { background: rgba(79,142,247,0.18); color: #4f8ef7; }
+.nl-chip.boys { background: rgba(14,138,158,0.18); color: #4f8ef7; }
 .nl-chip.girls { background: rgba(247,86,124,0.18); color: #f7567c; }
 .nl-chip.flag { background: var(--amber-dim); color: var(--amber); }
 .nl-chip.none { background: var(--surface3); color: var(--text3); }

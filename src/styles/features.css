@@ -13,7 +13,7 @@
 }
 .seat-pin-btn {
   position: absolute; z-index: 20; transform: translateX(-50%);
-  font-family: 'Geist', sans-serif; font-size: 0.64rem; font-weight: 600; white-space: nowrap;
+  font-family: var(--font); font-size: 0.64rem; font-weight: 600; white-space: nowrap;
   padding: 3px 8px; border-radius: 10px; cursor: pointer;
   background: var(--surface); color: var(--text); border: 1px solid var(--border2);
   box-shadow: 0 2px 6px rgba(0,0,0,0.3); touch-action: manipulation;
@@ -39,10 +39,10 @@
   display: flex; flex-direction: column;
 }
 .present-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; }
-.present-title { font-family: 'Instrument Serif', serif; font-size: 1.9rem; color: var(--text); }
-.present-title span { font-family: 'Geist', sans-serif; font-size: 0.9rem; color: var(--text3); margin-left: 14px; }
+.present-title { font-family: var(--display); font-weight: 900; letter-spacing: -0.01em; font-size: 1.9rem; color: var(--text); }
+.present-title span { font-family: var(--font); font-size: 0.9rem; color: var(--text3); margin-left: 14px; }
 .present-exit {
-  font-family: 'Geist', sans-serif; font-size: 0.8rem; color: var(--text2); cursor: pointer;
+  font-family: var(--font); font-size: 0.8rem; color: var(--text2); cursor: pointer;
   background: transparent; border: 1px solid var(--border2); border-radius: 8px; padding: 6px 12px;
 }
 .present-exit kbd { font-family: inherit; font-size: 0.68rem; color: var(--text3); margin-left: 4px; }
@@ -55,17 +55,17 @@
 /* ── Print ── (built off-screen, shown only when printing; always light colours) */
 .print-view {
   position: fixed; left: -30000px; top: 0; width: 980px;
-  background: #fff; color: #0f1225; font-family: 'Geist', sans-serif;
+  background: #fff; color: #0f1225; font-family: var(--font);
   --bg: #ffffff; --surface: #ffffff; --surface2: #f4f5fb; --surface3: #eaecf7;
   --border: #dde1f0; --border2: #c8ceea; --text: #0f1225; --text2: #3d4466; --text3: #5f6896;
   --blue: #4f46e5; --blue-dim: #eef0ff;
 }
 .print-head { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 2px solid #0f1225; padding-bottom: 6px; }
-.print-head h1 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 28px; margin: 0; }
+.print-head h1 { font-family: var(--display); font-weight: 900; letter-spacing: -0.01em; font-size: 28px; margin: 0; }
 .print-head div { font-size: 13px; color: #3d4466; }
 .print-stage { position: relative; width: 980px; height: 640px; overflow: hidden; }
 .print-sub { padding-top: 4px; font-size: 14px; line-height: 1.5; }
-.print-sub h2 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 24px; margin: 0 0 10px; border-bottom: 2px solid #0f1225; padding-bottom: 6px; }
+.print-sub h2 { font-family: var(--display); font-weight: 900; letter-spacing: -0.01em; font-size: 24px; margin: 0 0 10px; border-bottom: 2px solid #0f1225; padding-bottom: 6px; }
 .print-sub h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: #3d4466; margin: 18px 0 6px; }
 .print-sub ul { margin: 0; padding-left: 20px; }
 .print-notes { white-space: pre-wrap; margin: 0; }
@@ -84,7 +84,7 @@
 #landing-page.no-classes .welcome { display: block; }
 #landing-page.no-classes .select-hint { display: none; }
 .welcome .ti { font-size: 2rem; margin-bottom: 6px; }
-.welcome h2 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 1.9rem; color: var(--text); margin: 0 0 12px; }
+.welcome h2 { font-family: var(--display); font-weight: 900; letter-spacing: -0.01em; font-size: 1.9rem; color: var(--text); margin: 0 0 12px; }
 .welcome-steps { margin: 0 0 18px; padding-left: 20px; color: var(--text2); font-size: 0.85rem; line-height: 1.7; }
 .welcome-steps b { color: var(--text); font-weight: 600; }
 .welcome-note { font-size: 0.72rem; color: var(--text3); margin: 10px 0 0; }
@@ -100,7 +100,7 @@
 .backup-reminder[hidden] { display: none; }
 .br-text { flex: 1; min-width: 180px; }
 .br-btn, .br-later {
-  font-family: 'Geist', sans-serif; font-size: 0.78rem; border-radius: 6px; padding: 5px 12px; cursor: pointer;
+  font-family: var(--font); font-size: 0.78rem; border-radius: 6px; padding: 5px 12px; cursor: pointer;
 }
 .br-btn { background: var(--amber); color: #1a1205; border: none; font-weight: 600; }
 .br-later { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
@@ -111,7 +111,7 @@
   display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 24px);
   padding: 10px 12px 10px 16px; border-radius: 10px;
   background: #3d0f1e; color: #ffe4e6; border: 1px solid #f7567c;
-  font-family: 'Geist', sans-serif; font-size: 0.82rem; box-shadow: var(--shadow);
+  font-family: var(--font); font-size: 0.82rem; box-shadow: var(--shadow);
 }
 .error-banner button {
   font-family: inherit; font-size: 0.78rem; cursor: pointer; border-radius: 6px; padding: 5px 10px;
@@ -154,15 +154,15 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .tag-menu { min-width: 230px; max-height: 70vh; overflow-y: auto; }
 .tag-new { display: flex; gap: 6px; padding: 6px 4px 2px; border-top: 1px solid var(--border); margin-top: 4px; }
 .tag-new input {
-  flex: 1; min-width: 0; font-family: 'Geist', sans-serif; font-size: 0.78rem; padding: 6px 8px; border-radius: 6px;
+  flex: 1; min-width: 0; font-family: var(--font); font-size: 0.78rem; padding: 6px 8px; border-radius: 6px;
   background: var(--surface2); color: var(--text); border: 1px solid var(--border2);
 }
 .tag-new button {
-  font-family: 'Geist', sans-serif; font-size: 0.76rem; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  font-family: var(--font); font-size: 0.76rem; padding: 6px 10px; border-radius: 6px; cursor: pointer;
   background: var(--blue); color: #fff; border: none;
 }
 #ldRuleTagA, #ldRuleTagB {
-  font-family: 'Geist', sans-serif; font-size: 0.78rem; padding: 6px 8px; border-radius: 6px;
+  font-family: var(--font); font-size: 0.78rem; padding: 6px 8px; border-radius: 6px;
   background: var(--surface2); color: var(--text); border: 1px solid var(--border2);
 }
 
@@ -170,7 +170,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .sync-area:empty { display: none; }
 .sync-btn {
   display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
-  font-family: 'Geist', sans-serif; font-size: 0.75rem; font-weight: 500;
+  font-family: var(--font); font-size: 0.75rem; font-weight: 500;
   padding: 5px 12px; border-radius: 8px;
   background: var(--surface2); color: var(--text); border: 1px solid var(--border2);
 }
@@ -182,7 +182,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 }
 .sync-pill {
   display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 2px; border-radius: 8px;
-  background: var(--surface2); border: 1px solid var(--border2); font-family: 'Geist', sans-serif;
+  background: var(--surface2); border: 1px solid var(--border2); font-family: var(--font);
 }
 .sync-pill.error { border-color: var(--rose); }
 .sync-main {
@@ -198,7 +198,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 /* ── Tag badges on seats (editor only) ── */
 .seat-tag-badge {
   position: absolute; z-index: 15; pointer-events: none;
-  font-family: 'Geist', sans-serif; font-size: 0.55rem; font-weight: 700; line-height: 1;
+  font-family: var(--font); font-size: 0.55rem; font-weight: 700; line-height: 1;
   padding: 2px 4px; border-radius: 6px; white-space: nowrap;
   background: var(--amber); color: #1a1206; border: 1px solid var(--amber);
   box-shadow: 0 1px 2px rgba(0,0,0,0.35);
@@ -221,7 +221,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .tag-set-count { color: var(--text3); font-size: 0.72rem; }
 .tag-set-field { display: flex; align-items: center; gap: 6px; color: var(--text2); }
 .tag-set-field select {
-  font-family: 'Geist', sans-serif; font-size: 0.78rem; padding: 4px 6px; border-radius: 6px;
+  font-family: var(--font); font-size: 0.78rem; padding: 4px 6px; border-radius: 6px;
   background: var(--surface2); color: var(--text); border: 1px solid var(--border2);
 }
 .tag-set-check { display: flex; align-items: center; gap: 5px; color: var(--text2); cursor: pointer; }
@@ -241,7 +241,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .layout-guide { position: absolute; z-index: 50; pointer-events: none; background: var(--rose); opacity: 0.85; }
 .layout-guide.x { width: 1px; }
 .layout-guide.y { height: 1px; }
-.layout-marquee { position: absolute; z-index: 60; pointer-events: none; border: 1px solid var(--blue); background: rgba(79,142,247,0.12); border-radius: 4px; }
+.layout-marquee { position: absolute; z-index: 60; pointer-events: none; border: 1px solid var(--blue); background: rgba(14,138,158,0.12); border-radius: 4px; }
 .touch-only { display: none; }
 @media (hover: none) { .touch-only { display: inline-flex; } }
 
@@ -261,7 +261,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 }
 .canvas-window {
   width: 112px; height: 14px; border-radius: 2px;
-  background: repeating-linear-gradient(90deg, rgba(79,142,247,0.22) 0 26px, var(--blue) 26px 28px);
+  background: repeating-linear-gradient(90deg, rgba(14,138,158,0.22) 0 26px, var(--blue) 26px 28px);
   border: 2px solid var(--blue);
   display: flex; align-items: center; justify-content: center;
 }
@@ -313,7 +313,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 /* ── Table names ── */
 .table-name-pill {
   position: absolute; top: -22px; right: 2px; z-index: 6;
-  font-family: 'Geist', sans-serif; font-size: 0.66rem; font-weight: 700; color: var(--text);
+  font-family: var(--font); font-size: 0.66rem; font-weight: 700; color: var(--text);
   background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 1px 8px;
   white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis; cursor: text;
 }
@@ -321,7 +321,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .table-groups-btn .table-name { color: var(--text); font-weight: 700; cursor: text; }
 .item-name-input {
   position: absolute; z-index: 80; width: 200px;
-  font-family: 'Geist', sans-serif; font-size: 0.8rem; padding: 6px 10px; border-radius: 8px;
+  font-family: var(--font); font-size: 0.8rem; padding: 6px 10px; border-radius: 8px;
   background: var(--surface); color: var(--text); border: 2px solid var(--blue); box-shadow: 0 6px 20px rgba(0,0,0,0.35);
 }
 .sel-tools .sel-name, .sel-tools .sel-number { display: none; }
@@ -397,7 +397,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .pv-window { fill: var(--blue); }
 .pv-teacher { fill: var(--amber-dim); stroke: var(--amber); stroke-width: 3; }
 .pv-outlet { fill: var(--amber); }
-.pv-table { fill: rgba(79,142,247,0.08); stroke: rgba(79,142,247,0.5); stroke-width: 2; }
+.pv-table { fill: rgba(14,138,158,0.08); stroke: rgba(14,138,158,0.5); stroke-width: 2; }
 .pv-seat { fill: var(--surface3); stroke: var(--text3); stroke-width: 2; }
 .ar-name small { display: block; font-weight: 400; font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
 .ar-note { font-size: 0.75rem; color: var(--amber); margin-top: 12px; }
@@ -457,7 +457,7 @@ body.light { --text3: #5f6896; }   /* darker muted text: readable contrast on wh
 .gc-import-btn[hidden] { display: none !important; }
 .add-class-form + .gc-import-btn {
   display: flex; align-items: center; gap: 8px; margin: 0 12px 12px; padding: 8px 10px; border-radius: 9px; cursor: pointer;
-  background: transparent; border: 1px dashed var(--border2); color: var(--text2); font: 500 0.78rem 'Geist', sans-serif;
+  background: transparent; border: 1px dashed var(--border2); color: var(--text2); font: 500 0.78rem var(--font);
 }
 .add-class-form + .gc-import-btn:hover { border-color: var(--green); color: var(--text); }
 .gc-mark { color: var(--green); font-size: 1rem; }

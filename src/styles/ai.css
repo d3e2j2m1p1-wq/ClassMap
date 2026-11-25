@@ -1,5 +1,5 @@
 /* ── ClassMap helper + on-device AI (src/ai/assistant.js) ── */
-.ai-root { --ai-dot: var(--blue); font-family: 'Geist', sans-serif; }
+.ai-root { --ai-dot: var(--blue); font-family: var(--font); }
 .ai-bubble {
   position: fixed; z-index: 900; width: 50px; height: 50px; border-radius: 50%;
   display: grid; place-items: center; cursor: pointer; touch-action: none; user-select: none;

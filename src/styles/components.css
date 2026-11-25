@@ -52,7 +52,7 @@
 .modal-overlay.open .modal { transform: translateY(0) scale(1); }
 
 .modal h3 {
-  font-family: 'Instrument Serif', serif;
+  font-family: var(--display); font-weight: 900; letter-spacing: -0.01em;
   font-size: 1.2rem;
   margin-bottom: 6px;
 }
@@ -123,7 +123,7 @@
   font-size: 1rem;
   color: var(--blue);
   z-index: 20;
-  box-shadow: 0 2px 8px rgba(79,142,247,0.3);
+  box-shadow: 0 2px 8px rgba(14,138,158,0.3);
   transition: background 0.15s, box-shadow 0.15s;
   user-select: none;
 }
@@ -137,7 +137,7 @@
   border-radius: 1px;
   opacity: 0.5;
 }
-.rotate-handle:hover { background: var(--blue-dim); box-shadow: 0 2px 12px rgba(79,142,247,0.5); }
+.rotate-handle:hover { background: var(--blue-dim); box-shadow: 0 2px 12px rgba(14,138,158,0.5); }
 .rotate-handle:active { cursor: grabbing; }
 .canvas-item.selected .rotate-handle,
 .canvas-item:hover .rotate-handle { display: flex; }

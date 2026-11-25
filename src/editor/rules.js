@@ -21,7 +21,7 @@ export function makeTypeahead(placeholder, onSelect) {
   input.type = 'text';
   input.placeholder = placeholder;
   input.autocomplete = 'off';
-  input.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:"Geist",sans-serif;font-size:0.8rem;padding:6px 9px;outline:none;';
+  input.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:0.8rem;padding:6px 9px;outline:none;';
 
   const dropdown = document.createElement('div');
   dropdown.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r);box-shadow:var(--shadow);z-index:100;max-height:180px;overflow-y:auto;display:none;margin-top:2px;';

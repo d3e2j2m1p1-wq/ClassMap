@@ -69,7 +69,7 @@ export function groupColor(student) {
   const g = getGroupById(student.gender);
   return g ? g.color : NEUTRAL_COLOR;
 }
-export const AVATAR_COLORS_NONE = ['#4f46e5','#6366f1','#7c3aed','#5b21b6'];
+export const AVATAR_COLORS_NONE = ['#0E8A9E','#0B7D90','#14A3B5','#0A6F80'];
 
 export function avatarColor(s) {
   return groupColor(s);

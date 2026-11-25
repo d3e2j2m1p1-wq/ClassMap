@@ -2,6 +2,14 @@
 // Loads the styles, makes the functions used by onclick="…" attributes global,
 // then starts the app (same start-up order as the original single file).
 
+// Fonts are bundled with the app (no calls to Google Fonts)
+import '@fontsource/nunito/latin-400.css';
+import '@fontsource/nunito/latin-500.css';
+import '@fontsource/nunito/latin-600.css';
+import '@fontsource/nunito/latin-700.css';
+import '@fontsource/nunito/latin-800.css';
+import '@fontsource/nunito/latin-900.css';
+import '@fontsource/caveat/latin-700.css';
 import './styles/base.css';
 import './styles/app-shell.css';
 import './styles/editor-roster.css';
@@ -17,6 +25,7 @@ import './styles/touch.css';
 import './styles/dialogs.css';
 import './styles/features.css';
 import './styles/ai.css';
+import './styles/paper.css';
 import './styles/mobile.css';
 
 import { store } from './core/store.js';
@@ -189,7 +198,8 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) flush
 
 // Restore saved theme
 try {
-  if (localStorage.getItem('classmap_theme') === 'light') {
+  // Light (cream paper) is the default; dark only if the teacher picked it
+  if (localStorage.getItem('classmap_theme') !== 'dark') {
     document.body.classList.add('light');
     document.getElementById('themeBtn').textContent = '🌙';
   }

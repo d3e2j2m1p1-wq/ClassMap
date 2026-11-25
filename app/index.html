@@ -14,7 +14,7 @@
 <meta property="og:image" content="https://classmap.dev/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="description" content="ClassMap helps teachers create and manage classroom seating charts with drag-and-drop ease.">
-<meta name="theme-color" content="#6366f1">
+<meta name="theme-color" content="#0E8A9E">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,7 +23,6 @@
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
 <link rel="icon" href="/icons/icon-192.png" sizes="192x192">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -39,7 +38,7 @@
 
 <!-- HEADER -->
 <header>
-  <div class="logo"><div class="logo-dot"></div>ClassMap</div>
+  <div class="logo"><img class="logo-wren" src="/art/wren.webp" width="804" height="728" alt="">ClassMap</div>
   <input type="text" class="class-name-input" id="classNameInput" placeholder="Period 1 — Science" value="">
 
   <div class="header-spacer"></div>
@@ -160,7 +159,7 @@
           </div>
           <div>
             <label style="font-size:0.72rem;color:var(--text3);display:block;margin-bottom:5px;font-weight:500;">Group balance</label>
-            <select id="genderBalance" onchange="document.getElementById('assignGenderBal').value=this.value" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'Geist',sans-serif;font-size:0.8rem;padding:6px 9px;outline:none;">
+            <select id="genderBalance" onchange="document.getElementById('assignGenderBal').value=this.value" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:0.8rem;padding:6px 9px;outline:none;">
               <option value="none">No preference</option>
               <option value="mixed" selected>Mixed (equal boys/girls)</option>
               <option value="same">Same group preferred</option>
@@ -168,7 +167,7 @@
           </div>
           <div>
             <label style="font-size:0.72rem;color:var(--text3);display:block;margin-bottom:5px;font-weight:500;">Seat fill order</label>
-            <select id="fillOrder" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:'Geist',sans-serif;font-size:0.8rem;padding:6px 9px;outline:none;">
+            <select id="fillOrder" style="width:100%;background:var(--surface3);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:0.8rem;padding:6px 9px;outline:none;">
               <option value="random">Random shuffle</option>
               <option value="alpha">Alphabetical</option>
               <option value="front-first">Front rows first</option>
@@ -335,8 +334,9 @@
 ════════════════════════════════ -->
 <div id="landing-page">
   <div class="landing-header">
+    <img class="landing-sprig" src="/art/sprig.webp" width="560" height="584" alt="" aria-hidden="true">
     <div class="landing-logo">
-      <div class="landing-logo-dot"></div>
+      <img class="landing-logo-wren" src="/art/wren.webp" width="804" height="728" alt="">
       ClassMap
     </div>
     <div class="landing-subtitle">Your classroom seating organizer</div>
@@ -375,7 +375,8 @@
     <div class="landing-detail" id="landingDetail">
       <div class="landing-detail-empty" id="landingDetailEmpty">
         <div class="welcome">
-          <div class="ti">👋</div>
+          <img class="welcome-art" src="/art/teacher-wave.webp" width="420" height="900" alt="">
+          <div class="welcome-text">
           <h2>Welcome to ClassMap</h2>
           <ol class="welcome-steps">
             <li><b>Add a class</b> on the left and paste your roster.</li>
@@ -385,9 +386,10 @@
           <button class="btn btn-primary" onclick="createSampleClass()">Try a sample class</button>
           <button type="button" class="btn btn-ghost gc-import-btn" onclick="openClassroomImport()" hidden>▦ Import from Google Classroom</button>
           <p class="welcome-note">Everything stays on this device.</p>
+          </div>
         </div>
         <div class="select-hint">
-          <div class="ti">🏫</div>
+          <img class="empty-art" src="/art/teacher-table.webp" width="753" height="900" alt="">
           <p>Select a class to get started</p>
         </div>
       </div>
@@ -408,7 +410,7 @@
         <!-- Charts tab -->
         <div class="ld-panel active" id="ldp-charts">
           <div id="timelineContent" class="timeline-empty">
-            <div class="ti">📋</div>
+            <img class="empty-art" src="/art/wren-nap.webp" width="640" height="589" alt="">
             <p>No seating charts yet.<br>Create one with the button above.</p>
           </div>
         </div>

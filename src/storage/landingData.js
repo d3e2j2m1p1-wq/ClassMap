@@ -12,7 +12,7 @@ import { askPersistentStorage, idbAvailable, idbGet, idbSet } from './db.js';
 // ════════════════════════════════════════════════
 
 export const STORAGE_KEY = 'classmap_data';
-export const CLASS_COLORS = ['#4f8ef7','#34d07e','#f7567c','#f5a623','#a78bfa','#38bdf8','#fb923c','#4ade80'];
+export const CLASS_COLORS = ['#0E8A9E','#F25F6B','#E9A23B','#3BAA7A','#8E6BC9','#3B9FD9','#C8643B','#8BA640'];
 export const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 // ═══════════════════════════════════════════════════════════════

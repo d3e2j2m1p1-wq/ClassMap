@@ -1,0 +1,172 @@
+/* ═══════════════════════════════════════════════
+   Paper look: matches the home page (ink outlines, offset shadows,
+   cream paper, teal and coral). Colours come from the tokens in base.css,
+   so dark mode follows automatically.
+═══════════════════════════════════════════════ */
+:root {
+  --desk: rgba(255,255,255,0.05);
+  --desk-edge: #2A7482;
+}
+body.light {
+  --desk: #F8E6C6;
+  --desk-edge: #2B1D1A;
+}
+::selection { background: rgba(63,224,208,0.45); }
+
+/* ── Logos ── */
+.logo { font-size: 1.3rem; gap: 6px; }
+.logo-wren { width: 36px; height: auto; margin: -6px 0 -6px -4px; }
+
+/* ── Header tab group ── */
+header .tab-bar { background: rgba(0,0,0,0.16); border-radius: 12px; padding: 4px; gap: 4px; }
+
+/* ── Buttons ── */
+.btn { font-weight: 700; border-width: 2px; border-radius: 9px; letter-spacing: 0.01em; }
+.btn-primary { background: var(--blue); color: #fff; border-color: var(--line); box-shadow: 2px 2px 0 var(--pop); }
+.btn-primary:hover { background: var(--blue); filter: brightness(1.07); transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--pop); }
+.btn-primary:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--pop); }
+.btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border2); }
+.btn-ghost:hover { background: var(--surface2); border-color: var(--line); color: var(--text); }
+.btn-danger { border-color: var(--rose); }
+.btn:disabled { opacity: 0.5; transform: none; box-shadow: none; }
+
+/* ── Home: teal band like the site ── */
+.landing-header { position: relative; overflow: hidden; background: var(--teal); color: #fff; border-bottom: 2.5px solid var(--ink); padding: 22px 40px 18px; }
+body:not(.light) .landing-header { background: #0A3F49; border-bottom-color: #000; }
+.landing-logo { color: #fff; font-size: 2rem; gap: 10px; position: relative; z-index: 1; }
+.landing-logo-wren { width: 58px; height: auto; margin: -10px 0 -8px -6px; }
+.landing-subtitle { position: relative; z-index: 1; font: 700 1.35rem var(--hand); color: var(--aqua); margin-left: 58px; }
+.landing-header-actions { z-index: 1; }
+.landing-header .btn-ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,0.6); }
+.landing-header .btn-ghost:hover { background: rgba(255,255,255,0.14); border-color: #fff; color: #fff; }
+.landing-sprig { position: absolute; right: -36px; bottom: -70px; width: 170px; height: auto; opacity: 0.95; pointer-events: none; transform: rotate(-12deg); }
+@media (min-width: 701px) { .landing-header-actions { right: 150px !important; top: 28px !important; } }
+
+.landing-classes { background: var(--surface); border-right: 2px solid var(--line) !important; }
+.landing-section-header, .landing-section-header * { letter-spacing: 0.1em; }
+.class-item { border: 2px solid transparent; border-radius: 10px; font-weight: 700; }
+.class-item.active { background: var(--cream) !important; border-color: var(--line); box-shadow: 3px 3px 0 var(--pop); color: var(--ink); }
+body:not(.light) .class-item.active { background: var(--surface3) !important; color: var(--text); }
+.class-dot { box-shadow: 0 0 0 2px var(--line); }
+
+.landing-detail { border-left: none; }
+.landing-detail-header { background: var(--surface); border-bottom: 2px solid var(--line); }
+.landing-detail-classname { font-weight: 900; font-size: 1.15rem; }
+.ld-tab { font-weight: 700; border-width: 2px; border-radius: 9px; }
+.ld-tab.active, body.light .ld-tab.active { background: var(--cream); color: var(--ink); border-color: var(--line); box-shadow: 2px 2px 0 var(--pop); }
+body:not(.light) .ld-tab.active { background: var(--surface3); color: var(--text); }
+
+.chart-card { border: 2px solid var(--line) !important; border-radius: 12px; box-shadow: 4px 4px 0 var(--teal); transition: transform 0.15s, box-shadow 0.15s; }
+.chart-card:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--coral); }
+body:not(.light) .chart-card { box-shadow: 4px 4px 0 #000; }
+
+/* Welcome and empty screens, with the illustrations */
+.welcome { max-width: 640px; }
+#landing-page.no-classes .welcome { display: flex; align-items: center; gap: 28px; }
+.welcome-art { width: 150px; height: auto; flex-shrink: 0; }
+.welcome-text { flex: 1; min-width: 0; }
+.welcome h2 { font-size: 2.1rem; }
+.welcome-steps { font-size: 0.92rem; }
+.empty-art { width: 190px; height: auto; margin-bottom: 6px; }
+.select-hint p, .timeline-empty p { font-size: 0.92rem; font-weight: 600; color: var(--text2); }
+
+/* ── Floating panels (Auto-Assign, Class) ── */
+.assign-float-panel { border: 2px solid var(--line); border-radius: 14px; box-shadow: 4px 4px 0 var(--pop); }
+.assign-float-header { border-bottom: 2px solid var(--border); }
+.assign-float-title { font-weight: 800; font-size: 0.86rem; }
+
+/* ── Desks and seats ── */
+.assign-table-bg, .canvas-table-free { box-shadow: 3px 3px 0 rgba(43,29,26,0.18); }
+body:not(.light) .assign-table-bg, body:not(.light) .canvas-table-free { box-shadow: none; }
+.seat-chip { border-width: 2.5px; font-weight: 800; box-shadow: 1.5px 1.5px 0 rgba(43,29,26,0.28); }
+body.light .seat-chip:not(.empty):not(.ungendered) { background-color: #fff; }
+.table-group-tag { font-weight: 800; }
+.table-groups-btn { font-weight: 700; }
+
+/* ── Inputs ── */
+input[type=text], input[type=search], textarea, select { border-radius: 9px; }
+body.light input[type=text]:focus, body.light textarea:focus, body.light select:focus { border-color: var(--teal) !important; box-shadow: 0 0 0 3px rgba(14,138,158,0.18); outline: none; }
+
+/* ── Toasts ── */
+.toast { border: 2px solid var(--line) !important; box-shadow: 4px 4px 0 var(--pop) !important; font-weight: 600; border-radius: 12px !important; }
+
+@media (max-width: 700px) {
+  .landing-sprig { display: none; }
+  .landing-subtitle { margin-left: 0; }
+  #landing-page.no-classes .welcome { gap: 14px; padding: 0 16px; }
+  .welcome-art { width: 92px; }
+  .welcome h2 { font-size: 1.6rem; }
+}
+
+/* ═══ Dialogs and pop-up panels: ink outline + offset shadow ═══ */
+.modal, .cm-dialog, .ar-dialog, .ai-panel, .room-check-panel {
+  border: 2.5px solid var(--line) !important; border-radius: 16px;
+  box-shadow: 6px 6px 0 var(--pop), 0 20px 50px rgba(0,0,0,0.18) !important;
+}
+.modal h3, .cm-dialog h3, .ar-dialog h2, .sh-dialog h2 { font-weight: 900; }
+.modal-overlay, .cm-dialog-backdrop { background: rgba(8,50,58,0.45) !important; backdrop-filter: blur(2px); }
+.cm-btn { font-weight: 700; border-width: 2px; border-radius: 9px; }
+.cm-btn-confirm { border-color: var(--line); box-shadow: 2px 2px 0 var(--pop); }
+.cm-dialog.danger .cm-btn-confirm { background: var(--rose); }
+.cm-dialog-icon { border: 2px solid var(--line); }
+.ar-card, .sh-option, .group-card { border-width: 2px; border-radius: 12px; }
+
+/* ═══ AI helper ═══ */
+.ai-bubble { background: var(--coral); border: 2.5px solid var(--line); box-shadow: 3px 3px 0 var(--pop); --ai-dot: var(--coral); }
+.ai-bubble:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--pop); }
+.ai-bubble.open { box-shadow: 1px 1px 0 var(--pop); transform: translate(2px, 2px); }
+.ai-head { border-bottom: 2px solid var(--border); }
+.ai-title { font-weight: 800; }
+.ai-chip { border-width: 1.5px; font-weight: 600; }
+.ai-chip:hover { border-color: var(--line); }
+.ai-plan, .ai-card { border-width: 2px; }
+.ai-msg.me, .ai-msg.user { background: var(--blue-dim); }
+
+/* ═══ Floating controls on the room: zoom, attendance, points ═══ */
+.zoom-bar, .att-toggle, .pts-toggle {
+  border: 2px solid var(--line) !important; border-radius: 11px !important;
+  box-shadow: 3px 3px 0 var(--pop) !important; background: var(--surface) !important; color: var(--text) !important; font-weight: 700 !important;
+}
+.att-toggle.active { background: var(--green-dim) !important; color: var(--green) !important; }
+.pts-toggle.active { background: var(--amber-dim) !important; color: var(--amber) !important; }
+.att-banner, .pts-banner { border-width: 2px !important; border-radius: 14px !important; box-shadow: 4px 4px 0 var(--pop) !important; }
+.att-actions button, .pts-actions button { border-width: 2px; border-radius: 9px; font-weight: 700; }
+.att-actions .att-done, .pts-actions .pts-done { border-color: var(--line); box-shadow: 2px 2px 0 var(--pop); }
+
+/* ═══ Layout toolbar ═══ */
+.layout-toolbar .tool-group, .tool-group { border-radius: 11px; }
+.tool-btn.active, .tool-btn.selected { background: var(--cream) !important; color: var(--ink) !important; box-shadow: inset 0 0 0 2px var(--line); font-weight: 800; }
+body:not(.light) .tool-btn.active, body:not(.light) .tool-btn.selected { background: var(--surface3) !important; color: var(--text) !important; }
+
+/* ═══ Classroom tools (full screen) ═══ */
+body .tools-tabs { border: 2px solid var(--border); border-radius: 12px; }
+body .tools-tab { font-weight: 700; }
+body .tools-tab.active { background: var(--cream); color: var(--ink); box-shadow: inset 0 0 0 2px var(--line), 2px 2px 0 var(--pop); }
+body:not(.light) .tools-tab.active { background: var(--surface3); color: var(--text); }
+body .tools-here, body .tools-exit { border-width: 2px !important; border-radius: 9px !important; font-weight: 700 !important; }
+body .picker-name.idle { color: var(--teal); }
+body .tools-chip { border-width: 1.5px; font-weight: 600; }
+
+/* Home → Tools cards: taped notes like the site */
+.ld-tool-cards .ld-tool-card { position: relative; border: 2px solid var(--line) !important; border-radius: 12px; box-shadow: 4px 4px 0 var(--teal); background: var(--surface); }
+.ld-tool-cards .ld-tool-card:nth-child(even) { box-shadow: 4px 4px 0 var(--coral); }
+.ld-tool-cards .ld-tool-card:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--pop); }
+body:not(.light) .ld-tool-cards .ld-tool-card { box-shadow: 4px 4px 0 #000; }
+
+/* ═══ Present mode ═══ */
+.present-title { font-weight: 900; }
+
+/* ═══ Undo bar, banners ═══ */
+.cm-undo-bar { border: 2px solid var(--line) !important; box-shadow: 4px 4px 0 var(--pop) !important; border-radius: 12px !important; }
+.backup-reminder { border: 2px solid var(--line) !important; border-radius: 12px !important; box-shadow: 3px 3px 0 var(--pop); }
+
+/* ═══ Section cards in Roster / Rules editors ═══ */
+.section-card, .rule-col, .gender-col, .rules-card { border-width: 2px !important; border-radius: 14px !important; }
+.section-label { font-weight: 800; }
+
+/* ═══ Print: plain black and white, no shadows (saves ink) ═══ */
+@media print {
+  body, body.light { --desk: #fff; --desk-edge: #000; --line: #000; --pop: transparent; }
+  .assign-table-bg, .canvas-table-free, .seat-chip { box-shadow: none !important; }
+  .canvas-board { background: #fff !important; color: #000 !important; border: 2px solid #000 !important; font-family: var(--font) !important; font-size: 0.8rem !important; text-transform: uppercase !important; letter-spacing: 0.08em !important; }
+}
