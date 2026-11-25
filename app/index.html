@@ -56,7 +56,7 @@
     <button class="hbtn hbtn-ghost" onclick="printChart()" title="Print this chart" aria-label="Print">🖨<span class="hb-label"> Print</span></button>
     <button class="hbtn hbtn-ghost" onclick="openPresent()" title="Show the chart full screen, for the projector" aria-label="Present">▶<span class="hb-label"> Present</span></button>
     <button class="hbtn hbtn-ghost hb-home" onclick="goHome()" aria-label="Home">🏠<span class="hb-label"> Home</span></button>
-    <button class="hbtn hbtn-ghost hbtn-icon hb-theme" onclick="toggleTheme()" id="themeBtn" title="Light / dark" aria-label="Switch light or dark theme">☀️</button>
+    <button class="theme-switch hb-theme" id="themeBtn" title="Light / dark — tap, or drag the lens" aria-label="Dark mode"></button>
     <div class="tool-dd" id="moreDD" onmouseleave="this.classList.remove('suppress')">
       <button class="hbtn hbtn-ghost hbtn-icon" onclick="toggleMoreMenu(event)" title="More" aria-label="More options">⋯</button>
       <div class="tool-menu more-menu"><div class="tm-inner">
@@ -347,6 +347,7 @@
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('restoreFile').click()" title="Add a class from an exported chart file, or restore a full backup">📂 Import file</button>
       <button class="btn btn-ghost btn-sm" onclick="openNameList()" title="Names ClassMap has learned for automatic sorting">📖 Name list</button>
       <button class="btn btn-ghost btn-sm lang-btn" onclick="toggleLanguage()" data-no-i18n title="Español / English">🌐 Español</button>
+      <button class="theme-switch lg" id="themeSwitchHome" title="Light / dark — tap, or drag the lens" aria-label="Dark mode"></button>
     </div>
     <input type="file" id="restoreFile" accept=".json,application/json" style="display:none" onchange="restoreEverything(this)">
   </div>

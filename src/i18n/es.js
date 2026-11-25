@@ -1049,5 +1049,7 @@ export default {
 "Import": "Importar",
 "Imported {n} students from Google Classroom": "Se importaron {n} estudiantes de Google Classroom",
 "Imported 1 student from Google Classroom": "Se importó 1 estudiante de Google Classroom",
-"✓ {} is ready with {n} students. Next: + New Chart to build your room.": "✓ {} está lista con {n} estudiantes. Ahora: + Nuevo mapa para armar tu salón."
+"✓ {} is ready with {n} students. Next: + New Chart to build your room.": "✓ {} está lista con {n} estudiantes. Ahora: + Nuevo mapa para armar tu salón.",
+"Dark mode": "Modo oscuro",
+"Light / dark — tap, or drag the lens": "Claro / oscuro — toca o arrastra la lupa"
 };

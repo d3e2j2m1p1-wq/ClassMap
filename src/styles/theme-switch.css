@@ -1,0 +1,90 @@
+/* ═══ Light / dark switch: a little scene in a window ═══ */
+.theme-switch {
+  --t: 0; --a: 0; --b: 0;
+  position: relative; flex-shrink: 0; width: 96px; height: 36px; padding: 0; cursor: pointer;
+  border: 2px solid var(--ink); border-radius: 999px; background: var(--cream);
+  box-shadow: 2px 2px 0 var(--ink); touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.theme-switch:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+.theme-switch:focus-visible { outline: 3px solid var(--aqua); outline-offset: 2px; }
+.theme-switch.lg { width: 150px; height: 54px; border-width: 2.5px; box-shadow: 3px 3px 0 var(--ink); }
+body:not(.light) .theme-switch { border-color: #000; box-shadow: 2px 2px 0 #000; }
+
+.ts-window { position: absolute; inset: 2px; border-radius: 999px; overflow: hidden; display: block; }
+.ts-window > *, .ts-mag > * { position: absolute; pointer-events: none; }
+
+/* sky: day → sunset → night */
+.ts-sky {
+  inset: 0;
+  background: linear-gradient(
+    color-mix(in oklch, color-mix(in oklab, #7FD0DC, #F2876E calc(var(--a) * 100%)), #0A2233 calc(var(--b) * 100%)),
+    color-mix(in oklch, color-mix(in oklab, #DDF5EF, #FFD39C calc(var(--a) * 100%)), #1B4656 calc(var(--b) * 100%)));
+}
+.ts-star { width: 2px; height: 2px; border-radius: 50%; background: #FFF6D8; opacity: calc(var(--b) * 1.2 - 0.2); animation: ts-twinkle 2.4s ease-in-out infinite; }
+.lg .ts-star { width: 3px; height: 3px; }
+@keyframes ts-twinkle { 50% { scale: 0.4; } }
+.ts-sun, .ts-moon { width: 24%; aspect-ratio: 1; height: auto; border-radius: 50%; left: 47%; border: 1.5px solid var(--ink); }
+.ts-sun { background: #FFD66B; top: calc(6% + var(--a) * 74%); box-shadow: 0 0 0 3px rgba(255,214,107,0.35); width: 15%; }
+.ts-moon { width: 13%; left: 30%; background: #FFF3CF; top: calc(92% - var(--b) * 82%); box-shadow: inset -4px -1px 0 #E9D9A6, 0 0 8px rgba(255,243,207,calc(var(--b) * 0.6)); }
+.ts-hill {
+  left: -10%; right: -10%; bottom: -55%; height: 90%; border-radius: 50%;
+  background: color-mix(in oklch, color-mix(in oklab, #8ACB9F, #B89A78 calc(var(--a) * 60%)), #1F4442 calc(var(--b) * 100%));
+  border-top: 1.5px solid var(--ink);
+}
+.ts-lake {
+  left: 20%; width: 62%; bottom: -16%; height: 44%; overflow: hidden; border-radius: 50%;
+  background: color-mix(in oklch, color-mix(in oklab, #4FB3C4, #E58A74 calc(var(--a) * 100%)), #0E3445 calc(var(--b) * 100%));
+  border: 1.5px solid var(--ink);
+}
+.ts-lake > * { position: absolute; }
+.ts-glint { left: 40%; width: 20%; height: 16%; top: 14%; border-radius: 50%; filter: blur(1px);
+  background: color-mix(in oklch, #FFE8A8, #FFF6DA calc(var(--b) * 100%)); opacity: calc(0.85 - var(--a) * 0.35 + var(--b) * 0.3); }
+.ts-ripple { height: 1.5px; border-radius: 2px; background: rgba(255,255,255,0.55); animation: ts-ripple 3.5s ease-in-out infinite; }
+.ts-ripple.r1 { left: 22%; width: 16%; top: 30%; }
+.ts-ripple.r2 { left: 62%; width: 14%; top: 40%; animation-delay: 1.2s; }
+@keyframes ts-ripple { 50% { translate: 18% 0; opacity: 0.4; } }
+
+/* the pictures dim and cool down as night falls */
+.ts-art, .ts-school img {
+  filter: brightness(calc(1 - var(--a) * 0.08 - var(--b) * 0.42)) saturate(calc(1 - var(--b) * 0.3)) hue-rotate(calc(var(--b) * -10deg));
+}
+.ts-school { left: 1%; bottom: 8%; width: 32%; aspect-ratio: 300 / 222; }
+.ts-school img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ts-lights > i { position: absolute; background: color-mix(in oklch, #1E5D69, #FFD66B calc(var(--b) * 100%)); box-shadow: 0 0 calc(var(--b) * 6px) rgba(255,214,107,calc(var(--b) * 0.9)); }
+.ts-bridge { left: 28%; width: 46%; bottom: 10%; }
+.ts-tree { right: -4%; bottom: 2%; width: 36%; }
+.ts-wren, .ts-wren-nap { width: 9%; left: 64%; bottom: 44%; }
+.ts-wren { opacity: calc(1 - var(--b) * 3 + 1.2); }
+.ts-wren-nap { width: 10%; opacity: calc(var(--b) * 3 - 1.8); }
+.ts-petal { width: 3%; aspect-ratio: 1 / 1.4; border-radius: 50% 0 50% 50%; background: #F8B4BE; border: 1px solid rgba(43,29,26,0.5); animation: ts-fall 5s linear infinite; opacity: 0; }
+.ts-petal.p1 { left: 74%; top: 30%; }
+.ts-petal.p2 { left: 82%; top: 20%; animation-delay: 1.7s; }
+.ts-petal.p3 { left: 68%; top: 40%; animation-delay: 3.4s; }
+@keyframes ts-fall { 0% { opacity: 0; translate: 0 0; rotate: 0deg; } 10% { opacity: 1; } 100% { opacity: 0; translate: -28px 34px; rotate: 220deg; } }
+.lg .ts-petal { border-width: 1.5px; }
+
+/* the glass lens: slides across and magnifies what's under it */
+.ts-lens {
+  position: absolute; top: 2px; left: calc(var(--kx) - 2px); width: var(--D); height: var(--D); margin: 2px 0 0 0;
+  border-radius: 50%; overflow: hidden; border: 2px solid var(--ink);
+  box-shadow: 1px 2px 0 rgba(43,29,26,0.45), inset 0 0 0 1.5px rgba(255,255,255,0.7);
+  cursor: grab;
+}
+.theme-switch:active .ts-lens { cursor: grabbing; }
+.ts-mag { position: absolute; left: 0; top: 0; width: calc(var(--W) - 4px); height: calc(var(--H) - 4px);
+  transform-origin: 0 0; transform: translate(calc(var(--D) / 2 - (var(--kx) - 2px + var(--D) / 2) * 1.45), calc(var(--D) / 2 - var(--H) / 2 * 1.45 + 2px)) scale(1.45); }
+.ts-shine { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 32% 26%, rgba(255,255,255,0.85) 0 9%, rgba(255,255,255,0.18) 22%, transparent 48%),
+              radial-gradient(circle at 70% 80%, transparent 50%, rgba(255,255,255,0.25) 70%, transparent 74%); }
+
+/* page reveal: the new theme grows as a circle from the lens */
+.ts-reveal::view-transition-old(root), .ts-reveal::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+
+/* header placement */
+header .theme-switch { margin: 0 2px; }
+.landing-header-actions .theme-switch { margin-left: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-star, .ts-ripple, .ts-petal { animation: none; }
+}

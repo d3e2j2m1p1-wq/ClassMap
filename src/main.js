@@ -26,6 +26,7 @@ import './styles/dialogs.css';
 import './styles/features.css';
 import './styles/ai.css';
 import './styles/paper.css';
+import './styles/theme-switch.css';
 import './styles/mobile.css';
 
 import { store } from './core/store.js';
@@ -61,7 +62,7 @@ import { initDrive, signIn as driveSignIn, signOut as driveSignOut, syncNow as d
 import { CLASS_COLORS, initStorage, saveLandingData } from './storage/landingData.js';
 import { guessGroupForClass } from './roster/nameList.js';
 import { exportData, importDataFromFile } from './storage/chartFile.js';
-import { toggleTheme } from './ui/theme.js';
+import { initThemeSwitch, toggleTheme } from './ui/themeSwitch.js';
 import { initAssistant, openPanel as openAssistant } from './ai/assistant.js';
 import { getLang, initLanguage, setLanguage } from './i18n/i18n.js';
 import { fitZoom, initZoom, setZoom, zoomOf } from './ui/zoom.js';
@@ -199,10 +200,8 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) flush
 // Restore saved theme
 try {
   // Light (cream paper) is the default; dark only if the teacher picked it
-  if (localStorage.getItem('classmap_theme') !== 'dark') {
-    document.body.classList.add('light');
-    document.getElementById('themeBtn').textContent = '🌙';
-  }
+  if (localStorage.getItem('classmap_theme') !== 'dark') document.body.classList.add('light');
+  initThemeSwitch();
 } catch(e) {}
 
 // Load saved data (IndexedDB), then show the home page
