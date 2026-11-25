@@ -14,6 +14,7 @@ import { mergeNameList, nameList } from '../roster/nameList.js';
 import { mergeData } from '../storage/merge.js';
 import { CLASS_COLORS, normalizeLandingData, saveLandingData } from '../storage/landingData.js';
 import { editorOpen, flushSave } from '../storage/autosave.js';
+import { markSent } from './shareNudge.js';
 import { CODE_LEN, CODE_MINUTES, cleanCode, deviceName, formatCode, receiveLink, startReceiving, startSending } from './transfer.js';
 
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -139,8 +140,9 @@ export function closeShare() {
 export function openShare() {
   closeShare();
   const box = dialog(`
-    <h2 id="shTitle">Send &amp; receive</h2>
-    <p class="sh-lead">Move classes and charts to another device or another teacher — no files. Both need ClassMap open.</p>
+    <img class="sh-art" src="/art/wren-card.webp" width="600" height="495" alt="">
+    <h2 id="shTitle">Send or receive classes</h2>
+    <p class="sh-lead">Move classes and charts to another device or another teacher — no files, no accounts. Both need ClassMap open.</p>
     <div class="sh-choices">
       <button class="sh-choice" id="shPickSend"><b>⇡ Send</b><span>from this device</span></button>
       <button class="sh-choice" id="shPickRecv"><b>⇣ Receive</b><span>with a code from the other device</span></button>
@@ -172,8 +174,22 @@ function pickWhatToSend() {
   };
 }
 
-// Chart menu "⇄ Send to another device…": this chart and its class
+// Home: "⇡ Send class" (the selected class and all its charts)
+export function sendClass(classId = store.activeClassId) {
+  if (!classId) { showToast('Select a class first'); return; }
+  startSendFlow(classPayload(classId));
+}
+
+// Home: the send button on a chart card (that chart and its class)
+export function sendChart(chartId, e) {
+  e?.stopPropagation();
+  const ch = store.landingData.charts.find(c => c.id === chartId);
+  if (ch) startSendFlow(classPayload(ch.classId, [ch.id]));
+}
+
+// Editor "⇡ Send": this chart and its class
 export function sendCurrentChart() {
+  if (editorOpen()) flushSave();
   const p = classPayload(window._currentChartClassId, window._currentChartId ? [window._currentChartId] : null);
   if (!p) { showToast('Save this chart first'); return; }
   startSendFlow(p);
@@ -181,6 +197,7 @@ export function sendCurrentChart() {
 
 export function startSendFlow(payload) {
   if (!payload) return;
+  markSent();
   if (session) session.cancel();
   const what = describe(payload);
   const box = dialog(`<h2 id="shTitle">Send ${esc(what.split(' · ')[0])}</h2><div class="sh-body"><p class="sh-wait">Getting a code…</p></div>`);
@@ -195,7 +212,7 @@ export function startSendFlow(payload) {
       <div class="sh-codebox">
         <div class="sh-qr" aria-hidden="true">${qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true })}</div>
         <div>
-          <p>On the other device, open ClassMap → <b>Send &amp; receive</b> → <b>Receive</b> and type:</p>
+          <p>On the other device, open ClassMap and type this in <b>Got a code?</b> under the class list (or <b>Send or receive</b> → <b>Receive</b>):</p>
           <div class="sh-code" aria-label="Code ${esc(session.code.split('').join(' '))}">${esc(formatCode(session.code))}</div>
           <p class="sh-fine">Or scan the QR code with its camera. <button class="sh-link" id="shCopy">Copy link</button></p>
           <p class="sh-fine" id="shTimer"></p>

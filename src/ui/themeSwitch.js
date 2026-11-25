@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════
 const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
-const ease = t => t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+const ease = t => t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
 
 // window openings of the schoolhouse picture (% of the image), lit at night
 const OPENINGS = [[24.6, 58.6, 4.0, 11], [33.2, 59.6, 4.2, 11.2], [42.3, 60.5, 4.1, 11.6], [62.4, 58.8, 7.7, 23.6], [55.5, 13.2, 3, 7.2], [61.5, 12.8, 5, 7]];
@@ -68,23 +68,30 @@ function applyTheme(dark, from) {
   vt.ready.then(() => {
     document.documentElement.animate(
       { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${R}px at ${x}px ${y}px)`] },
-      { duration: 650, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' });
+      { duration: 520, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' });
   }).catch(() => {});
   vt.finished.finally(() => document.documentElement.classList.remove('ts-reveal'));
+}
+
+// Move the lens; the app's colours flip as it passes the middle (sunset)
+function setT(next, el) {
+  const before = t;
+  t = next;
+  paint();
+  if ((before < 0.5) !== (t < 0.5) || (before === 0.5 && t !== 0.5)) applyTheme(t > 0.5, el?.querySelector('.ts-lens'));
 }
 
 function slideTo(target, el) {
   cancelAnimationFrame(anim);
   if (reduce()) { t = target; paint(); applyTheme(target === 1, null); return; }
   const start = t, dist = Math.abs(target - start);
-  if (!dist) { applyTheme(target === 1, el); return; }
-  const dur = 1300 * dist, t0 = performance.now();
+  if (!dist) { applyTheme(target === 1, el?.querySelector('.ts-lens')); return; }
+  const dur = 900 * dist, t0 = performance.now();
   const step = now => {
     const k = clamp((now - t0) / dur);
-    t = start + (target - start) * ease(k);
-    paint();
+    setT(start + (target - start) * ease(k), el);
     if (k < 1) anim = requestAnimationFrame(step);
-    else applyTheme(target === 1, el?.querySelector('.ts-lens'));
+    else applyTheme(target === 1, el?.querySelector('.ts-lens'));   // in case it never crossed (already there)
   };
   anim = requestAnimationFrame(step);
 }
@@ -113,8 +120,7 @@ function wire(el) {
     if (Math.abs(dx) > 4) drag.moved = true;
     if (!drag.moved) return;
     const span = el.clientWidth - el.clientHeight;
-    t = clamp(drag.t + dx / span);
-    paint();
+    setT(clamp(drag.t + dx / span), el);
   });
   const end = () => {
     if (!drag) return;

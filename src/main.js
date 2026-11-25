@@ -51,7 +51,8 @@ import { addWalls, openTemplateMenu } from './layout/templates.js';
 import { initRoomCheck, toggleRoomCheck } from './layout/roomCheck.js';
 import { openArrange } from './layout/arrange.js';
 import { openWallsMenu } from './layout/roomEditor.js';
-import { openShare, receiveFromLink, sendCurrentChart } from './share/shareUI.js';
+import { openReceive, openShare, receiveFromLink, sendChart, sendClass, sendCurrentChart } from './share/shareUI.js';
+import { closeHomeMore, toggleHomeMore } from './landing/homeMore.js';
 import { alignSelection, deleteSelection, distributeSelection, duplicateSelection, editItemName, initLayoutKeys, numberTables, toggleMultiTap } from './layout/selection.js';
 import { handleLayoutImg, layoutUploadImg, shrinkStoredImages } from './layout/image.js';
 import { toggleTableToolMenu, updateTableToolBadge } from './layout/tableGroups.js';
@@ -78,7 +79,12 @@ import './styles/tools.css';
 Object.assign(window, {
   openWallsMenu,
   openShare,
+  openReceive,
+  sendClass,
+  sendChart,
   sendCurrentChart,
+  toggleHomeMore,
+  closeHomeMore,
   toggleRoomCheck,
   openArrange,
   addWalls,

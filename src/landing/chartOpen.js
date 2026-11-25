@@ -14,6 +14,7 @@ import { flushSave, markDirty } from '../storage/autosave.js';
 import { localDateStr, markDeleted, saveLandingData, unmarkDeleted } from '../storage/landingData.js';
 import { resetHistory } from '../editor/undo.js';
 import { switchPanel } from '../editor/panels.js';
+import { maybeShareHint } from '../share/shareNudge.js';
 
 // ── Create / Open chart ──
 export function createNewChart() {
@@ -76,6 +77,7 @@ export function createNewChart() {
   } else {
     showToast('New chart for ' + cls.name);
   }
+  maybeShareHint(store.landingData.charts.length);
 }
 
 // The class's most recent chart that has a room set up

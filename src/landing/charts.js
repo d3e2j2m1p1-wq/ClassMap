@@ -55,6 +55,7 @@ export function renderTimeline(classId) {
       const total = (cls?.students || []).length;
       const dateVal = dateOf(ch);
       card.innerHTML = `
+        <button class="chart-card-send" onclick="sendChart('${ch.id}',event)" title="Send this chart to another device or teacher" aria-label="Send chart">⇡</button>
         <button class="chart-card-dup" onclick="duplicateChart('${ch.id}',event)" title="Copy to today" aria-label="Copy chart to today">⧉</button>
         <button class="chart-card-del" onclick="deleteChart('${ch.id}',event)" title="Delete" aria-label="Delete chart">✕</button>
         <div class="chart-card-date-row">

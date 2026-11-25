@@ -55,6 +55,7 @@
     <button class="hbtn hbtn-ghost hbtn-icon" id="redoBtn" onclick="redo()" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷</button>
     <button class="hbtn hbtn-ghost" onclick="printChart()" title="Print this chart" aria-label="Print">🖨<span class="hb-label"> Print</span></button>
     <button class="hbtn hbtn-ghost" onclick="openPresent()" title="Show the chart full screen, for the projector" aria-label="Present">▶<span class="hb-label"> Present</span></button>
+    <button class="hbtn hbtn-ghost hb-send" onclick="sendCurrentChart()" title="Send this chart to another device or teacher" aria-label="Send this chart">⇡<span class="hb-label"> Send</span></button>
     <button class="hbtn hbtn-ghost hb-home" onclick="goHome()" aria-label="Home">🏠<span class="hb-label"> Home</span></button>
     <button class="theme-switch hb-theme" id="themeBtn" title="Light / dark — tap, or drag the lens" aria-label="Dark mode"></button>
     <div class="tool-dd" id="moreDD" onmouseleave="this.classList.remove('suppress')">
@@ -68,7 +69,7 @@
         <button class="tm-item phone-only" onclick="toggleTheme();closeMoreMenu()"><span>◐ Light / dark</span></button>
         <button class="tm-item lang-btn" onclick="toggleLanguage();closeMoreMenu()" data-no-i18n><span>🌐 Español</span></button>
         <button class="tm-item" onclick="manualSave();closeMoreMenu()"><span>💾 Save now</span><small>also saves automatically</small></button>
-        <button class="tm-item" onclick="sendCurrentChart();closeMoreMenu()"><span>⇄ Send to another device…</span><small>no file needed</small></button>
+        <button class="tm-item" onclick="sendCurrentChart();closeMoreMenu()"><span>⇡ Send this chart…</span><small>to a device or teacher</small></button>
         <button class="tm-item" onclick="exportData();closeMoreMenu()"><span>⬇ Export chart file</span></button>
         <button class="tm-item" onclick="openAssistant('info');closeMoreMenu()"><span>✦ On-device AI…</span><small>turn on, switch model or remove</small></button>
         <button class="tm-item" onclick="document.getElementById('importDataFile').click();closeMoreMenu()"><span>📂 Import chart file</span></button>
@@ -334,7 +335,7 @@
 ════════════════════════════════ -->
 <div id="landing-page">
   <div class="landing-header">
-    <img class="landing-sprig" src="/art/sprig.webp" width="560" height="584" alt="" aria-hidden="true">
+    <span class="landing-sprig-wrap" aria-hidden="true"><img class="landing-sprig" src="/art/sprig.webp" width="560" height="584" alt=""></span>
     <div class="landing-logo">
       <img class="landing-logo-wren" src="/art/wren.webp" width="804" height="728" alt="">
       ClassMap
@@ -342,11 +343,18 @@
     <div class="landing-subtitle">Your classroom seating organizer</div>
     <div class="landing-header-actions" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
       <div id="syncArea" class="sync-area"></div>
-      <button class="btn btn-ghost btn-sm" onclick="openShare()" title="Send classes and charts to another device or teacher, or receive them — no files">⇄ Send &amp; receive</button>
-      <button class="btn btn-ghost btn-sm" onclick="exportEverything()" title="Download every class, chart and the name list as one file">⬇ Back up everything</button>
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('restoreFile').click()" title="Add a class from an exported chart file, or restore a full backup">📂 Import file</button>
-      <button class="btn btn-ghost btn-sm" onclick="openNameList()" title="Names ClassMap has learned for automatic sorting">📖 Name list</button>
+      <button class="share-btn" onclick="openShare()" title="Send classes and charts to another device or teacher, or receive them — no files, no accounts">
+        <img src="/art/wren-card.webp" width="600" height="495" alt=""><span><b>Send or receive classes</b><small>to a device or teacher</small></span>
+      </button>
       <button class="btn btn-ghost btn-sm lang-btn" onclick="toggleLanguage()" data-no-i18n title="Español / English">🌐 Español</button>
+      <div class="home-more" id="homeMore">
+        <button class="btn btn-ghost btn-sm" onclick="toggleHomeMore(event)" aria-haspopup="true" aria-expanded="false" title="More">⋯ More</button>
+        <div class="home-more-menu" role="menu" hidden>
+          <button role="menuitem" onclick="closeHomeMore();exportEverything()"><span>⬇ Back up everything</span><small>every class and chart in one file</small></button>
+          <button role="menuitem" onclick="closeHomeMore();document.getElementById('restoreFile').click()"><span>📂 Import file</span><small>a chart file or a full backup</small></button>
+          <button role="menuitem" onclick="closeHomeMore();openNameList()"><span>📖 Name list</span><small>names learned for sorting</small></button>
+        </div>
+      </div>
       <button class="theme-switch lg" id="themeSwitchHome" title="Light / dark — tap, or drag the lens" aria-label="Dark mode"></button>
     </div>
     <input type="file" id="restoreFile" accept=".json,application/json" style="display:none" onchange="restoreEverything(this)">
@@ -370,6 +378,10 @@
         <button class="btn btn-primary btn-sm" onclick="addLandingClass()">Add</button>
       </div>
       <button type="button" class="gc-import-btn" onclick="openClassroomImport()" hidden><span class="gc-mark" aria-hidden="true">▦</span> Import from Google Classroom</button>
+      <form class="got-code" onsubmit="event.preventDefault();openReceive(this.code.value);this.reset()" autocomplete="off">
+        <label for="gotCodeInput">Got a code?</label>
+        <div><input id="gotCodeInput" name="code" maxlength="7" placeholder="ABC-123" autocapitalize="characters" spellcheck="false"><button class="btn btn-ghost btn-sm" type="submit">Receive</button></div>
+      </form>
     </div>
 
     <!-- Class detail panel — Charts / Roster / Rules tabs -->
@@ -385,6 +397,7 @@
             <li><b>Auto-assign</b> — ClassMap follows your rules and mixes groups.</li>
           </ol>
           <button class="btn btn-primary" onclick="createSampleClass()">Try a sample class</button>
+          <button class="welcome-receive" onclick="openReceive()"><img src="/art/wren-card.webp" width="600" height="495" alt=""><span>Have ClassMap on another device? <b>Receive your classes →</b></span></button>
           <button type="button" class="btn btn-ghost gc-import-btn" onclick="openClassroomImport()" hidden>▦ Import from Google Classroom</button>
           <p class="welcome-note">Everything stays on this device.</p>
           </div>
@@ -405,6 +418,7 @@
             <button class="ld-tab" data-tab="rules" onclick="switchLandingTab('rules',this)">📌 Rules</button>
             <button class="ld-tab" data-tab="tools" onclick="switchLandingTab('tools',this)">🧰 Tools</button>
           </div>
+          <button class="btn btn-ghost btn-sm ld-send" onclick="sendClass()" title="Send this class and its charts to another device or teacher">⇡ Send class</button>
           <button class="btn btn-primary btn-sm" onclick="createNewChart()">+ New Chart</button>
         </div>
 

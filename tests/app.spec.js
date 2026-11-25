@@ -35,6 +35,8 @@ async function classWithChart(page, boys = 6, girls = 6) {
 test('loads without errors and shows the home page', async ({ page }) => {
   const errors = await open(page);
   await expect(page.locator('#landing-page')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Send or receive classes/ })).toBeVisible();
+  await page.locator('#homeMore [aria-haspopup]').click();
   await expect(page.getByText('Back up everything')).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -1015,14 +1017,14 @@ test('send & receive: a class goes to another device, locked, with matching chec
   const wire = [];
   A.page.on('websocket', ws => ws.on('framesent', f => wire.push(String(f.payload))));
 
-  await A.page.getByRole('button', { name: /Send & receive/ }).click();
+  await A.page.getByRole('button', { name: /Send or receive classes/ }).click();
   await A.page.locator('#shPickSend').click();
   await A.page.locator('#shGo').click();
   const code = (await A.page.locator('.sh-code').textContent()).trim();
   expect(code).toMatch(/^[2-9A-Z]{3}-[2-9A-Z]{3}$/);
   await expect(A.page.locator('.sh-qr svg')).toHaveCount(1);
 
-  await B.page.getByRole('button', { name: /Send & receive/ }).click();
+  await B.page.getByRole('button', { name: /Send or receive classes/ }).click();
   await B.page.locator('#shPickRecv').click();
   await B.page.locator('#shCode').fill(code.toLowerCase().replace('-', ''));   // typing is forgiving
   await B.page.getByRole('button', { name: 'Connect' }).click();

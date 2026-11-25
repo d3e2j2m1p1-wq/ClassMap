@@ -4,6 +4,7 @@ import { evaluateRules, frontInfo, getResolvedRules, NEAR_PLACES, nearInfo, rule
 import { cleanAssignments, getAllSeats } from './seats.js';
 import { getGenderGroups, state } from '../core/state.js';
 import { showToast } from '../core/ui.js';
+import { maybeNudgeAfterAssign } from '../share/shareNudge.js';
 import { renderRoster } from '../editor/roster.js';
 import { markDirty } from '../storage/autosave.js';
 import { countRepeats, pairKey, partnerSeatPairs, recentPartnerPairs } from './repeats.js';
@@ -58,6 +59,7 @@ export function autoAssign() {
   else if (history.size) msg += ' No repeat partners.';
   if (pins.size) msg += ` ${pins.size} pinned.`;
   showToast(msg, (remaining || unmixed || unplaced || best.reps || best.soft) ? 5000 : 2800);
+  if (!remaining && !unplaced && !unmixed) maybeNudgeAfterAssign(window._currentChartId || 'new:' + window._currentChartClassId);
 }
 
 // The seating search on its own: fills state.assignments with the best of `restarts` tries and
