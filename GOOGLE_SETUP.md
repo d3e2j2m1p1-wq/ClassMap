@@ -42,9 +42,11 @@ For **Import from Google Classroom**, also search **Google Classroom API** → *
   Restart `npm run dev`. The home page now shows **Sign in with Google**.
 - **On Cloudflare:** dash.cloudflare.com → **Workers & Pages → classmap → Settings → Build →
   Variables and secrets → Add** — Name: `VITE_GOOGLE_CLIENT_ID` · Value: the client ID (type: text).
-  Then redeploy (push any commit, or **Deployments → Retry**). The build bakes it into the site, and
-  both buttons appear: **Sign in with Google** at the top of the home page and
-  **Import from Google Classroom** under the class list.
+  Then push any commit so the site is **built** again (re-deploying an old build won't pick it up).
+  **Sign in with Google** appears at the top of the app's home page.
+- **Classroom import has its own switch.** Once the Classroom API is enabled and Google has approved
+  the Classroom scopes, add a second build variable `VITE_CLASSROOM_IMPORT` = `on` and push again.
+  **Import from Google Classroom** then appears under the class list.
 
 The client ID is not a secret (it's visible in every web app that uses Google sign-in);
 Google only accepts it from the origins you listed in step 4.

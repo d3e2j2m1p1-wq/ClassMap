@@ -11,7 +11,7 @@ export default defineConfig({
       command: 'npm run dev -- --port 5199 --strictPort',
       url: 'http://localhost:5199/',
       reuseExistingServer: true,
-      env: { VITE_GOOGLE_CLIENT_ID: 'test-client.apps.googleusercontent.com', VITE_SHARE_URL: 'ws://127.0.0.1:8799/api/share/' },
+      env: { VITE_GOOGLE_CLIENT_ID: 'test-client.apps.googleusercontent.com', VITE_CLASSROOM_IMPORT: 'on', VITE_SHARE_URL: 'ws://127.0.0.1:8799/api/share/' },
     },
     {
       command: 'npm run build && npx wrangler dev --port 8799 --ip 127.0.0.1',

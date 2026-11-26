@@ -8,14 +8,14 @@
 import { store } from '../core/store.js';
 import { esc } from '../core/state.js';
 import { plural, showToast, undoToast } from '../core/ui.js';
-import { GOOGLE_CLIENT_ID } from '../config.js';
+import { GOOGLE_CLIENT_ID, CLASSROOM_IMPORT } from '../config.js';
 import { CLASS_COLORS, saveLandingData } from './landingData.js';
 import { guessGroupForClass } from '../roster/nameList.js';
 import { renderClassList, selectClass } from '../landing/landing.js';
 
 const SCOPES = 'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.rosters.readonly';
 const API = 'https://classroom.googleapis.com/v1';
-export const classroomEnabled = () => !!GOOGLE_CLIENT_ID;
+export const classroomEnabled = () => !!CLASSROOM_IMPORT;
 
 let token = null, tokenExpires = 0, client = null, waiter = null;
 
