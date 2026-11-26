@@ -27,7 +27,8 @@ async function drag(page, a, b) {
 const click = async (page, x, y) => page.mouse.click(...await at(page, x, y));
 // the active layer's pixel, and what you see (all layers composed)
 const px = (page, x, y) => page.evaluate(([x, y]) => { const c = __px.state.cel; const o = (y * c.w + x) * 4; return [...c.pixels.slice(o, o + 4)]; }, [x, y]);
-const seen = (page, x, y) => page.evaluate(([x, y]) => { const W = __px.state.sprite.width, o = (y * W + x) * 4; return [...__px.view.comp.slice(o, o + 4)]; }, [x, y]);
+// waits for the next screen refresh, which is when the layers are composed
+const seen = (page, x, y) => page.evaluate(async ([x, y]) => { await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); const W = __px.state.sprite.width, o = (y * W + x) * 4; return [...__px.view.comp.slice(o, o + 4)]; }, [x, y]);
 const layerNames = page => page.locator('.px-row-name').allTextContents();
 const run = (page, id) => page.evaluate(id => __px.actions.run(id), id);
 const swatch = (page, n) => page.click(`.px-swatches .px-sw:nth-child(${n})`);

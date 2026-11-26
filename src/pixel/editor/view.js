@@ -31,8 +31,10 @@ export class View {
     this.readTheme();
     new ResizeObserver(() => this.resize()).observe(stage);
     new MutationObserver(() => { this.readTheme(); this.request(); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    for (const ev of ['color', 'tool', 'selection', 'options']) on(ev, () => this.request());
+    for (const ev of ['color', 'tool', 'selection', 'options', 'settings']) on(ev, () => this.request());
     on('selection', () => this.animateAnts());
+    this.cache = new Map();
+    for (const ev of ['changed', 'layers', 'frames', 'sprite']) on(ev, () => { this.cache.clear(); this.request(); });
   }
 
   readTheme() {
@@ -57,7 +59,44 @@ export class View {
   }
 
   // Layers changed in a way that can touch every pixel (visibility, blend, order…)
-  recompose() { const sp = state.sprite; if (sp) this.invalidate(0, 0, sp.width - 1, sp.height - 1); }
+  recompose() { const sp = state.sprite; if (sp) { this.cache.clear(); this.invalidate(0, 0, sp.width - 1, sp.height - 1); } }
+
+  // Any frame composed into a canvas (playback, onion skin, the preview window); cached until something changes
+  frameCanvas(frameId, tint) {
+    const key = frameId + (tint || '');
+    let c = this.cache.get(key);
+    if (c) return c;
+    const sp = state.sprite;
+    c = document.createElement('canvas'); c.width = sp.width; c.height = sp.height;
+    const g = c.getContext('2d');
+    if (tint) {
+      g.drawImage(this.frameCanvas(frameId), 0, 0);
+      if (tint.toUpperCase() !== '#FFFFFF') { g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.65; g.fillStyle = tint; g.fillRect(0, 0, sp.width, sp.height); }
+    } else g.putImageData(new ImageData(composeFrame(sp, frameId), sp.width, sp.height), 0, 0);
+    this.cache.set(key, c);
+    return c;
+  }
+
+  // Onion skin: neighbouring frames, faded and tinted (before = coral, after = teal)
+  drawOnion(ctx, x, y, w, h) {
+    const O = state.settings.onion, sp = state.sprite;
+    if (!O.on || state.playing || sp.frames.length < 2) return;
+    const fr = sp.frames, i = fr.findIndex(f => f.id === state.frameId);
+    let lo = 0, hi = fr.length - 1;
+    if (O.tagOnly) { const t = sp.tags.find(t => i >= t.from && i <= t.to); if (t) { lo = t.from; hi = t.to; } }
+    const pick = k => { if (k >= lo && k <= hi) return k; if (!O.wrap) return -1; const n = hi - lo + 1; return lo + (((k - lo) % n) + n) % n; };
+    const draw = (side, count, tint) => {
+      for (let k = count; k >= 1; k--) {
+        const j = pick(i + side * k);
+        if (j < 0 || j === i) continue;
+        ctx.globalAlpha = (O.opacity / 100) * (O.falloff / 100) ** (k - 1);
+        ctx.drawImage(this.frameCanvas(fr[j].id, tint), x, y, w, h);
+      }
+    };
+    draw(-1, O.before, O.tintBefore);
+    draw(1, O.after, O.tintAfter);
+    ctx.globalAlpha = 1;
+  }
 
   // Part of the artwork changed (sprite pixels, inclusive)
   invalidate(x0, y0, x1, y1) {
@@ -189,7 +228,8 @@ export class View {
       for (let r = r0; r < r1; r++) for (let c = c0 + ((r + c0) & 1); c < c1; c += 2) ctx.fillRect(x + c * s, y + r * s, s, s);
     } else { ctx.fillStyle = this.colors.paper; ctx.fillRect(x, y, w, h); }
 
-    ctx.drawImage(this.sheet, x, y, w, h);
+    this.drawOnion(ctx, x, y, w, h);
+    ctx.drawImage(state.playing ? this.frameCanvas(state.frameId) : this.sheet, x, y, w, h);
 
     // a move in progress floats above the layers
     const F = this.floating;

@@ -16,14 +16,18 @@ export function initDoc(opts) { ({ commit, view } = opts); }
 
 const snap = () => {
   const sp = state.sprite;
-  return { layers: cloneTree(sp.layers), cels: sp.cels.slice(), width: sp.width, height: sp.height, active: state.layerId };
+  return { layers: cloneTree(sp.layers), cels: sp.cels.slice(), frames: sp.frames.map(f => ({ ...f })), tags: sp.tags.map(t => ({ ...t })), width: sp.width, height: sp.height, active: state.layerId, frame: state.frameId };
 };
 
 export function applyStruct(s) {
   const sp = state.sprite;
   const resized = sp.width !== s.width || sp.height !== s.height;
   sp.layers = cloneTree(s.layers); sp.cels = s.cels.slice(); sp.width = s.width; sp.height = s.height;
+  sp.frames = s.frames.map(f => ({ ...f })); sp.tags = s.tags.map(t => ({ ...t }));
+  if (!sp.frames.some(f => f.id === state.frameId)) state.frameId = sp.frames.some(f => f.id === s.frame) ? s.frame : sp.frames[0].id;
+  state.selectedFrames = new Set([state.frameId]);
   setActive(find(sp, s.active) ? s.active : leafLayers(sp).at(-1)?.id);
+  emit('frames');
   if (resized) { emit('resized'); view.setSprite(); } else view.recompose();
   emit('layers');
 }
@@ -40,7 +44,17 @@ export function structural(fn, label) {
   const step = { kind: 'struct', label, before, after };
   commit(Array.isArray(extra) && extra.length ? { kind: 'multi', steps: [step, ...extra] } : step);
   if (sp.width !== before.width || sp.height !== before.height) { emit('resized'); view.setSprite(); } else view.recompose();
-  emit('layers');
+  emit('layers'); emit('frames');
+}
+
+// Apply fn to every cel's pixels, keeping linked cels linked (they share one pixel array)
+export function mapPixels(fn) {
+  const sp = state.sprite, done = new Map();
+  sp.cels = sp.cels.map(c => {
+    if (!done.has(c.pixels)) done.set(c.pixels, fn(c.pixels, c));
+    const r = done.get(c.pixels);
+    return { ...c, ...(r.w ? { w: r.w, h: r.h } : {}), pixels: r.pixels || r };
+  });
 }
 
 export function setActive(id, additive = false) {
@@ -111,8 +125,11 @@ export function duplicateLayers() {
 export function cloneNode(node, suffix = '') {
   const sp = state.sprite;
   if (isGroup(node)) return { ...node, id: uid(), name: node.name + suffix, children: node.children.map(c => cloneNode(c)) };
-  const l = { ...node, id: uid(), name: node.name + suffix };
-  for (const c of sp.cels.filter(c => c.layerId === node.id)) sp.cels.push({ ...c, layerId: l.id, pixels: c.pixels.slice() });
+  const l = { ...node, id: uid(), name: node.name + suffix }, copies = new Map();
+  for (const c of sp.cels.filter(c => c.layerId === node.id)) {
+    if (!copies.has(c.pixels)) copies.set(c.pixels, c.pixels.slice());
+    sp.cels.push({ ...c, layerId: l.id, pixels: copies.get(c.pixels), ...(c.link ? { link: c.link + '-' + l.id } : {}) });
+  }
   return l;
 }
 
@@ -147,6 +164,7 @@ export function mergeDown() {
       const merged = { ...a, pixels: a.pixels.slice() };
       const k = (top.opacity ?? 255) / 255 * (b.opacity ?? 255) / 255;
       if (top.visible) for (let i = 0; i < merged.pixels.length; i += 4) if (b.pixels[i + 3]) blendInto(merged.pixels, i, b.pixels[i], b.pixels[i + 1], b.pixels[i + 2], b.pixels[i + 3] / 255 * k, top.blend || 'normal');
+      delete merged.link;
       sp.cels[sp.cels.indexOf(a)] = merged;
     }
     remove(sp, top.id);
@@ -200,15 +218,15 @@ export function resizeCanvas(w, h, ax = 0.5, ay = 0.5) {
   if (w === sp.width && h === sp.height) return;
   const dx = Math.round((w - sp.width) * ax), dy = Math.round((h - sp.height) * ay);
   structural(() => {
-    sp.cels = sp.cels.map(c => {
+    mapPixels(px => {
       const out = new Uint8ClampedArray(w * h * 4);
       for (let y = 0; y < sp.height; y++) {
         const ty = y + dy; if (ty < 0 || ty >= h) continue;
         const x0 = Math.max(0, -dx), x1 = Math.min(sp.width, w - dx);
         if (x1 <= x0) continue;
-        out.set(c.pixels.subarray((y * sp.width + x0) * 4, (y * sp.width + x1) * 4), (ty * w + x0 + dx) * 4);
+        out.set(px.subarray((y * sp.width + x0) * 4, (y * sp.width + x1) * 4), (ty * w + x0 + dx) * 4);
       }
-      return { ...c, w, h, pixels: out };
+      return { pixels: out, w, h };
     });
     sp.width = w; sp.height = h;
   }, 'Resize canvas');
@@ -225,10 +243,10 @@ export function cropToContent() {
   const w = b.x1 - b.x0 + 1, h = b.y1 - b.y0 + 1;
   if (w === sp.width && h === sp.height) { toast('Already cropped to the art'); return; }
   structural(() => {
-    sp.cels = sp.cels.map(c => {
+    mapPixels(px => {
       const out = new Uint8ClampedArray(w * h * 4);
-      for (let y = 0; y < h; y++) out.set(c.pixels.subarray(((b.y0 + y) * sp.width + b.x0) * 4, ((b.y0 + y) * sp.width + b.x1 + 1) * 4), y * w * 4);
-      return { ...c, w, h, pixels: out };
+      for (let y = 0; y < h; y++) out.set(px.subarray(((b.y0 + y) * sp.width + b.x0) * 4, ((b.y0 + y) * sp.width + b.x1 + 1) * 4), y * w * 4);
+      return { pixels: out, w, h };
     });
     sp.width = w; sp.height = h;
   }, 'Crop');
@@ -237,10 +255,10 @@ export function cropToContent() {
 export function flipCanvas(axis) {
   const sp = state.sprite, W = sp.width, H = sp.height;
   structural(() => {
-    sp.cels = sp.cels.map(c => {
-      const s32 = new Uint32Array(c.pixels.buffer), out = new Uint8ClampedArray(W * H * 4), o32 = new Uint32Array(out.buffer);
+    mapPixels(px => {
+      const s32 = new Uint32Array(px.buffer, px.byteOffset, W * H), out = new Uint8ClampedArray(W * H * 4), o32 = new Uint32Array(out.buffer);
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) o32[y * W + x] = s32[axis === 'h' ? y * W + (W - 1 - x) : (H - 1 - y) * W + x];
-      return { ...c, pixels: out };
+      return { pixels: out };
     });
   }, 'Flip canvas');
 }

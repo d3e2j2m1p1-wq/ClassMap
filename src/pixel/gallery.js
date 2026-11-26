@@ -6,6 +6,7 @@ import { listArtwork, loadArtwork, saveArtwork, deleteArtwork, renameArtwork, al
 import { createSprite, MAX_SIDE, uid } from './core/sprite.js';
 import { encodeBackup, decodeBackup } from './core/format.js';
 import { BUILT_IN } from './core/palettes.js';
+import { readAseprite } from './core/aseprite.js';
 import { ICONS } from './ui/icons.js';
 import { openDialog, confirmBox, promptBox, toast, popover, esc } from './ui/dialogs.js';
 import { thumbnail, download, openExport } from './ui/export.js';
@@ -34,12 +35,14 @@ export function initGallery(el, onOpen) {
         </select>
         <button type="button" class="px-btn px-btn-ghost px-backup">${ICONS.download}<span>Back up everything</span></button>
         <button type="button" class="px-btn px-btn-ghost px-restore">${ICONS.upload}<span>Restore</span></button>
+        <button type="button" class="px-btn px-btn-ghost px-open">${ICONS.open}<span>Open file</span></button>
         <button type="button" class="px-btn px-btn-primary px-new">${ICONS.plus}<span>New artwork</span></button>
       </div>
     </div>
     <div class="px-remind" hidden></div>
     <div class="px-grid" aria-live="polite"></div>
-    <input type="file" class="px-restore-file" hidden>`;
+    <input type="file" class="px-restore-file" hidden>
+    <input type="file" class="px-open-file" accept=".aseprite,.ase,image/*" hidden>`;
   const sort = root.querySelector('.px-sort');
   try { sort.value = localStorage.getItem(sortKey) || 'updatedAt-desc'; } catch { /* keep default */ }
   sort.addEventListener('change', () => { try { localStorage.setItem(sortKey, sort.value); } catch { /* */ } render(); });
@@ -49,6 +52,9 @@ export function initGallery(el, onOpen) {
   root.querySelector('.px-restore').addEventListener('click', () => file.click());
   file.addEventListener('change', () => { if (file.files[0]) restore(file.files[0]); file.value = ''; });
   root.querySelector('.px-grid').addEventListener('click', onGridClick);
+  const open = root.querySelector('.px-open-file');
+  root.querySelector('.px-open').addEventListener('click', () => open.click());
+  open.addEventListener('change', () => { if (open.files[0]) importFile(open.files[0]); open.value = ''; });
 }
 
 const ago = t => {
@@ -178,6 +184,21 @@ export function newArtwork() {
       },
     }],
   });
+}
+
+// Open an .aseprite / .ase file or an image as a new artwork
+export async function importFile(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const ase = /\.(aseprite|ase)$/i.test(file.name) || (bytes[4] === 0xE0 && bytes[5] === 0xA5);
+  if (!ase) return newFromImage(file);
+  try {
+    const { sprite, warnings } = await readAseprite(bytes);
+    sprite.name = file.name.replace(/\.[^.]+$/, '') || 'Imported';
+    if (!sprite.palette.length) sprite.palette = BUILT_IN[0].colors.map(c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16), 255]);
+    await saveArtwork(sprite, thumbnail(sprite));
+    openArt(sprite.id);
+    if (warnings.length) toast(warnings.join(' '), 6000);
+  } catch (err) { toast(err.message || "Couldn't open that file", 5000); }
 }
 
 // An image dropped on the gallery becomes a new artwork of the same size

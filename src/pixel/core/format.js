@@ -28,6 +28,9 @@ async function pipe(bytes, stream) {
 }
 export const gzip = bytes => pipe(bytes, new CompressionStream('gzip'));
 export const gunzip = bytes => pipe(bytes, new DecompressionStream('gzip'));
+// zlib (RFC 1950), as used inside .aseprite cels and PNG image data
+export const zlib = bytes => pipe(bytes, new CompressionStream('deflate'));
+export const unzlib = bytes => pipe(bytes, new DecompressionStream('deflate'));
 
 // In-memory sprite → plain object that JSON can hold
 export function spriteToJSON(sp) {
@@ -37,12 +40,20 @@ export function spriteToJSON(sp) {
     palette: sp.palette.map(c => rgbaToHex(c)),
     layers: sp.layers, frames: sp.frames, tags: sp.tags, tilesets: [], grid: sp.grid,
     references: (sp.references || []).map(({ id, name, src, x, y, w, h, zoom, px, py, opacity, min, hidden }) => ({ id, name, src, x, y, w, h, zoom, px, py, opacity, min, hidden })),
-    cels: sp.cels.map(c => {
-      const b = contentBounds(c.pixels, c.w, c.h);
-      const base = { layerId: c.layerId, frameId: c.frameId };
-      if (!b) return { ...base, x: c.x, y: c.y, w: 0, h: 0, pixels: '' };
-      return { ...base, x: c.x + b.x, y: c.y + b.y, w: b.w, h: b.h, pixels: bytesToBase64(new Uint8Array(readRect(c.pixels, c.w, b.x, b.y, b.w, b.h).buffer)) };
-    }),
+    // linked cels share one pixel array: the first is saved, the rest point at its frame
+    cels: (() => {
+      const seen = new Map();
+      return sp.cels.map(c => {
+        const base = { layerId: c.layerId, frameId: c.frameId, ...(c.opacity != null && c.opacity !== 255 ? { opacity: c.opacity } : {}), ...(c.userData ? { userData: c.userData } : {}) };
+        const first = seen.get(c.pixels);
+        if (first) return { ...base, linkTo: first.frameId, link: c.link };
+        seen.set(c.pixels, c);
+        const b = contentBounds(c.pixels, c.w, c.h);
+        const out = b ? { ...base, x: c.x + b.x, y: c.y + b.y, w: b.w, h: b.h, pixels: bytesToBase64(new Uint8Array(readRect(c.pixels, c.w, b.x, b.y, b.w, b.h).buffer)) } : { ...base, x: c.x, y: c.y, w: 0, h: 0, pixels: '' };
+        if (c.link) out.link = c.link;
+        return out;
+      });
+    })(),
     createdAt: sp.createdAt, updatedAt: sp.updatedAt,
   };
 }
@@ -56,11 +67,26 @@ export function spriteFromJSON(o) {
     palette: (o.palette || []).map(hexToRgba).filter(Boolean),
     layers: o.layers, frames: o.frames, tags: o.tags || [], tilesets: [], references: Array.isArray(o.references) ? o.references : [],
     grid: o.grid || { w: 16, h: 16, offsetX: 0, offsetY: 0 },
-    cels: o.cels.map(c => {
-      const pixels = new Uint8ClampedArray(W * H * 4);
-      if (c.w && c.h && c.pixels) writeRect(pixels, W, c.x, c.y, c.w, c.h, new Uint8ClampedArray(base64ToBytes(c.pixels).buffer));
-      return { layerId: c.layerId, frameId: c.frameId, x: 0, y: 0, w: W, h: H, pixels };
-    }),
+    cels: (() => {
+      const made = o.cels.map(c => {
+        const cel = { layerId: c.layerId, frameId: c.frameId, x: 0, y: 0, w: W, h: H, pixels: null };
+        if (c.opacity != null) cel.opacity = c.opacity;
+        if (c.userData) cel.userData = c.userData;
+        if (c.link) cel.link = c.link;
+        if (!c.linkTo) {
+          cel.pixels = new Uint8ClampedArray(W * H * 4);
+          if (c.w && c.h && c.pixels) writeRect(cel.pixels, W, c.x, c.y, c.w, c.h, new Uint8ClampedArray(base64ToBytes(c.pixels).buffer));
+        }
+        return cel;
+      });
+      made.forEach((cel, i) => {
+        const src = o.cels[i];
+        if (!src.linkTo) return;
+        const from = made.find(m => m.layerId === src.layerId && m.frameId === src.linkTo && m.pixels);
+        cel.pixels = from ? from.pixels : new Uint8ClampedArray(W * H * 4);
+      });
+      return made;
+    })(),
     createdAt: o.createdAt || Date.now(), updatedAt: o.updatedAt || Date.now(),
   };
 }

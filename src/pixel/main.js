@@ -28,12 +28,15 @@ import { initToolbox, initSliders, initInfo, nudgeSize } from './ui/toolbar.js';
 import { initPalette, render as renderPalette } from './ui/palette.js';
 import { initLayers, render as renderLayers } from './ui/layers.js';
 import { initContextBar, render as renderContext } from './ui/contextbar.js';
+import { initTimeline, render as renderTimeline } from './ui/timeline.js';
+import { initPreview } from './ui/preview.js';
+import * as anim from './editor/anim.js';
 import { initRefs, openRefMenu, addReference } from './ui/refs.js';
 import { openSettings } from './ui/settings.js';
 import { ICONS } from './ui/icons.js';
 import { closePopover, toast } from './ui/dialogs.js';
 import { openExport, thumbnail } from './ui/export.js';
-import { initGallery, render as renderGallery, newFromImage } from './gallery.js';
+import { initGallery, render as renderGallery, importFile } from './gallery.js';
 import { loadArtwork, saveArtwork, persist } from './storage/db.js';
 import { initThemeSwitch } from '../ui/themeSwitch.js';
 
@@ -53,6 +56,7 @@ $('.px-show-ui').innerHTML = ICONS.eye;
 $('.px-ex-ico').innerHTML = ICONS.download;
 $('.px-layers-btn').innerHTML = ICONS.layers;
 $('.px-refs-btn').innerHTML = ICONS.image;
+$('.px-timeline-btn').innerHTML = ICONS.film;
 
 // ── the canvas ──
 const view = new View($('#stage'));
@@ -62,7 +66,8 @@ view.insets = () => {
     const bottom = r.bottom - Math.min($('.px-toolbox').getBoundingClientRect().top, $('.px-palette').getBoundingClientRect().top);
     return { left: 56, right: 0, top: 36, bottom: Math.max(0, bottom) };
   }
-  return { left: $('.px-sliders').getBoundingClientRect().right - r.left, right: r.right - $('.px-right').getBoundingClientRect().left, top: 0, bottom: 40 };
+  const tl = $('.px-timeline').getBoundingClientRect();
+  return { left: $('.px-sliders').getBoundingClientRect().right - r.left, right: r.right - $('.px-right').getBoundingClientRect().left, top: 0, bottom: (tl.height ? r.bottom - tl.top : 0) + 100 };   // room for the info and action bars
 };
 
 // ── undo / redo ──
@@ -113,7 +118,9 @@ const actions = {
       swap: swapColors, undo, redo,
       copy: () => copy(), copyMerged: () => copy({ merged: true }), cut: () => copy({ cut: true }), paste: pasteButton,
       selectAll, deselect, invert: invertSelection, clear: clearSelected,
-      apply: () => { if (state.transform) applyMove(); else if (TOOLS.select.poly) TOOLS.select.finishPolygon(); },
+      apply: () => { if (state.transform) applyMove(); else if (TOOLS.select.poly) TOOLS.select.finishPolygon(); else anim.togglePlay(); },
+      prevFrame: () => anim.stepFrame(-1), nextFrame: () => anim.stepFrame(1), newFrame: anim.addFrame,
+      onion: () => { state.settings.onion.on = !state.settings.onion.on; saveSettings(); emit('settings'); },
       cancel: () => { if (state.transform) cancelMove(); else if (TOOLS.select.poly) TOOLS.select.cancel(); else if (state.selection) deselect(); closePopover(); },
       sizeDown: () => nudgeSize(-1), sizeUp: () => nudgeSize(1),
       zoomIn: () => view.step(1), zoomOut: () => view.step(-1), fit: () => view.fit(), actual: () => view.setZoom(1),
@@ -151,6 +158,14 @@ initLayers($('.px-layers'), view, { importImage: kind => pickFile(f => importLay
 initContextBar($('.px-context'), actions);
 initRefs(editor);
 initInfo($('.px-info'), view);
+anim.initAnim(view, commit);
+initTimeline($('.px-timeline'), actions);
+initPreview(editor, view);
+// drawing stops playback; the panels sit above the timeline
+$('#stage').addEventListener('pointerdown', () => { if (state.playing) anim.stop(); }, true);
+new ResizeObserver(() => editor.style.setProperty('--tl', $('.px-timeline').offsetHeight + 'px')).observe($('.px-timeline'));
+on('timeline', () => { if (state.sprite) setTimeout(() => view.request(), 0); });
+$('.px-timeline-btn').addEventListener('click', () => { document.body.classList.toggle('px-show-timeline'); document.body.classList.remove('px-show-layers'); });
 on('transform', () => view.animateAnts());
 on('changed', () => {});
 on('dirty', () => markDirty());
@@ -187,12 +202,12 @@ async function importLayerImage(file, kind = 'reference') {
     addLayer(kind, (file.name || 'Image').replace(/\.[^.]+$/, ''), g.getImageData(0, 0, sp.width, sp.height).data);
   } catch { toast("Couldn't open that image"); }
 }
-for (const [el, fn] of [[$('#stage'), f => importLayerImage(f)], [gallery, f => newFromImage(f)]]) {
+for (const [el, fn] of [[$('#stage'), f => importLayerImage(f)], [gallery, f => importFile(f)]]) {
   el.addEventListener('dragover', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { e.preventDefault(); el.classList.add('drop-ready'); } });
   el.addEventListener('dragleave', () => el.classList.remove('drop-ready'));
   el.addEventListener('drop', e => {
     el.classList.remove('drop-ready');
-    const f = [...(e.dataTransfer?.files || [])].find(x => x.type.startsWith('image/'));
+    const f = [...(e.dataTransfer?.files || [])].find(x => x.type.startsWith('image/') || (el === gallery && /\.(aseprite|ase)$/i.test(x.name)));
     if (!f) return;
     e.preventDefault();
     if (el === gallery || state.sprite) fn(f);
@@ -209,9 +224,9 @@ function toggleUI() {
 $('.px-ui').addEventListener('click', toggleUI);
 $('.px-show-ui').addEventListener('click', toggleUI);
 $('.px-settings').addEventListener('click', () => openSettings(view));
-$('.px-export-btn').addEventListener('click', async () => { if (state.transform) await applyMove(); if (state.sprite) openExport(state.sprite); });
+$('.px-export-btn').addEventListener('click', async () => { anim.stop(); if (state.transform) await applyMove(); if (state.sprite) openExport(state.sprite); });
 $('.px-refs-btn').addEventListener('click', e => openRefMenu(e.currentTarget, { pickFile, importLayer: () => pickFile(f => importLayerImage(f)) }));
-$('.px-layers-btn').addEventListener('click', () => document.body.classList.toggle('px-show-layers'));
+$('.px-layers-btn').addEventListener('click', () => { document.body.classList.toggle('px-show-layers'); document.body.classList.remove('px-show-timeline'); });
 const features = () => { $('.px-refs-btn').hidden = state.settings.features?.references === false; };
 on('settings', features); features();
 
@@ -264,7 +279,8 @@ nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameInput.bl
 async function openArt(id) {
   try {
     const sp = await loadArtwork(id);
-    state.sprite = sp; state.frameId = sp.frames[0].id;
+    anim.stop();
+    state.sprite = sp; state.frameId = sp.frames[0].id; state.selectedFrames = new Set([state.frameId]); state.playTag = null;
     state.transform = null; view.floating = null; state.selection = null;
     const top = leafLayers(sp).at(-1);
     state.layerId = top.id; state.selectedLayers = new Set([top.id]);
@@ -275,22 +291,24 @@ async function openArt(id) {
     nameInput.value = sp.name;
     saved.textContent = '';
     if (location.hash !== '#/art/' + id) history.pushState(null, '', '#/art/' + id);
+    renderTimeline();
     view.resize();
     view.setSprite();
-    emit('sprite'); emit('history'); emit('tool'); emit('selection'); emit('transform');
-    renderPalette(); renderLayers();
+    emit('sprite'); emit('history'); emit('tool'); emit('selection'); emit('transform'); emit('frames');
+    renderPalette(); renderLayers(); renderTimeline();
   } catch (err) {
     toast(err.message || "Couldn't open that artwork");
     showGallery(true);
   }
 }
 async function showGallery(replace) {
+  anim.stop();
   if (state.transform) await applyMove();
   if (!autosave() && unsaved && state.sprite && !confirm('Leave without saving your changes?')) return;
   if (autosave() && (saveT || saving || unsaved)) await saveNow();
   closePopover();
   state.sprite = null;
-  document.body.classList.remove('px-editing', 'px-noui', 'px-show-layers');
+  document.body.classList.remove('px-editing', 'px-noui', 'px-show-layers', 'px-show-timeline');
   state.noUI = false;
   editor.hidden = true; gallery.hidden = false;
   emit('sprite');
@@ -313,4 +331,4 @@ persist();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
 // tests reach the editor through this
-if (import.meta.env.DEV) window.__px = { state, view, actions, openArt, showGallery, saveNow, setActive, addReference, discardMove };
+if (import.meta.env.DEV) window.__px = { state, view, actions, openArt, showGallery, saveNow, setActive, addReference, discardMove, anim };

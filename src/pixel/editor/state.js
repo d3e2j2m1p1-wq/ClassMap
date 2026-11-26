@@ -39,6 +39,11 @@ const SETTINGS_DEFAULTS = {
   // Drawing
   longPressMs: 480, pastePosition: 'original',
   keymap: {},               // action → ['Ctrl+Z', …] (only the ones you changed)
+  // Animation
+  onion: { on: false, before: 1, after: 1, opacity: 45, falloff: 60, tintBefore: '#F25F6B', tintAfter: '#0E8A9E', tagOnly: false, wrap: false },
+  wrapFrames: true, numberFrom: 1,
+  timeline: true,           // the timeline panel is open (not just its bar)
+  preview: { open: false, x: 0, y: 0, w: 220, h: 220 },
 };
 
 function load(key, fallback) {
@@ -52,6 +57,8 @@ function loadSettings() {
   const s = { ...structuredClone(SETTINGS_DEFAULTS), ...load('pixel:settings', {}) };
   s.tools = Object.fromEntries(Object.entries(TOOL_DEFAULTS).map(([k, d]) => [k, { ...d, ...(s.tools?.[k] || {}) }]));
   s.symmetry = { ...SETTINGS_DEFAULTS.symmetry, ...(s.symmetry || {}) };
+  s.onion = { ...SETTINGS_DEFAULTS.onion, ...(s.onion || {}) };
+  s.preview = { ...SETTINGS_DEFAULTS.preview, ...(s.preview || {}) };
   return s;
 }
 
@@ -63,6 +70,9 @@ export const state = {
   tempTool: null,
   selection: null,          // { mask, bounds, segs } — what's selected on the canvas
   selectedLayers: new Set(),
+  selectedFrames: new Set(),
+  playing: false,
+  playTag: null,            // tag id to loop, or null for the tag around the current frame
   transform: null,          // a move / paste in progress (see transform.js)           // eye dropper while Alt / long press / the quick square is held
   sawPen: load('pixel:sawPen', false),   // once a pencil is used, fingers switch to navigating ("auto")
   noUI: false,
