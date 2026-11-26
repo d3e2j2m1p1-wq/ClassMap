@@ -24,8 +24,11 @@ export default defineConfig({
         privacy: resolve(__dirname, 'privacy/index.html'),    // privacy policy   →  /privacy/
         guides: resolve(__dirname, 'guides/index.html'),      // guides list      →  /guides/
         contact: resolve(__dirname, 'contact/index.html'),    // contact page     →  /contact/
+        pixel: resolve(__dirname, 'pixel/index.html'),        // ClassMap Pixel   →  /pixel/
         ...guides,                                            // each guide       →  /guides/<name>/
       },
     },
   },
+  // Unit tests (Vitest): the pure drawing code. Browser tests live in tests/ (Playwright).
+  test: { include: ['unit/**/*.test.js'], environment: 'node' },
 });

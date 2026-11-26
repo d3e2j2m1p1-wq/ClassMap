@@ -163,7 +163,7 @@ Object.assign(window, {
 
 // Dev/test only: every module's exports in one place (used by tests/ and handy in the console)
 if (import.meta.env.DEV) {
-  const all = import.meta.glob(['./**/*.js', '!./main.js', '!./site/**'], { eager: true });
+  const all = import.meta.glob(['./**/*.js', '!./main.js', '!./site/**', '!./pixel/**'], { eager: true });
   window.__cm = Object.assign({ store }, ...Object.values(all));
 }
 

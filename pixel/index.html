@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>ClassMap Pixel — pixel art editor</title>
+<meta name="description" content="Draw pixel art in your browser, with a pencil, finger or mouse. Free, works offline, and your art stays on your device.">
+<link rel="canonical" href="https://classmap.dev/pixel/">
+<meta name="theme-color" content="#0E8A9E">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Pixel">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ClassMap">
+<meta property="og:title" content="ClassMap Pixel — pixel art editor">
+<meta property="og:description" content="Draw pixel art in your browser. Free, works offline, and your art stays on your device.">
+<meta property="og:image" content="https://classmap.dev/og-image.png">
+<link rel="manifest" href="/pixel-manifest.json">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<script>try { if (localStorage.getItem('classmap_theme') !== 'dark') document.documentElement.className = 'pre-light'; } catch (e) {}</script>
+</head>
+<body class="px-body">
+
+<header class="px-top">
+  <a class="px-brand" href="/" aria-label="ClassMap home"><img src="/art/wren.webp" width="804" height="728" alt=""><span>ClassMap</span><em>Pixel</em></a>
+
+  <div class="px-top-gallery">
+    <div class="px-top-spacer"></div>
+    <a class="px-top-link" href="/app/">Seating charts</a>
+  </div>
+
+  <div class="px-top-editor">
+    <button type="button" class="px-top-btn px-back" aria-label="Back to your artwork" title="Back to your artwork"></button>
+    <input type="text" class="px-name" aria-label="Artwork name" maxlength="80" spellcheck="false">
+    <span class="px-saved" aria-live="polite"></span>
+    <div class="px-top-spacer"></div>
+    <button type="button" class="px-top-btn px-ui" aria-label="Hide the panels" title="Hide the panels (Tab · four-finger tap)"></button>
+    <button type="button" class="px-top-btn px-settings" aria-label="Settings" title="Settings"></button>
+    <button type="button" class="px-btn px-btn-primary px-export-btn"><span class="px-ex-ico"></span><span class="px-ex-label">Export</span></button>
+  </div>
+
+  <button class="theme-switch" id="themeBtn" title="Light / dark — tap, or drag the lens" aria-label="Dark mode"></button>
+</header>
+
+<main id="gallery" class="px-gallery"></main>
+
+<main id="editor" class="px-editor" hidden>
+  <div class="px-stage" id="stage"><canvas></canvas></div>
+  <nav class="px-toolbox paper" aria-label="Tools"></nav>
+  <div class="px-sliders paper"></div>
+  <aside class="px-palette paper" aria-label="Colours"></aside>
+  <div class="px-info paper"></div>
+  <button type="button" class="px-show-ui paper" aria-label="Show the panels" title="Show the panels (Tab)" hidden></button>
+</main>
+
+<noscript><p style="padding:24px;font-family:system-ui">ClassMap Pixel needs JavaScript to run.</p></noscript>
+<script type="module" src="/src/pixel/main.js"></script>
+</body>
+</html>

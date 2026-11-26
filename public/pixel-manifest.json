@@ -1,0 +1,16 @@
+{
+  "name": "ClassMap Pixel",
+  "short_name": "Pixel",
+  "description": "Pixel art editor. Works offline; your art stays on your device.",
+  "id": "/pixel/",
+  "start_url": "/pixel/",
+  "scope": "/pixel/",
+  "display": "standalone",
+  "background_color": "#F7EFDF",
+  "theme_color": "#0E8A9E",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
