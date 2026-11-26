@@ -27,6 +27,10 @@ import { initDoc, applyStruct, addLayer, setActive } from './editor/doc.js';
 import { initColor, snapIncoming } from './editor/color.js';
 import { openText, saveBrush, saveObject } from './ui/library.js';
 import { initLive } from './editor/live.js';
+import { initTilemap, TILE_TOOLS, fixTilemaps } from './editor/tilemap.js';
+import { initTiles } from './ui/tiles.js';
+import { applyTheme } from './ui/theme.js';
+import { initJoystick } from './ui/joystick.js';
 import * as colorEd from './editor/color.js';
 import { initMove, applyMove, cancelMove, discardMove, nudge, update as updateMove, startMove } from './editor/move.js';
 import { initClipboard, copy, pasteButton, onPasteEvent } from './editor/clipboard.js';
@@ -44,7 +48,13 @@ import { ICONS } from './ui/icons.js';
 import { closePopover, toast } from './ui/dialogs.js';
 import { openExport, thumbnail } from './ui/export.js';
 import { initGallery, render as renderGallery, importFile } from './gallery.js';
-import { loadArtwork, saveArtwork, persist } from './storage/db.js';
+import { loadArtwork, saveArtwork, persist, lapseCount, addLapse, listVersions, saveVersion } from './storage/db.js';
+import { finalFrame } from './core/compose.js';
+import { gzip } from './core/format.js';
+import { createSprite, MAX_SIDE } from './core/sprite.js';
+import { BUILT_IN } from './core/palettes.js';
+import { lospecSlug } from './core/colorops.js';
+import { fetchLospec } from './ui/paltools.js';
 import { initThemeSwitch } from '../ui/themeSwitch.js';
 
 // Light (cream paper) unless ClassMap was set to dark
@@ -69,6 +79,10 @@ $('.px-timeline-btn').innerHTML = ICONS.film;
 const view = new View($('#stage'));
 view.insets = () => {
   const r = $('#stage').getBoundingClientRect();
+  if (!phone() && state.settings.lefty) {
+    const tl = $('.px-timeline').getBoundingClientRect();
+    return { left: $('.px-right').getBoundingClientRect().right - r.left, right: r.right - Math.min($('.px-sliders').getBoundingClientRect().left, $('.px-toolbox').getBoundingClientRect().left), top: 0, bottom: (tl.height ? r.bottom - tl.top : 0) + 100 };
+  }
   if (phone()) {
     const bottom = r.bottom - Math.min($('.px-toolbox').getBoundingClientRect().top, $('.px-palette').getBoundingClientRect().top);
     return { left: 56, right: 0, top: 36, bottom: Math.max(0, bottom) };
@@ -83,6 +97,36 @@ function commit(step) {
   emit('history');
   emit('changed');
   markDirty();
+  captureLapse();
+}
+
+// ── timelapse: one small picture per change, while recording is on for this artwork ──
+let lapseT = 0;
+function captureLapse() {
+  const sp = state.sprite;
+  if (!sp?.timelapse) return;
+  clearTimeout(lapseT);
+  lapseT = setTimeout(async () => {
+    if (state.sprite !== sp) return;
+    try {
+      sp.lapseN ??= await lapseCount(sp.id);
+      const px = finalFrame(sp, state.frameId);
+      await addLapse(sp.id, sp.lapseN++, sp.width, sp.height, await gzip(new Uint8Array(px.buffer)));
+    } catch { /* storage full: the drawing itself still saves */ }
+  }, 300);
+}
+on('timelapse', captureLapse);
+
+// ── version backups: a snapshot when you open an artwork and every few minutes of editing ──
+async function maybeVersion(sp) {
+  const S = state.settings;
+  if (!S.versionKeep) return;
+  try {
+    if (sp.lastVersion == null) sp.lastVersion = (await listVersions(sp.id))[0]?.at || 0;
+    if (Date.now() - sp.lastVersion < (S.versionMinutes || 10) * 60000) return;
+    sp.lastVersion = Date.now();
+    await saveVersion(sp, thumbnail(sp), S.versionKeep);
+  } catch { /* best effort */ }
 }
 function applyStep(step, which) {
   if (step.kind === 'multi') { const list = which === 'before' ? [...step.steps].reverse() : step.steps; list.forEach(s => applyStep(s, which)); return; }
@@ -97,11 +141,11 @@ function applyStep(step, which) {
 function undo() {
   if (state.transform) { cancelMove(); return; }
   if (TOOLS.select.poly) { TOOLS.select.cancel(); return; }
-  if (state.history.undo(applyStep)) { emit('history'); emit('changed'); markDirty(); }
+  if (state.history.undo(applyStep)) { emit('history'); emit('changed'); markDirty(); captureLapse(); }
 }
 function redo() {
   if (state.transform) return;
-  if (state.history.redo(applyStep)) { emit('history'); emit('changed'); markDirty(); }
+  if (state.history.redo(applyStep)) { emit('history'); emit('changed'); markDirty(); captureLapse(); }
 }
 
 // Switching tools puts down a move in progress and drops an unfinished polygon
@@ -157,6 +201,11 @@ initTools(view, commit);
 initDoc({ commit, view });
 initColor(view);
 initLive(view);
+initTilemap(view);
+initTiles($('.px-right'), view);
+applyTheme();
+initJoystick(editor, { undo: () => undo(), redo: () => redo(), swap: () => swapColors(), setTool: n => chooseTool(n) });
+on('theme', () => { if (state.sprite) { view.resize(); view.fit(); } });
 initMove(view, commit);
 initClipboard(view, commit);
 initSelectOps(view, commit);
@@ -185,10 +234,10 @@ document.addEventListener('paste', onPasteEvent);
 
 // eye dropper → back to the tool you were using
 let lastTool = state.settings.tool === 'dropper' ? 'brush' : state.settings.tool;
-TOOLS.dropper.prev = lastTool;
+TOOLS.dropper.prev = lastTool; TILE_TOOLS.dropper.prev = lastTool;
 on('tool', () => {
   if (state.settings.tool !== 'dropper') lastTool = state.settings.tool;
-  TOOLS.dropper.prev = lastTool;
+  TOOLS.dropper.prev = lastTool; TILE_TOOLS.dropper.prev = lastTool;
   $('#stage').dataset.tool = state.tool;
 });
 on('back-to-tool', () => setTool(lastTool));
@@ -219,7 +268,7 @@ for (const [el, fn] of [[$('#stage'), f => importLayerImage(f)], [gallery, f => 
   el.addEventListener('dragleave', () => el.classList.remove('drop-ready'));
   el.addEventListener('drop', e => {
     el.classList.remove('drop-ready');
-    const f = [...(e.dataTransfer?.files || [])].find(x => x.type.startsWith('image/') || (el === gallery && /\.(aseprite|ase)$/i.test(x.name)));
+    const f = [...(e.dataTransfer?.files || [])].find(x => x.type.startsWith('image/') || (el === gallery && /\.(aseprite|ase|px)$/i.test(x.name)));
     if (!f) return;
     e.preventDefault();
     if (el === gallery || state.sprite) fn(f);
@@ -265,6 +314,7 @@ async function saveNow() {
       await saveArtwork(sp, thumbnail(sp));
       unsaved = false;
       saved.textContent = 'Saved';
+      maybeVersion(sp);
     } catch (err) {
       const full = /quota/i.test(err?.name + err?.message);
       toast(full ? "Couldn't save: this device's storage is full. Export a backup and delete old artwork." : "Couldn't save: " + (err?.message || 'storage error'), 6000);
@@ -297,7 +347,7 @@ async function openArt(id) {
     const top = leafLayers(sp).at(-1);
     state.layerId = top.id; state.selectedLayers = new Set([top.id]);
     state.history.clear();
-    sp.paletteBreaks ||= [];
+    sp.paletteBreaks ||= []; sp.tilesets ||= []; fixTilemaps(sp);
     state.paletteLocked = sp.palette.length > 0;      // palettes with colours open locked
     unsaved = false;
     document.body.classList.add('px-editing');
@@ -310,6 +360,7 @@ async function openArt(id) {
     view.setSprite();
     emit('sprite'); emit('history'); emit('tool'); emit('selection'); emit('transform'); emit('frames');
     renderPalette(); renderLayers(); renderTimeline();
+    maybeVersion(sp);
   } catch (err) {
     toast(err.message || "Couldn't open that artwork");
     showGallery(true);
@@ -338,8 +389,23 @@ addEventListener('popstate', route);
 
 initGallery(gallery, openArt);
 initThemeSwitch();
-route();
-if (!location.hash) renderGallery();
+// A link like /pixel/?new=1&w=32&h=32&mode=indexed&palette=sweetie-16&name=Robot makes a ready canvas
+const link = new URLSearchParams(location.search);
+if (link.has('new')) newFromLink(link).finally(() => history.replaceState(null, '', location.pathname + location.hash));
+else { route(); if (!location.hash) renderGallery(); }
+async function newFromLink(q) {
+  const n = (k, d) => { const v = parseInt(q.get(k), 10); return v >= 1 && v <= MAX_SIDE ? v : d; };
+  let palette = BUILT_IN[0].colors, note = '';
+  const slug = lospecSlug(q.get('palette') || '');
+  if (slug) {
+    try { palette = (await fetchLospec(slug)).colors; } catch (err) { note = ` (couldn't get the "${slug}" palette, so it starts with the ClassMap colours)`; }
+  }
+  const mode = q.get('mode') === 'indexed' ? 'indexed' : 'rgba';
+  const sp = createSprite({ name: (q.get('name') || 'Untitled').slice(0, 80), width: n('w', 32), height: n('h', n('w', 32)), palette: mode === 'indexed' ? palette.slice(0, 256) : palette, colorMode: mode });
+  try { await saveArtwork(sp, thumbnail(sp)); } catch { toast("Couldn't save the new artwork here"); renderGallery(); return; }
+  await openArt(sp.id);
+  toast(`New ${sp.width} × ${sp.height} canvas ready${note}`, note ? 5000 : 2600);
+}
 persist();
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

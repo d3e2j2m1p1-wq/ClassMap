@@ -48,6 +48,8 @@ const SETTINGS_DEFAULTS = {
   // Colour
   shading: { on: false, a: 0, b: 3, dir: 1 },   // ramp from swatch a to swatch b; dir 1 = towards b
   placement: 'packed', paletteCols: 8,          // palette panel: 'packed' or 'grid' (fixed columns)
+  // Files
+  versionKeep: 5, versionMinutes: 10,           // automatic version backups
 };
 
 function load(key, fallback) {

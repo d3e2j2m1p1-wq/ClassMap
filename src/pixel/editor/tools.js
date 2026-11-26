@@ -15,6 +15,7 @@ import { toast } from '../ui/dialogs.js';
 import { indexed, paintColor, shadeTable } from './color.js';
 import { nearestFinder } from '../core/colorops.js';
 import { find as findItem, decode as decodeItem } from './library.js';
+import { activeTilemap, strokeIntoTiles, tileModeOn, TILE_TOOLS } from './tilemap.js';
 
 const magicSource = (sp, n) => (sp.frames.some(f => f.id === n.magic?.from) ? n.magic.from : sp.frames[0].id);
 
@@ -55,6 +56,7 @@ function newStroke(p, extra = {}) {
 }
 
 function done(stroke) {
+  if (activeTilemap()) { if (stroke.rect) strokeIntoTiles(stroke); return; }
   const patch = stroke.finish({ layerId: state.layerId, frameId: state.frameId });
   if (patch) commit(patch);
 }
@@ -266,3 +268,5 @@ const text = {
 };
 
 export const TOOLS = { brush: brushLike(false), eraser: brushLike(true), line, shape, bucket, dropper, select, wand, move: moveTool, text };
+// The tool that handles the canvas right now (tile versions on a tilemap layer in tiles mode)
+export const toolFor = name => (tileModeOn() && TILE_TOOLS[name]) || TOOLS[name];

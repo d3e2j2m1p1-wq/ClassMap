@@ -7,7 +7,7 @@
 //   • Drag the round symmetry handle to move the centre.
 // ═══════════════════════════════════════════════
 import { state, emit, fingersDraw, store, saveSettings } from './state.js';
-import { TOOLS } from './tools.js';
+import { TOOLS, toolFor } from './tools.js';
 import { actionFor } from './keymap.js';
 import { symCenter } from './symmetry.js';
 
@@ -22,7 +22,7 @@ export function initInput(view, actions) {
   let longT = 0, holdT = 0, repeatT = 0;
   let spaceDown = false, altDown = false;
 
-  const toolNow = () => TOOLS[state.tool];
+  const toolNow = () => toolFor(state.tool);
   const pointFrom = e => {
     const [fx, fy] = view.toSprite(e.clientX, e.clientY);
     const [sx, sy] = view.local(e.clientX, e.clientY);
@@ -149,6 +149,7 @@ export function initInput(view, actions) {
     }
     if (mode === 'gesture') return;
     if (e.pointerType === 'pen' && mode === 'draw' && drawType === 'touch') endDraw(true);  // the pencil wins over a finger
+    if (state.panMode) { mode = 'pan'; drawId = e.pointerId; return; }          // joystick pan
     if (onSymHandle(e) && (e.pointerType !== 'touch' || fingersDraw())) { mode = 'sym'; drawId = e.pointerId; return; }
     if (e.pointerType === 'touch') {
       if (fingersDraw()) startDraw(e); else { mode = 'pan'; drawId = e.pointerId; }

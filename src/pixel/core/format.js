@@ -40,13 +40,15 @@ export function spriteToJSON(sp) {
     palette: sp.palette.map(c => rgbaToHex(c)),
     ...(sp.paletteBreaks?.length ? { paletteBreaks: sp.paletteBreaks } : {}),
     ...(sp.post?.length ? { post: sp.post, postHidden: !!sp.postHidden } : {}),
-    layers: sp.layers, frames: sp.frames, tags: sp.tags, tilesets: [], grid: sp.grid,
+    ...(sp.timelapse ? { timelapse: true } : {}),
+    layers: sp.layers, frames: sp.frames, tags: sp.tags, grid: sp.grid,
+    tilesets: (sp.tilesets || []).map(t => ({ id: t.id, name: t.name, tw: t.tw, th: t.th, n: t.tiles.length, tiles: bytesToBase64(concatTiles(t)) })),
     references: (sp.references || []).map(({ id, name, src, x, y, w, h, zoom, px, py, opacity, min, hidden }) => ({ id, name, src, x, y, w, h, zoom, px, py, opacity, min, hidden })),
     // linked cels share one pixel array: the first is saved, the rest point at its frame
     cels: (() => {
       const seen = new Map();
       return sp.cels.map(c => {
-        const base = { layerId: c.layerId, frameId: c.frameId, ...(c.opacity != null && c.opacity !== 255 ? { opacity: c.opacity } : {}), ...(c.userData ? { userData: c.userData } : {}) };
+        const base = { layerId: c.layerId, frameId: c.frameId, ...(c.opacity != null && c.opacity !== 255 ? { opacity: c.opacity } : {}), ...(c.userData ? { userData: c.userData } : {}), ...(c.map ? { map: bytesToBase64(new Uint8Array(c.map.buffer, c.map.byteOffset, c.map.byteLength)) } : {}) };
         const first = seen.get(c.pixels);
         if (first) return { ...base, linkTo: first.frameId, link: c.link };
         seen.set(c.pixels, c);
@@ -60,6 +62,19 @@ export function spriteToJSON(sp) {
   };
 }
 
+// Tilesets are kept as every tile's pixels one after another
+function concatTiles(t) {
+  const n = t.tw * t.th * 4, out = new Uint8Array(t.tiles.length * n);
+  t.tiles.forEach((x, i) => out.set(x, i * n));
+  return out;
+}
+function readTileset(t) {
+  const n = t.tw * t.th * 4, all = base64ToBytes(t.tiles || ''), tiles = [];
+  for (let i = 0; i < (t.n || all.length / n); i++) tiles.push(new Uint8ClampedArray(all.slice(i * n, (i + 1) * n)));
+  if (!tiles.length) tiles.push(new Uint8ClampedArray(n));
+  return { id: t.id, name: t.name || 'Tileset', tw: t.tw, th: t.th, tiles };
+}
+
 // …and back. Cels are expanded to the full canvas again (simplest for drawing).
 export function spriteFromJSON(o) {
   if (!o || typeof o !== 'object' || !o.width || !o.height || !Array.isArray(o.cels)) throw new Error('This file is not ClassMap Pixel artwork.');
@@ -68,8 +83,8 @@ export function spriteFromJSON(o) {
     id: o.id, name: o.name || 'Untitled', width: W, height: H, colorMode: o.colorMode || 'rgba',
     palette: (o.palette || []).map(hexToRgba).filter(Boolean),
     paletteBreaks: Array.isArray(o.paletteBreaks) ? o.paletteBreaks.filter(Number.isInteger) : [],
-    post: Array.isArray(o.post) ? o.post : [], postHidden: !!o.postHidden,
-    layers: o.layers, frames: o.frames, tags: o.tags || [], tilesets: [], references: Array.isArray(o.references) ? o.references : [],
+    post: Array.isArray(o.post) ? o.post : [], postHidden: !!o.postHidden, timelapse: !!o.timelapse,
+    layers: o.layers, frames: o.frames, tags: o.tags || [], tilesets: (o.tilesets || []).map(readTileset), references: Array.isArray(o.references) ? o.references : [],
     grid: o.grid || { w: 16, h: 16, offsetX: 0, offsetY: 0 },
     cels: (() => {
       const made = o.cels.map(c => {
@@ -77,6 +92,7 @@ export function spriteFromJSON(o) {
         if (c.opacity != null) cel.opacity = c.opacity;
         if (c.userData) cel.userData = c.userData;
         if (c.link) cel.link = c.link;
+        if (c.map) cel.map = new Uint32Array(base64ToBytes(c.map).slice().buffer);
         if (!c.linkTo) {
           cel.pixels = new Uint8ClampedArray(W * H * 4);
           if (c.w && c.h && c.pixels) writeRect(cel.pixels, W, c.x, c.y, c.w, c.h, new Uint8ClampedArray(base64ToBytes(c.pixels).buffer));

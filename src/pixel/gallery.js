@@ -2,11 +2,13 @@
 //  Gallery: every artwork on this device, new artwork, and backups.
 //  The art lives only in this browser, so backing up is right here, not buried in a menu.
 // ═══════════════════════════════════════════════
-import { listArtwork, loadArtwork, saveArtwork, deleteArtwork, renameArtwork, allProjectsJSON } from './storage/db.js';
+import { listArtwork, loadArtwork, saveArtwork, deleteArtwork, renameArtwork, allProjectsJSON, listVersions, loadVersion } from './storage/db.js';
+import { walk } from './core/layers.js';
 import { createSprite, MAX_SIDE, uid } from './core/sprite.js';
 import { encodeBackup, decodeBackup } from './core/format.js';
 import { BUILT_IN } from './core/palettes.js';
 import { readAseprite } from './core/aseprite.js';
+import { pxToSprite } from './core/px.js';
 import { ICONS } from './ui/icons.js';
 import { openDialog, confirmBox, promptBox, toast, popover, esc, seg, bindControls } from './ui/dialogs.js';
 import { thumbnail, download, openExport } from './ui/export.js';
@@ -42,7 +44,7 @@ export function initGallery(el, onOpen) {
     <div class="px-remind" hidden></div>
     <div class="px-grid" aria-live="polite"></div>
     <input type="file" class="px-restore-file" hidden>
-    <input type="file" class="px-open-file" accept=".aseprite,.ase,image/*" hidden>`;
+    <input type="file" class="px-open-file" accept=".aseprite,.ase,.px,image/*" hidden>`;
   const sort = root.querySelector('.px-sort');
   try { sort.value = localStorage.getItem(sortKey) || 'updatedAt-desc'; } catch { /* keep default */ }
   sort.addEventListener('change', () => { try { localStorage.setItem(sortKey, sort.value); } catch { /* */ } render(); });
@@ -115,7 +117,7 @@ async function onGridClick(e) {
   const more = e.target.closest('.px-card-more'); if (!more) return;
   const m = document.createElement('div');
   m.className = 'px-menu';
-  m.innerHTML = `<button type="button" data-a="rename">Rename</button><button type="button" data-a="dup">Duplicate</button>
+  m.innerHTML = `<button type="button" data-a="info">Info and versions…</button><button type="button" data-a="rename">Rename</button><button type="button" data-a="dup">Duplicate</button>
     <button type="button" data-a="png">Export PNG…</button><button type="button" data-a="del" class="danger">Delete</button>`;
   const pop = popover(more, m, { side: 'below' });
   m.addEventListener('click', async ev => {
@@ -132,11 +134,48 @@ async function onGridClick(e) {
         await saveArtwork(sp, thumbnail(sp)); render(); toast('Duplicated');
       }
       if (a === 'png') openExport(sp);
+      if (a === 'info') infoSheet(sp);
       if (a === 'del' && await confirmBox('Delete artwork?', `"${sp.name}" will be deleted from this device. This can't be undone.`, { ok: 'Delete', danger: true })) {
         await deleteArtwork(id); render(); toast('Deleted');
       }
     } catch (err) { toast(err.message); }
   });
+}
+
+// ── Info sheet: details, plus the automatic version backups (restore one as a copy) ──
+async function infoSheet(sp) {
+  const meta = (await listArtwork()).find(m => m.id === sp.id);
+  const versions = await listVersions(sp.id).catch(() => []);
+  let layers = 0; walk(sp.layers, n => { if (n.kind !== 'group') layers++; });
+  const when = t => new Date(t).toLocaleString();
+  const kb = b => (b < 1024 * 1024 ? Math.max(1, Math.round(b / 1024)) + ' KB' : (b / 1048576).toFixed(1) + ' MB');
+  const body = document.createElement('div');
+  body.className = 'px-col-dialog';
+  body.innerHTML = `
+    <dl class="px-info-list">
+      <dt>Size</dt><dd>${sp.width} × ${sp.height} pixels</dd>
+      <dt>Layers</dt><dd>${layers}</dd><dt>Frames</dt><dd>${sp.frames.length}</dd>
+      <dt>Colour mode</dt><dd>${sp.colorMode === 'indexed' ? 'Indexed' : 'RGBA'} · ${sp.palette.length} palette colours</dd>
+      <dt>Created</dt><dd>${when(sp.createdAt)}</dd><dt>Changed</dt><dd>${when(sp.updatedAt)}</dd>
+      <dt>On this device</dt><dd>${meta ? kb(meta.bytes) : '—'}</dd>
+    </dl>
+    <div class="px-mini-label">Version backups</div>
+    ${versions.length ? `<div class="px-versions">${versions.map(v => `<div class="px-version"><img src="${v.thumb || ''}" alt=""><span><b>${when(v.at)}</b><br><span class="px-hint">${kb(v.size)}</span></span>
+      <button type="button" class="px-btn px-btn-ghost" data-v="${esc(v.key)}">Restore as a copy</button></div>`).join('')}</div>`
+    : '<p class="px-hint">None yet. A snapshot is taken when you open the artwork and every few minutes while you edit (Settings → General).</p>'}`;
+  body.addEventListener('click', async e => {
+    const b = e.target.closest('[data-v]'); if (!b) return;
+    try {
+      const old = await loadVersion(b.dataset.v);
+      const at = versions.find(v => v.key === b.dataset.v).at;
+      old.id = uid(); old.name = `${sp.name} (${new Date(at).toLocaleDateString()} ${new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`;
+      old.createdAt = old.updatedAt = Date.now();
+      await saveArtwork(old, thumbnail(old));
+      body.closest('.px-overlay')?.querySelector('.px-dialog-x')?.click();
+      render(); toast(`Restored as "${old.name}"`);
+    } catch (err) { toast(err.message || "Couldn't restore that version"); }
+  });
+  openDialog({ title: sp.name, body, className: 'px-col-dlg', actions: [{ label: 'Close', kind: 'primary' }] });
 }
 
 // ── New artwork ──
@@ -195,6 +234,16 @@ export function newArtwork() {
 export async function importFile(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const ase = /\.(aseprite|ase)$/i.test(file.name) || (bytes[4] === 0xE0 && bytes[5] === 0xA5);
+  if (/\.px$/i.test(file.name)) {
+    try {
+      const { sprite, warnings } = await pxToSprite(bytes, file.name.replace(/\.[^.]+$/, '') || 'Imported');
+      if (!sprite.palette.length) sprite.palette = BUILT_IN[0].colors.map(c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16), 255]);
+      await saveArtwork(sprite, thumbnail(sprite));
+      openArt(sprite.id);
+      if (warnings.length) toast(warnings.join(' '), 6000);
+    } catch (err) { toast(err instanceof RangeError ? "Couldn't read that .px file (it may be from a newer Pixquare)." : err.message || "Couldn't open that file", 6000); }
+    return;
+  }
   if (!ase) return newFromImage(file);
   try {
     const { sprite, warnings } = await readAseprite(bytes);

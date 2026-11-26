@@ -10,6 +10,7 @@ import { cloneTree, find, insert, remove, isGroup, leafLayers, walk, within } fr
 import { composeFrame, blendInto, layerResult } from '../core/compose.js';
 import { contentBounds } from '../core/sprite.js';
 import { toast } from '../ui/dialogs.js';
+import { fixTilemaps } from './tilemap.js';
 
 let commit = null, view = null;
 export function initDoc(opts) { ({ commit, view } = opts); }
@@ -20,6 +21,7 @@ const snap = () => {
     layers: cloneTree(sp.layers), cels: sp.cels.slice(), frames: sp.frames.map(f => ({ ...f })), tags: sp.tags.map(t => ({ ...t })), width: sp.width, height: sp.height, active: state.layerId, frame: state.frameId,
     palette: sp.palette.map(c => [...c]), paletteBreaks: [...(sp.paletteBreaks || [])], colorMode: sp.colorMode,
     post: structuredClone(sp.post || []), postHidden: !!sp.postHidden,
+    tilesets: (sp.tilesets || []).map(t => ({ ...t, tiles: t.tiles.slice() })),
   };
 };
 export { snap as snapshot };
@@ -32,6 +34,7 @@ export function applyStruct(s) {
   const palChanged = s.palette && (s.colorMode !== sp.colorMode || JSON.stringify(s.palette) !== JSON.stringify(sp.palette) || String(s.paletteBreaks) !== String(sp.paletteBreaks || []));
   if (s.palette) { sp.palette = s.palette.map(c => [...c]); sp.paletteBreaks = [...s.paletteBreaks]; sp.colorMode = s.colorMode; }
   if (s.post) { sp.post = structuredClone(s.post); sp.postHidden = s.postHidden; emit('post'); }
+  if (s.tilesets) { sp.tilesets = s.tilesets.map(t => ({ ...t, tiles: t.tiles.slice() })); emit('tiles'); }
   if (palChanged) emit('palette');
   if (!sp.frames.some(f => f.id === state.frameId)) state.frameId = sp.frames.some(f => f.id === s.frame) ? s.frame : sp.frames[0].id;
   state.selectedFrames = new Set([state.frameId]);
@@ -49,6 +52,7 @@ export function structural(fn, label) {
   const before = snap();
   const extra = fn();
   if (extra === false) return;
+  fixTilemaps(sp);
   const after = snap();
   const step = { kind: 'struct', label, before, after };
   commit(Array.isArray(extra) && extra.length ? { kind: 'multi', steps: [step, ...extra] } : step);

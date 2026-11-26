@@ -11,6 +11,8 @@ import { copyLayers, pasteLayers } from '../editor/clipboard.js';
 import { ICONS } from './icons.js';
 import { popover, promptBox, esc, toast } from './dialogs.js';
 import { openModifiers, openMagic } from './effects.js';
+import { tilemapDialog } from './tiles.js';
+import { convertToRegular } from '../editor/tilemap.js';
 import { bakeLayer } from '../editor/live.js';
 import { liveStack } from '../core/effects.js';
 
@@ -43,7 +45,7 @@ export function render() {
   if (!sp || !list) return;
   list.innerHTML = displayRows(sp).map(({ node: n, depth }) => {
     const g = isGroup(n), active = n.id === state.layerId, sel = state.selectedLayers.has(n.id);
-    const badge = [n.blend && n.blend !== 'normal' ? BLEND_MODES.find(b => b[0] === n.blend)?.[1] : '', (n.opacity ?? 255) < 255 ? Math.round(n.opacity / 2.55) + '%' : '', n.kind === 'reference' ? 'Ref' : '', n.kind === 'magic' ? 'Magic' : '', liveStack(n.modifiers) ? 'Mods' : ''].filter(Boolean).join(' · ');
+    const badge = [n.blend && n.blend !== 'normal' ? BLEND_MODES.find(b => b[0] === n.blend)?.[1] : '', (n.opacity ?? 255) < 255 ? Math.round(n.opacity / 2.55) + '%' : '', n.kind === 'reference' ? 'Ref' : '', n.kind === 'magic' ? 'Magic' : '', n.kind === 'tilemap' ? 'Tiles' : '', liveStack(n.modifiers) ? 'Mods' : ''].filter(Boolean).join(' · ');
     return `<div class="px-row${active ? ' active' : ''}${sel ? ' sel' : ''}${g ? ' group' : ''}${n.visible ? '' : ' hidden-layer'}" role="listitem" data-id="${n.id}" style="--d:${depth}">
       <button type="button" class="px-row-btn px-row-eye" aria-label="${n.visible ? 'Hide' : 'Show'} ${esc(n.name)}">${n.visible ? ICONS.eye : ICONS.eyeOff}</button>
       ${g ? `<button type="button" class="px-row-btn px-row-caret${n.collapsed ? '' : ' open'}" aria-label="${n.collapsed ? 'Open' : 'Close'} group">${ICONS.chevron}</button><span class="px-row-folder">${ICONS.folder}</span>`
@@ -183,6 +185,9 @@ function layerMenu(anchor) {
     <button type="button" data-a="paste">Paste layers</button>
     <hr>
     <button type="button" data-a="magicNew">New magic layer (moves by itself)…</button>
+    <button type="button" data-a="tilemap">New tilemap layer…</button>
+    ${n?.kind === 'regular' ? '<button type="button" data-a="toTiles">Turn this layer into tiles…</button>' : ''}
+    ${n?.kind === 'tilemap' ? '<button type="button" data-a="toRegular">Turn this tilemap into a regular layer</button>' : ''}
     <button type="button" data-a="mods">Modifiers for this layer…</button>
     <button type="button" data-a="ref">Reference layer from an image…</button>
     ${n?.kind === 'reference' ? '<button type="button" data-a="raster">Rasterize reference layer</button>' : ''}
@@ -196,6 +201,7 @@ function layerMenu(anchor) {
       flatten: () => doc.flattenVisible(), copy: () => copyLayers(false), cut: () => copyLayers(true), paste: () => pasteLayers(),
       magicNew: () => { doc.addLayer(); openMagic(state.layerId); },
       mods: () => openModifiers(state.layerId),
+      tilemap: () => tilemapDialog(false), toTiles: () => tilemapDialog(true), toRegular: () => convertToRegular(state.layerId),
       ref: () => importImage('reference'), raster: () => doc.rasterize(state.layerId), del: () => doc.deleteLayers(),
     })[a]?.();
   });

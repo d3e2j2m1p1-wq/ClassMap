@@ -30,7 +30,7 @@ export class View {
     this.ants = 0;
     this.readTheme();
     new ResizeObserver(() => this.resize()).observe(stage);
-    new MutationObserver(() => { this.readTheme(); this.request(); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(() => { this.readTheme(); this.request(); }).observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
     for (const ev of ['color', 'tool', 'selection', 'options', 'settings']) on(ev, () => this.request());
     on('selection', () => this.animateAnts());
     this.cache = new Map();
@@ -248,6 +248,9 @@ export class View {
     if (S.grid && z >= S.gridMin) this.lines(1, 1, 0, 0, this.gridColor);
     const G = sp.grid;
     if (S.guides && G && G.w > 1 && G.h > 1) this.lines(G.w, G.h, G.offsetX || 0, G.offsetY || 0, 'rgba(14,138,158,0.55)');
+    // a tilemap layer shows its tile grid (stronger while the tiles button is held)
+    const tl = this.tileGrid?.();
+    if (tl) this.lines(tl.tw, tl.th, 0, 0, tl.strong ? 'rgba(242,95,107,0.9)' : 'rgba(242,95,107,0.35)');
 
     this.drawHover(ctx);
     ctx.restore();

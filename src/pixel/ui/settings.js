@@ -8,8 +8,10 @@ import * as doc from '../editor/doc.js';
 import { MAX_SIDE } from '../core/sprite.js';
 import { openDialog, seg, toggle, range, bindControls, confirmBox, toast, esc } from './dialogs.js';
 import { openColorMode } from './colortools.js';
+import { lookPane, wireLook } from './theme.js';
+import { joyPane, wireJoy, setJoy } from './joystick.js';
 
-const TABS = [['general', 'General'], ['canvas', 'Canvas'], ['drawing', 'Drawing'], ['features', 'Features'], ['keys', 'Shortcuts']];
+const TABS = [['general', 'General'], ['look', 'Look'], ['canvas', 'Canvas'], ['drawing', 'Drawing'], ['features', 'Features'], ['keys', 'Shortcuts']];
 
 export function openSettings(view, tab = 'general') {
   const s = state.settings;
@@ -24,6 +26,10 @@ export function openSettings(view, tab = 'general') {
       ${toggle('opacitySlider', s.opacitySlider, 'Opacity slider beside the canvas')}
       ${toggle('undoGestures', s.undoGestures, 'Two- and three-finger taps undo and redo')}
       ${range('historyDepth', s.historyDepth, 20, 300, 'Undo steps kept')}
+      <div class="px-mini-label">Version backups</div>
+      ${range('versionKeep', s.versionKeep, 0, 20, 'Snapshots kept per artwork (0 = off)')}
+      ${seg('versionMinutes', s.versionMinutes, [[5, 'Every 5 min'], [10, 'Every 10 min'], [30, 'Every 30 min']])}
+      <p class="px-hint">A snapshot is taken when you open an artwork and then while you edit. Restore one from the artwork's ⋯ menu in the gallery.</p>
       <div class="px-set-row"><button type="button" class="px-btn px-btn-ghost" data-a="clearHistory">Clear undo history</button>
       <button type="button" class="px-btn px-btn-ghost" data-a="reset">Reset all settings</button></div>`,
     canvas: () => `
@@ -56,7 +62,9 @@ export function openSettings(view, tab = 'general') {
     features: () => `
       <p class="px-hint">Switch off what you don't use to keep the screen simple.</p>
       ${toggle('f.symmetry', s.features?.symmetry !== false, 'Symmetry button')}
-      ${toggle('f.references', s.features?.references !== false, 'Reference images button')}`,
+      ${toggle('f.references', s.features?.references !== false, 'Reference images button')}
+      ${joyPane()}`,
+    look: () => lookPane(),
     keys: () => `
       <p class="px-hint">Tap a shortcut, then press the new keys. Space (pan), Alt (pick a colour) and the arrow keys (nudge) stay as they are.</p>
       <div class="px-keylist">${ACTIONS.map(([id, label]) => `<div class="px-keyrow"><span>${esc(label)}</span><button type="button" class="px-key" data-key="${id}">${keysFor(id).map(pretty).map(esc).join(' · ') || '—'}</button></div>`).join('')}</div>
@@ -65,7 +73,10 @@ export function openSettings(view, tab = 'general') {
   let current = tab;
   const draw = () => {
     body.innerHTML = `<div class="px-tabs" role="tablist">${TABS.map(([k, l]) => `<button type="button" role="tab" aria-selected="${k === current}" data-tab="${k}">${l}</button>`).join('')}</div><div class="px-tabpane">${panes[current]()}</div>`;
+    if (current === 'look') { wireLook(body.querySelector('.px-tabpane'), draw); return; }
+    if (current === 'features') wireJoy(body.querySelector('.px-tabpane'), draw);
     bindControls(body, (k, v) => {
+      if (k.startsWith('joy')) { setJoy(k, v); if (k.startsWith('joyKind')) return; draw(); return; }
       if (k.startsWith('f.')) { s.features = { ...(s.features || {}), [k.slice(2)]: v }; }
       else s[k] = v;
       if (k === 'historyDepth') state.history.depth = v;

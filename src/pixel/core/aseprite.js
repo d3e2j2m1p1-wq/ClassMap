@@ -13,6 +13,7 @@ import { isGroup, walk } from './layers.js';
 import { contentBounds } from './sprite.js';
 import { rgbaToHex, hexToRgba } from './color.js';
 import { toIndexes } from './colorops.js';
+import { gridSize, renderMap, TILE_MASK, FLIP_X, FLIP_Y, FLIP_D } from './tiles.js';
 
 export const BLENDS = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light',
   'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'addition', 'subtract', 'divide'];
@@ -48,7 +49,7 @@ export async function readAseprite(input) {
 
   const palette = [];
   const layers = [];                         // in file order (= layer index)
-  const frames = [], tags = [], rawCels = [], warnings = new Set();
+  const frames = [], tags = [], rawCels = [], warnings = new Set(), rawSets = new Map();
   let lastObj = null, tagUserData = -1;
 
   for (let f = 0; f < nFrames; f++) {
@@ -69,7 +70,7 @@ export async function readAseprite(input) {
         const name = r.str();
         const L = { id: uid(), name, level, type: lt, visible: !!(lf & 1), locked: !(lf & 2), collapsed: !!(lf & 32), reference: !!(lf & 64), background: !!(lf & 8),
           blend: BLENDS[blend] || 'normal', opacity: (lt === 1 ? groupOpacityOk : layerOpacityOk) ? op : 255 };
-        if (lt === 2) warnings.add('Tilemap layers came in empty (tilemaps arrive in a later version).');
+        if (lt === 2) L.tileset = r.u32();
         layers.push(L); lastObj = { kind: 'layer', L }; tagUserData = -1;
       } else if (type === 0x2005) {          // cel
         const li = r.u16(), x = r.i16(), y = r.i16(), op = r.u8(), ct = r.u16();
@@ -80,7 +81,21 @@ export async function readAseprite(input) {
           const data = r.bytes(end - r.p);
           cel.data = ct === 2 ? await unzlib(data) : data.slice();
         } else if (ct === 1) cel.link = r.u16();
+        else if (ct === 3) {                 // tilemap: tile numbers with flip bits
+          cel.tw = r.u16(); cel.th = r.u16(); const bits = r.u16();
+          cel.masks = [r.u32(), r.u32(), r.u32(), r.u32()];
+          r.skip(10);
+          const raw = await unzlib(r.bytes(end - r.p));
+          cel.tiles = bits === 32 ? new Uint32Array(raw.slice(0, cel.tw * cel.th * 4).buffer) : new Uint32Array(cel.tw * cel.th);
+        }
         rawCels.push(cel); lastObj = { kind: 'cel', cel }; tagUserData = -1;
+      } else if (type === 0x2023) {          // tileset
+        const id = r.u32(), fl = r.u32(), n = r.u32(), tw = r.u16(), th = r.u16();
+        r.skip(16);
+        const name = r.str();
+        if (fl & 1) r.skip(8);
+        if (fl & 2) { const len = r.u32(); rawSets.set(id, { name, n, tw, th, data: await unzlib(r.bytes(len)) }); }
+        else warnings.add('A tileset kept in another file was left out.');
       } else if (type === 0x2018) {          // tags
         const n = r.u16(); r.skip(8);
         for (let i = 0; i < n; i++) {
@@ -114,8 +129,27 @@ export async function readAseprite(input) {
 
   // the layer tree: bottom → top, children after their group (by child level)
   const roots = [], stack = [];
+  // tilesets: the file's tile image (tiles stacked top to bottom) → one RGBA picture per tile
+  const tilesets = [], setIds = new Map();
+  for (const [fid, t] of rawSets) {
+    const bpp = depth / 8, size = t.tw * t.th, tiles = [];
+    for (let k = 0; k < t.n; k++) {
+      const px = new Uint8ClampedArray(size * 4);
+      for (let i = 0; i < size; i++) {
+        const o = (k * size + i) * bpp;
+        if (depth === 32) px.set(t.data.subarray(o, o + 4), i * 4);
+        else if (depth === 16) { px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = t.data[o]; px[i * 4 + 3] = t.data[o + 1]; }
+        else { const ix = t.data[o]; if (ix !== transparentIndex && palette[ix]) px.set(palette[ix], i * 4); }
+      }
+      tiles.push(px);
+    }
+    if (!tiles.length) tiles.push(new Uint8ClampedArray(size * 4));
+    const set = { id: uid(), name: t.name || 'Tileset', tw: t.tw, th: t.th, tiles };
+    tilesets.push(set); setIds.set(fid, set.id);
+  }
   const nodes = layers.map(L => {
     const base = { id: L.id, name: L.name, visible: L.visible, locked: L.locked, opacity: L.opacity, blend: L.blend };
+    if (L.type === 2 && setIds.has(L.tileset)) return { ...base, kind: 'tilemap', tilesetId: setIds.get(L.tileset), autoLinkOnDuplicate: false };
     return L.type === 1 ? { ...base, kind: 'group', collapsed: L.collapsed, children: [] } : { ...base, kind: L.reference ? 'reference' : 'regular', autoLinkOnDuplicate: false };
   });
   layers.forEach((L, i) => {
@@ -147,6 +181,20 @@ export async function readAseprite(input) {
   const byKey = new Map();
   for (const c of rawCels) {
     const L = layers[c.layer], node = nodes[c.layer];
+    if (node?.kind === 'tilemap' && c.type === 3) {
+      const set = tilesets.find(s => s.id === node.tilesetId), { cols, rows } = gridSize(W, H, set.tw, set.th);
+      const map = new Uint32Array(cols * rows), [mi, mx, my, md] = c.masks;
+      const ox = Math.round(c.x / set.tw), oy = Math.round(c.y / set.th);
+      for (let y = 0; y < c.th; y++) for (let x = 0; x < c.tw; x++) {
+        const v = c.tiles[y * c.tw + x], X = ox + x, Y = oy + y;
+        if (X < 0 || Y < 0 || X >= cols || Y >= rows) continue;
+        map[Y * cols + X] = ((v & mi) | (v & mx ? FLIP_X : 0) | (v & my ? FLIP_Y : 0) | (v & md ? FLIP_D : 0)) >>> 0;
+      }
+      const cel = { layerId: node.id, frameId: frames[c.frame].id, x: 0, y: 0, w: W, h: H, map, pixels: renderMap(W, H, set, map) };
+      if (c.opacity !== 255) cel.opacity = c.opacity;
+      cels.push(cel); byKey.set(c.layer + ':' + c.frame, cel);
+      continue;
+    }
     if (!L || L.type !== 0) continue;
     if (c.type === 1) continue;
     const pixels = toRGBA(c, L.background);
@@ -160,7 +208,7 @@ export async function readAseprite(input) {
     const src = byKey.get(c.layer + ':' + c.link), node = nodes[c.layer];
     if (!src || !node) continue;
     src.link ||= uid();
-    const cel = { layerId: node.id, frameId: frames[c.frame].id, x: 0, y: 0, w: W, h: H, pixels: src.pixels, link: src.link };
+    const cel = { layerId: node.id, frameId: frames[c.frame].id, x: 0, y: 0, w: W, h: H, pixels: src.pixels, link: src.link, ...(src.map ? { map: src.map } : {}) };
     if (c.opacity !== 255) cel.opacity = c.opacity;
     cels.push(cel); byKey.set(c.layer + ':' + c.frame, cel);
   }
@@ -180,7 +228,7 @@ export async function readAseprite(input) {
       id: uid(), name: 'Imported', width: W, height: H, colorMode: depth === 8 ? 'indexed' : 'rgba',
       palette: palette.filter(Boolean).slice(0, 256).map(c => [...c]),
       layers: roots, frames, tags: tags.map(t => ({ ...t, from: Math.min(t.from, frames.length - 1), to: Math.min(t.to, frames.length - 1) })),
-      tilesets: [], references: [],
+      tilesets, references: [],
       grid: { w: gridW || 16, h: gridH || 16, offsetX: gridX || 0, offsetY: gridY || 0 },
       cels, createdAt: now, updatedAt: now,
     },
@@ -220,6 +268,9 @@ export async function writeAseprite(sp) {
     if (!indexed) { pal = sp.palette; ti = 0; }
   }
   const bpp = indexed ? 1 : 4;
+  const sets = sp.tilesets || [];
+  if (indexed && !sets.every(t => t.tiles.every(x => toIndexes(x, pal, ti)))) { /* a stray colour in a tile */ }
+  const tileBytes = t => (indexed ? toIndexes(t, pal, ti) || new Uint8Array(t.length / 4).fill(ti) : t);
   const frames = [];
   for (let f = 0; f < sp.frames.length; f++) {
     const fr = sp.frames[f], chunks = [];
@@ -229,12 +280,23 @@ export async function writeAseprite(sp) {
         w.u32(pal.length); w.u32(0); w.u32(pal.length - 1); w.zeros(8);
         for (const c of pal) { w.u16(0); w.u8(c[0]); w.u8(c[1]); w.u8(c[2]); w.u8(c[3]); }
       }));
+      for (const [k, t] of sets.entries()) {
+        const img = new Uint8Array(t.tiles.length * t.tw * t.th * bpp);
+        t.tiles.forEach((x, i) => img.set(tileBytes(x), i * t.tw * t.th * bpp));
+        const data = await zlib(img);
+        chunks.push(chunk(0x2023, w => {
+          w.u32(k); w.u32(2 | 4); w.u32(t.tiles.length); w.u16(t.tw); w.u16(t.th); w.i16(1); w.zeros(14); w.str(t.name || 'Tileset');
+          w.u32(data.length); w.push(data);
+        }));
+      }
       for (const { n, level } of order) chunks.push(chunk(0x2004, w => {
         const g = isGroup(n);
         w.u16((n.visible ? 1 : 0) | (n.locked ? 0 : 2) | (g && n.collapsed ? 32 : 0) | (n.kind === 'reference' ? 64 : 0));
-        w.u16(g ? 1 : 0); w.u16(level); w.u16(0); w.u16(0);
+        const tm = n.kind === 'tilemap' && sets.some(t => t.id === n.tilesetId);
+        w.u16(g ? 1 : tm ? 2 : 0); w.u16(level); w.u16(0); w.u16(0);
         w.u16(Math.max(0, BLENDS.indexOf(n.blend || 'normal'))); w.u8(n.opacity ?? 255); w.zeros(3);
         w.str(n.name || 'Layer');
+        if (tm) w.u32(sets.findIndex(t => t.id === n.tilesetId));
       }));
       if (sp.tags?.length) {
         chunks.push(chunk(0x2018, w => {
@@ -256,6 +318,13 @@ export async function writeAseprite(sp) {
       const cel = sp.cels.find(c => c.layerId === n.id && c.frameId === fr.id);
       if (!cel) continue;
       const li = indexOf.get(n.id), op = cel.opacity ?? 255;
+      const set = n.kind === 'tilemap' && cel.map && sets.find(t => t.id === n.tilesetId);
+      if (set) {                                    // a tilemap cel: tile numbers + flip bits, like ours
+        const { cols, rows } = gridSize(W, H, set.tw, set.th);
+        const data = await zlib(new Uint8Array(cel.map.buffer, cel.map.byteOffset, cel.map.byteLength));
+        chunks.push(chunk(0x2005, w => { w.u16(li); w.i16(0); w.i16(0); w.u8(op); w.u16(3); w.i16(0); w.zeros(5); w.u16(cols); w.u16(rows); w.u16(32); w.u32(TILE_MASK); w.u32(FLIP_X); w.u32(FLIP_Y); w.u32(FLIP_D); w.zeros(10); w.push(data); }));
+        continue;
+      }
       // linked to an earlier frame of the same layer?
       const firstShare = sp.frames.slice(0, f).findIndex(o => sp.cels.find(c => c.layerId === n.id && c.frameId === o.id)?.pixels === cel.pixels);
       if (firstShare >= 0 && contentBounds(cel.pixels, W, H)) {

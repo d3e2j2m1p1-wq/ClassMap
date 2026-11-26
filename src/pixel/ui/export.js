@@ -8,6 +8,10 @@ import { finalFrame, bakeSprite } from '../core/compose.js';
 import { encodeGIF } from '../core/gif.js';
 import { encodeAPNG } from '../core/apng.js';
 import { encodeIndexedPNG } from '../core/png.js';
+import { recordVideo, videoType, videoExt } from './video.js';
+import { lapseCount, loadLapse, clearLapse } from '../storage/db.js';
+import { gunzip } from '../core/format.js';
+import { emit } from '../editor/state.js';
 import { encodeWebP, canEncodeWebP } from '../core/webp.js';
 import { buildSheet, sheetJSON } from '../core/sheet.js';
 import { writeAseprite } from '../core/aseprite.js';
@@ -84,7 +88,7 @@ function frameList(sp, { range, direction, scale }) {
   });
 }
 
-const TABS = [['png', 'PNG'], ['gif', 'GIF'], ['apng', 'APNG'], ['webp', 'WebP'], ['sheet', 'Sprite sheet'], ['ase', 'Aseprite']];
+const TABS = [['png', 'PNG'], ['gif', 'GIF'], ['apng', 'APNG'], ['webp', 'WebP'], ['video', 'Video'], ['sheet', 'Sprite sheet'], ['ase', 'Aseprite'], ['lapse', 'Timelapse']];
 
 export function openExport(sprite) {
   const animated = sprite.frames.length > 1;
@@ -94,8 +98,11 @@ export function openExport(sprite) {
     tab: animated ? 'gif' : 'png',
     scale: Math.min(...scales.filter(s => big * s >= 256), 40) || 1,
     trim: false, range: 'all', direction: 'forward', loop: 0, layout: 'packed', cols: 4, border: 0, spacing: 0, padding: 0, json: 'hash',
-    name: safeName(sprite.name),
+    name: safeName(sprite.name), plays: 1, speed: 2,
   };
+  const vtype = videoType();
+  let lapseN = null;
+  lapseCount(sprite.id).then(n => { lapseN = n; if (o.tab === 'lapse') draw(); }).catch(() => { lapseN = 0; });
   const webp = canEncodeWebP();
   const body = document.createElement('div');
   body.className = 'px-export';
@@ -107,7 +114,7 @@ export function openExport(sprite) {
       ${sprite.tags.map(t => `<option value="${t.id}" ${o.range === t.id ? 'selected' : ''}>Tag: ${esc(t.name)} (${t.to - t.from + 1})</option>`).join('')}
     </select>
     ${seg('direction', o.direction, [['forward', 'Forward'], ['reverse', 'Reverse'], ['pingpong', 'Ping-pong']])}`;
-  const maxFor = () => (o.tab === 'png' ? MAX_OUT : MAX_ANIM);
+  const maxFor = () => (o.tab === 'png' ? MAX_OUT : o.tab === 'video' ? 2048 : MAX_ANIM);
   const scaleRow = () => `<div class="px-mini-label">Size</div>
     <div class="px-seg px-ex-scales">${scales.map(s => `<button type="button" data-s="${s}" aria-checked="${s === o.scale}" ${big * s > maxFor() ? 'disabled' : ''}>${s}×</button>`).join('')}</div>
     <p class="px-ex-size"></p>`;
@@ -122,6 +129,13 @@ export function openExport(sprite) {
       ${o.layout === 'custom' ? `<label class="px-field"><span>Columns</span><input type="number" class="px-ex-cols" min="1" max="256" value="${o.cols}"></label>` : ''}
       <div class="px-guide-grid">${[['border', 'Border'], ['spacing', 'Between'], ['padding', 'Around each']].map(([k, l]) => `<label class="px-field"><span>${l}</span><input type="number" data-pad="${k}" min="0" max="64" value="${o[k]}"></label>`).join('')}</div>
       <div class="px-mini-label">Data file for game engines</div>${seg('json', o.json, [['hash', 'JSON (hash)'], ['array', 'JSON (array)'], ['none', 'None']])}`,
+    video: () => vtype ? `${rangeRow()}${scaleRow()}<div class="px-mini-label">Plays</div>${seg('plays', o.plays, [[1, 'Once'], [3, '3 times'], [5, '5 times'], [10, '10 times']])}
+      <p class="px-hint">Makes a ${videoExt(vtype).toUpperCase()} video for sharing. It records in real time, so it takes as long as the video lasts.</p><div class="px-progress" hidden><i></i></div>` : '<p class="px-hint">This browser can\'t make video files. Try GIF or APNG instead.</p>',
+    lapse: () => `${state.sprite === sprite ? toggle('record', !!sprite.timelapse, 'Record a timelapse of this artwork (one picture per change)') : ''}
+      <p class="px-hint">${lapseN == null ? 'Counting pictures…' : `${lapseN} picture${lapseN === 1 ? '' : 's'} recorded so far.`} The video plays at 24 pictures a second.</p>
+      <div class="px-mini-label">Speed</div>${seg('speed', o.speed, [[1, '1×'], [2, '2×'], [4, '4×'], [8, '8×'], [16, '16×']])}
+      <button type="button" class="px-btn px-btn-ghost px-lapse-clear" ${lapseN ? '' : 'disabled'}>Clear the recording (frees space)</button>
+      <div class="px-progress" hidden><i></i></div>`,
     ase: () => '<p class="px-hint">Saves everything — layers, groups, blend modes, frames, timings, tags, linked cels and the palette — as an .aseprite file that Aseprite (and ClassMap Pixel) can open.</p>',
   };
   const draw = () => {
@@ -139,14 +153,18 @@ export function openExport(sprite) {
     const img = body.querySelector('.px-export-preview img');
     img.src = renderToCanvas(sprite, Math.max(1, Math.floor(160 / Math.max(c.w, c.h))) || 1, o.tab === 'png' ? crop() : null, state.frameId).toDataURL();
     const info = body.querySelector('.px-ex-info');
-    if (o.tab !== 'png' && o.tab !== 'ase') {
+    if (o.tab === 'lapse') info.textContent = lapseN ? `${Math.ceil(lapseN / o.speed)} pictures · about ${Math.max(1, Math.round(Math.ceil(lapseN / o.speed) / 24 + 1.5))} s` : '';
+    else if (o.tab !== 'png' && o.tab !== 'ase') {
       const tag = sprite.tags.find(t => t.id === o.range);
       const k = o.range === 'current' ? 1 : tag ? tag.to - tag.from + 1 : sprite.frames.length;
       const n = o.direction === 'pingpong' ? Math.max(1, 2 * k - 2) : k;
       info.textContent = `${n} frame${n === 1 ? '' : 's'}`;
     } else info.textContent = '';
   };
-  body.addEventListener('click', e => {
+  body.addEventListener('click', async e => {
+    if (e.target.closest('.px-lapse-clear')) {
+      await clearLapse(sprite.id); lapseN = 0; sprite.lapseN = 0; toast('Timelapse recording cleared'); draw(); return;
+    }
     const t = e.target.closest('[data-tab]');
     if (t) { o.name = body.querySelector('.px-ex-name').value; o.tab = t.dataset.tab; if (big * o.scale > maxFor()) o.scale = 1; draw(); return; }
     const s = e.target.closest('[data-s]');
@@ -162,6 +180,7 @@ export function openExport(sprite) {
   body.addEventListener('change', e => {
     if (e.target.classList.contains('px-ex-range')) { o.range = e.target.value; paint(); }
     if (e.target.classList.contains('px-ex-trim') || e.target.dataset.name === 'trim') { o.trim = e.target.checked; paint(); }
+    if (e.target.dataset.name === 'record') { sprite.timelapse = e.target.checked; emit('dirty'); emit('timelapse'); toast(sprite.timelapse ? 'Recording a timelapse: every change adds a picture' : 'Timelapse recording paused'); }
     if (e.target.classList.contains('px-ex-cols')) o.cols = Math.max(1, Number(e.target.value) || 1);
     if (e.target.dataset.pad) o[e.target.dataset.pad] = Math.max(0, Number(e.target.value) || 0);
   });
@@ -177,6 +196,7 @@ export function openExport(sprite) {
       }
       return [{ blob: await toBlob(renderToCanvas(sprite, o.scale, crop(), state.frameId)), name: name + '.png' }];
     }
+    if (o.tab === 'video' || o.tab === 'lapse') return [await makeVideo(name)];
     if (o.tab === 'ase') return [{ blob: new Blob([await writeAseprite(bakeSprite(sprite))], { type: 'application/octet-stream' }), name: name + '.aseprite' }];
     const frames = frameList(sprite, o);
     if (o.tab === 'gif') return [{ blob: new Blob([encodeGIF(frames, W, H, { loop: o.loop })], { type: 'image/gif' }), name: name + '.gif' }];
@@ -195,6 +215,35 @@ export function openExport(sprite) {
       files.push({ blob: new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), name: name + '.json' });
     }
     return files;
+  }
+
+  // Video of the animation, or the timelapse
+  async function makeVideo(name) {
+    if (!vtype) throw new Error("this browser can't make video files");
+    const bar = body.querySelector('.px-progress'); bar.hidden = false;
+    const onProgress = t => { bar.firstElementChild.style.width = Math.round(t * 100) + '%'; };
+    let frames, w, h;
+    if (o.tab === 'video') {
+      const list = frameList(sprite, { ...o, scale: 1 });
+      frames = []; for (let i = 0; i < o.plays; i++) for (const f of list) frames.push({ pixels: f.pixels, ms: f.delayMs });
+      w = sprite.width; h = sprite.height;
+    } else {
+      const rows = await loadLapse(sprite.id);
+      if (!rows.length) throw new Error('nothing recorded yet — switch recording on and draw');
+      w = Math.max(...rows.map(r => r.w)); h = Math.max(...rows.map(r => r.h));
+      const pick = rows.filter((r, i) => i % o.speed === 0 || i === rows.length - 1);
+      frames = [];
+      for (const r of pick) {
+        const px = new Uint8ClampedArray(await gunzip(r.bytes)), full = new Uint8ClampedArray(w * h * 4);
+        for (let y = 0; y < r.h; y++) full.set(px.subarray(y * r.w * 4, (y + 1) * r.w * 4), y * w * 4);
+        frames.push({ pixels: full, ms: 1000 / 24 });
+      }
+      frames.at(-1).ms = 1500;
+    }
+    const scale = o.tab === 'video' ? o.scale : Math.max(1, Math.min(Math.floor(1080 / Math.max(w, h)), 40));
+    const blob = await recordVideo(frames, w, h, { scale, onProgress, background: o.tab === 'lapse' ? '#FFFDF7' : null });
+    bar.hidden = true;
+    return { blob, name: name + (o.tab === 'lapse' ? ' timelapse.' : '.') + videoExt(vtype) };
   }
 
   const actions = [];
