@@ -35,7 +35,8 @@ export function spriteToJSON(sp) {
     v: FORMAT_VERSION,
     id: sp.id, name: sp.name, width: sp.width, height: sp.height, colorMode: sp.colorMode,
     palette: sp.palette.map(c => rgbaToHex(c)),
-    layers: sp.layers, frames: sp.frames, tags: sp.tags, tilesets: [], references: [], grid: sp.grid,
+    layers: sp.layers, frames: sp.frames, tags: sp.tags, tilesets: [], grid: sp.grid,
+    references: (sp.references || []).map(({ id, name, src, x, y, w, h, zoom, px, py, opacity, min, hidden }) => ({ id, name, src, x, y, w, h, zoom, px, py, opacity, min, hidden })),
     cels: sp.cels.map(c => {
       const b = contentBounds(c.pixels, c.w, c.h);
       const base = { layerId: c.layerId, frameId: c.frameId };
@@ -53,7 +54,7 @@ export function spriteFromJSON(o) {
   return {
     id: o.id, name: o.name || 'Untitled', width: W, height: H, colorMode: o.colorMode || 'rgba',
     palette: (o.palette || []).map(hexToRgba).filter(Boolean),
-    layers: o.layers, frames: o.frames, tags: o.tags || [], tilesets: [], references: [],
+    layers: o.layers, frames: o.frames, tags: o.tags || [], tilesets: [], references: Array.isArray(o.references) ? o.references : [],
     grid: o.grid || { w: 16, h: 16, offsetX: 0, offsetY: 0 },
     cels: o.cels.map(c => {
       const pixels = new Uint8ClampedArray(W * H * 4);

@@ -2,30 +2,60 @@
 //  Toolbox, the size / opacity sliders (with undo, redo and the quick eye-dropper square),
 //  each tool's options, the settings pop-over and the info bar.
 // ═══════════════════════════════════════════════
-import { state, on, emit, setTool, saveSettings } from '../editor/state.js';
-import { ICONS, TOOL_INFO } from './icons.js';
-import { popover, seg, toggle, range, bindControls } from './dialogs.js';
+import { state, on, emit, setTool, saveSettings, TOOL_DEFAULTS } from '../editor/state.js';
+import { ICONS, TOOL_INFO, TOOL_ORDER } from './icons.js';
+import { popover, seg, toggle, range, bindControls, promptBox, esc, toast } from './dialogs.js';
+import { keysFor, pretty } from '../editor/keymap.js';
 
 const phone = () => matchMedia('(max-width: 700px)').matches;
 
 // ── Toolbox ──
+const keyHint = t => { const k = keysFor('tool.' + t)[0]; return k ? ` (${pretty(k)})` : ''; };
 export function initToolbox(el) {
-  el.innerHTML = Object.entries(TOOL_INFO).map(([k, t]) =>
-    `<button type="button" class="px-tool" data-tool="${k}" aria-label="${t.label} (${t.key})" title="${t.label} (${t.key}) — tap again for options">${ICONS[k]}</button>`).join('');
+  el.innerHTML = TOOL_ORDER.map(k =>
+    `<button type="button" class="px-tool" data-tool="${k}" aria-label="${TOOL_INFO[k].label}${keyHint(k)}" title="${TOOL_INFO[k].label}${keyHint(k)} — tap again for options">${ICONS[k]}</button>`).join('')
+    + `<span class="px-tool-sep"></span><button type="button" class="px-tool px-sym-btn" aria-label="Symmetry" title="Symmetry — tap to switch on, tap again for options">${ICONS.symmetry}</button>`;
   el.addEventListener('click', e => {
     const b = e.target.closest('.px-tool'); if (!b) return;
+    if (b.classList.contains('px-sym-btn')) {
+      const S = state.settings.symmetry;
+      if (!S.on) { S.on = true; saveSettings(); emit('symmetry'); } else openSymmetry(b);
+      return;
+    }
     if (state.settings.tool === b.dataset.tool && !state.tempTool) openToolOptions(b);
     else setTool(b.dataset.tool);
   });
-  const paint = () => el.querySelectorAll('.px-tool').forEach(b => {
-    const on_ = b.dataset.tool === state.tool;
-    b.classList.toggle('on', on_); b.setAttribute('aria-pressed', String(on_));
-    b.classList.toggle('temp', on_ && !!state.tempTool);
-  });
-  on('tool', paint); paint();
+  const paint = () => {
+    el.querySelectorAll('.px-tool[data-tool]').forEach(b => {
+      const on_ = b.dataset.tool === state.tool;
+      b.classList.toggle('on', on_); b.setAttribute('aria-pressed', String(on_));
+      b.classList.toggle('temp', on_ && !!state.tempTool);
+    });
+    const sb = el.querySelector('.px-sym-btn');
+    sb.classList.toggle('on', !!state.settings.symmetry.on);
+    sb.hidden = state.settings.features?.symmetry === false;
+  };
+  on('tool', paint); on('symmetry', paint); on('settings', paint); paint();
+}
+
+function openSymmetry(anchor) {
+  const S = state.settings.symmetry;
+  const el = document.createElement('div');
+  el.className = 'px-opts';
+  el.innerHTML = `<div class="px-pop-title">Symmetry</div>
+    ${toggle('on', S.on, 'Symmetry on')}
+    ${seg('mode', S.mode, [['mirror', 'Mirror'], ['rotate', 'Rotate']])}
+    ${range('count', S.count, 1, 12, 'Lines / copies')}
+    ${range('angle', S.angle, 0, 179, 'Angle', '°')}
+    <button type="button" class="px-btn px-btn-ghost px-sym-reset">Centre it again</button>
+    <p class="px-hint">Drag the round coral handle on the canvas to move the centre. Works with every drawing tool.</p>`;
+  bindControls(el, (k, v) => { S[k] = v; saveSettings(); emit('symmetry'); });
+  el.querySelector('.px-sym-reset').addEventListener('click', () => { S.cx = 0.5; S.cy = 0.5; S.angle = 90; saveSettings(); emit('symmetry'); });
+  popover(anchor, el, { side: phone() ? 'top' : 'right', className: 'px-opts-pop' });
 }
 
 // ── Tool options ──
+const MODES = v => `<div class="px-mini-label">When you select again</div>${seg('mode', v, [['replace', 'Replace'], ['add', 'Add'], ['subtract', 'Subtract'], ['intersect', 'Overlap'], ['xor', 'Flip']])}`;
 const OPTIONS = {
   brush: o => `
     ${seg('type', o.type, [['solid', 'Solid'], ['spray', 'Spray'], ['spray-soft', 'Soft spray']])}
@@ -59,8 +89,23 @@ const OPTIONS = {
     ${toggle('contiguous', o.contiguous, 'Only connected pixels')}
     ${seg('eight', o.eight ? 1 : 0, [[0, '4-way'], [1, '8-way (diagonals)']])}
     ${range('tolerance', o.tolerance, 0, 100, 'Tolerance', '%')}
+    ${seg('sample', o.sample, [['layer', 'This layer'], ['all', 'Everything visible']])}
     ${toggle('watercolor', o.watercolor, 'Blend see-through colour')}`,
+  select: o => `
+    ${seg('shape', o.shape, [['rect', 'Rectangle'], ['ellipse', 'Ellipse'], ['lasso', 'Lasso'], ['polygon', 'Polygon']])}
+    ${MODES(o.mode)}
+    <p class="px-hint">Tap the canvas to deselect. Polygon: tap each corner, then tap the first one (or double-tap / Enter). Shift adds, Alt subtracts.</p>`,
+  wand: o => `
+    ${MODES(o.mode)}
+    ${toggle('contiguous', o.contiguous, 'Only connected pixels')}
+    ${seg('eight', o.eight ? 1 : 0, [[0, '4-way'], [1, '8-way (diagonals)']])}
+    ${range('tolerance', o.tolerance, 0, 100, 'Tolerance', '%')}
+    ${seg('sample', o.sample, [['layer', 'This layer'], ['all', 'Everything visible']])}`,
+  move: o => `
+    ${toggle('rotsprite', o.rotsprite, 'Keep pixel edges crisp when rotating (RotSprite)')}
+    <p class="px-hint">Drag inside to move, corners and edges to resize (Shift keeps the shape), the round handle to rotate (snaps to right angles; Shift = 15° steps). Arrow keys nudge 1 px, Shift+arrows 10 px. Enter or ✓ applies.</p>`,
   dropper: o => `
+    ${seg('sample', o.sample, [['all', 'Everything visible'], ['layer', 'This layer']])}
     ${toggle('backToTool', o.backToTool, 'Go back to the last tool after picking')}
     <p class="px-hint">Right-click (or Alt) picks into the secondary colour. Long press on the canvas picks with any tool.</p>`,
 };
@@ -69,9 +114,28 @@ export function openToolOptions(anchor) {
   const name = state.settings.tool, o = state.settings.tools[name];
   const el = document.createElement('div');
   el.className = 'px-opts';
-  el.innerHTML = `<div class="px-pop-title">${TOOL_INFO[name].label}</div>${OPTIONS[name](o)}`;
-  bindControls(el, (k, v) => { o[k] = k === 'eight' ? !!v : v; saveSettings(); emit('options'); });
-  popover(anchor, el, { side: phone() ? 'top' : 'right', className: 'px-opts-pop' });
+  const presets = () => state.settings.presets[name] || [];
+  const presetRow = () => `<div class="px-presets-row"><div class="px-mini-label">Presets</div><div class="px-chips">${presets().map((p, i) =>
+    `<span class="px-chip"><button type="button" data-p="${i}">${esc(p.name)}</button><button type="button" class="px-chip-x" data-px="${i}" aria-label="Delete ${esc(p.name)}">×</button></span>`).join('') || '<span class="px-hint">None yet</span>'}</div>
+    <button type="button" class="px-btn px-btn-ghost px-preset-save">Save these settings as a preset</button></div>`;
+  const render = () => {
+    el.innerHTML = `<div class="px-pop-title">${TOOL_INFO[name].label}</div>${OPTIONS[name](o)}${['dropper'].includes(name) ? '' : presetRow()}`;
+    bindControls(el, (k, v) => { o[k] = k === 'eight' ? !!v : v; saveSettings(); emit('options'); });
+  };
+  el.addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.p) { Object.assign(o, structuredClone(presets()[b.dataset.p].opts)); saveSettings(); emit('options'); render(); toast(`"${presets()[b.dataset.p].name}" applied`); }
+    else if (b.dataset.px) { presets().splice(Number(b.dataset.px), 1); saveSettings(); render(); }
+    else if (b.classList.contains('px-preset-save')) {
+      pop.close();
+      const nm = await promptBox('Save preset', `${TOOL_INFO[name].label} ${presets().length + 1}`, { ok: 'Save' });
+      if (!nm) return;
+      (state.settings.presets[name] ||= []).push({ name: nm, opts: structuredClone(o) });
+      saveSettings(); toast(`Saved "${nm}"`);
+    }
+  });
+  render();
+  const pop = popover(anchor, el, { side: phone() ? 'top' : 'right', className: 'px-opts-pop' });
 }
 
 // ── A vertical slider (built by hand: native vertical ranges are unreliable on iPad) ──
@@ -126,11 +190,13 @@ export function initSliders(el, actions) {
   const paintOp = vslider(el.querySelector('.px-opacity'), { label: 'Opacity', min: 1, max: 100, unit: '%', get: () => o().opacity, set: v => { o().opacity = v; saveSettings(); emit('options'); } });
   const paint = () => {
     paintSize(); paintOp();
-    const noSize = ['bucket', 'dropper'].includes(state.settings.tool);
-    el.querySelector('.px-size').classList.toggle('off', noSize);
-    el.querySelector('.px-opacity').classList.toggle('off', state.settings.tool === 'dropper');
+    const t = state.settings.tool;
+    el.querySelector('.px-size').classList.toggle('off', ['bucket', 'dropper', 'select', 'wand', 'move'].includes(t));
+    el.querySelector('.px-opacity').classList.toggle('off', ['dropper', 'select', 'wand', 'move'].includes(t));
+    el.querySelector('.px-opacity').hidden = state.settings.opacitySlider === false;
+    el.querySelector('.px-undo').hidden = el.querySelector('.px-redo').hidden = state.settings.undoButtons === false;
   };
-  on('tool', paint); on('options', paint); paint();
+  on('tool', paint); on('options', paint); on('settings', paint); paint();
 
   // the quick square: hold it, tap the canvas with the other hand to pick a colour
   const q = el.querySelector('.px-quick');
@@ -149,34 +215,6 @@ export function nudgeSize(d) {
   const o = state.settings.tools[state.settings.tool];
   o.size = Math.max(1, Math.min(64, o.size + d));
   saveSettings(); emit('options');
-}
-
-// ── Settings (gear) ──
-export function openSettings(anchor, view) {
-  const s = state.settings;
-  const el = document.createElement('div');
-  el.className = 'px-opts';
-  el.innerHTML = `<div class="px-pop-title">Settings</div>
-    <div class="px-mini-label">Fingers on the canvas</div>
-    ${seg('fingers', s.fingers, [['auto', 'Auto'], ['draw', 'Draw'], ['navigate', 'Only move']])}
-    <p class="px-hint">Auto: fingers draw until you use a pencil, then they only pan, zoom and undo.</p>
-    ${toggle('grid', s.grid, 'Pixel grid when zoomed in')}
-    ${seg('gridMin', s.gridMin, [[4, 'From 400%'], [8, 'From 800%'], [16, 'From 1600%']])}
-    ${toggle('checker', s.checker, 'Checkerboard behind see-through pixels')}
-    ${toggle('longPress', s.longPress, 'Long press on the canvas picks a colour')}
-    <details class="px-keys"><summary>Gestures and shortcuts</summary>
-      <ul>
-        <li><b>Two fingers</b> drag / pinch: move and zoom</li>
-        <li><b>Two-finger tap</b>: undo · hold to keep undoing</li>
-        <li><b>Three-finger tap</b>: redo · <b>four</b>: hide the panels</li>
-        <li><b>Quick pinch in</b>: fit the canvas</li>
-        <li><b>B E L U G I</b>: brush, eraser, line, shape, bucket, eye dropper</li>
-        <li><b>X</b> swap colours · <b>[ ]</b> size · <b>Space</b> pan · <b>Alt</b> pick colour</li>
-        <li><b>Ctrl+Z / Ctrl+Shift+Z</b> undo / redo · <b>Ctrl+0</b> fit · <b>Ctrl+1</b> 100% · <b>Tab</b> hide panels</li>
-      </ul>
-    </details>`;
-  bindControls(el, (k, v) => { s[k] = v; saveSettings(); view.request(); });
-  popover(anchor, el, { side: 'below', className: 'px-opts-pop' });
 }
 
 // ── Info bar: where the pointer is, canvas size, zoom ──

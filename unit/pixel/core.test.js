@@ -1,5 +1,5 @@
 // Unit tests for the Pixel editor's drawing core (run with: npm run test:unit)
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '../expect.js';
 import { hexToRgba, rgbaToHex, rgbToHsv, hsvToRgb, blendOver, colorDistance } from '../../src/pixel/core/color.js';
 import { linePoints, snapLine, tipOffsets, pixelPerfectPath, ellipsePoints, rectPoints, shapePoints, shapeBox, polygonVertices } from '../../src/pixel/core/raster.js';
 import { fillMask } from '../../src/pixel/core/fill.js';

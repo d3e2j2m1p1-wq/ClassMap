@@ -36,7 +36,10 @@
     <button type="button" class="px-top-btn px-back" aria-label="Back to your artwork" title="Back to your artwork"></button>
     <input type="text" class="px-name" aria-label="Artwork name" maxlength="80" spellcheck="false">
     <span class="px-saved" aria-live="polite"></span>
+    <button type="button" class="px-btn px-btn-ghost px-save-btn" hidden>Save</button>
     <div class="px-top-spacer"></div>
+    <button type="button" class="px-top-btn px-layers-btn" aria-label="Layers" title="Layers"></button>
+    <button type="button" class="px-top-btn px-refs-btn" aria-label="Reference images" title="Reference images"></button>
     <button type="button" class="px-top-btn px-ui" aria-label="Hide the panels" title="Hide the panels (Tab · four-finger tap)"></button>
     <button type="button" class="px-top-btn px-settings" aria-label="Settings" title="Settings"></button>
     <button type="button" class="px-btn px-btn-primary px-export-btn"><span class="px-ex-ico"></span><span class="px-ex-label">Export</span></button>
@@ -51,11 +54,16 @@
   <div class="px-stage" id="stage"><canvas></canvas></div>
   <nav class="px-toolbox paper" aria-label="Tools"></nav>
   <div class="px-sliders paper"></div>
-  <aside class="px-palette paper" aria-label="Colours"></aside>
+  <div class="px-right">
+    <aside class="px-palette paper" aria-label="Colours"></aside>
+    <aside class="px-layers paper" aria-label="Layers"></aside>
+  </div>
+  <div class="px-context paper" role="toolbar" aria-label="Actions" hidden></div>
   <div class="px-info paper"></div>
   <button type="button" class="px-show-ui paper" aria-label="Show the panels" title="Show the panels (Tab)" hidden></button>
 </main>
 
+<input type="file" class="px-file" accept="image/*" hidden>
 <noscript><p style="padding:24px;font-family:system-ui">ClassMap Pixel needs JavaScript to run.</p></noscript>
 <script type="module" src="/src/pixel/main.js"></script>
 </body>

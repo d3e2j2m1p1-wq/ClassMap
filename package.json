@@ -9,13 +9,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "playwright test",
-    "test:unit": "vitest run"
+    "test:unit": "node --test \"unit/**/*.test.js\""
   },
   "devDependencies": {
     "@playwright/test": "1.56.0",
     "qrcode-generator": "^1.4.4",
     "vite": "5.4.10",
-    "vitest": "^2.1.9",
     "wrangler": "^4.166.0"
   },
   "dependencies": {

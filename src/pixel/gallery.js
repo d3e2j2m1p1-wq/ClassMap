@@ -180,6 +180,21 @@ export function newArtwork() {
   });
 }
 
+// An image dropped on the gallery becomes a new artwork of the same size
+export async function newFromImage(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = k < 1; g.drawImage(bmp, 0, 0, w, h);
+    const sp = createSprite({ name: (file.name || 'Image').replace(/\.[^.]+$/, ''), width: w, height: h, palette: BUILT_IN[0].colors });
+    sp.cels[0].pixels.set(g.getImageData(0, 0, w, h).data);
+    await saveArtwork(sp, thumbnail(sp));
+    openArt(sp.id);
+  } catch { toast("Couldn't open that image"); }
+}
+
 // ── Backup and restore ──
 export async function backupAll() {
   try {

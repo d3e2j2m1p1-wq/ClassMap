@@ -4,6 +4,7 @@
 //  so layers and animation slot in later without changing saved files.
 // ═══════════════════════════════════════════════
 import { hexToRgba } from './color.js';
+import { composeFrame } from './compose.js';
 
 export const MAX_SIDE = 2048;
 
@@ -27,28 +28,8 @@ export function createSprite({ name = 'Untitled', width = 32, height = 32, palet
 
 export const celAt = (sprite, layerId, frameId) => sprite.cels.find(c => c.layerId === layerId && c.frameId === frameId) || null;
 
-// The picture as it will be seen (all visible layers of one frame), as RGBA bytes
-export function compositeFrame(sprite, frameId = sprite.frames[0].id) {
-  const { width: W, height: H } = sprite;
-  const out = new Uint8ClampedArray(W * H * 4);
-  for (const layer of sprite.layers) {
-    if (!layer.visible || layer.kind !== 'regular') continue;
-    const cel = celAt(sprite, layer.id, frameId);
-    if (!cel) continue;
-    const lo = layer.opacity / 255;
-    for (let y = 0; y < cel.h; y++) for (let x = 0; x < cel.w; x++) {
-      const tx = cel.x + x, ty = cel.y + y;
-      if (tx < 0 || ty < 0 || tx >= W || ty >= H) continue;
-      const s = (y * cel.w + x) * 4, d = (ty * W + tx) * 4;
-      const sa = cel.pixels[s + 3] / 255 * lo;
-      if (!sa) continue;
-      const da = out[d + 3] / 255, oa = sa + da * (1 - sa);
-      for (let k = 0; k < 3; k++) out[d + k] = (cel.pixels[s + k] * sa + out[d + k] * da * (1 - sa)) / oa;
-      out[d + 3] = oa * 255;
-    }
-  }
-  return out;
-}
+// The picture as it will be seen (all visible layers of one frame, blend modes included)
+export const compositeFrame = (sprite, frameId = sprite.frames[0].id) => composeFrame(sprite, frameId);
 
 // Smallest rectangle holding every non-transparent pixel (null if the picture is empty)
 export function contentBounds(pixels, W, H) {

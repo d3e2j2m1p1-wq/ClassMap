@@ -1,11 +1,17 @@
 // ═══════════════════════════════════════════════
-//  The drawing tools. Each gets down / move / up with the pointer in sprite pixels:
-//  p = { x, y (whole pixels), fx, fy (exact), pressure, shift, alt, secondary }.
+//  The tools. Each gets down / move / up with the pointer in sprite pixels:
+//  p = { x, y (whole pixels), fx, fy (exact), sx, sy (screen), pressure, shift, alt, secondary }.
+//  Drawing tools work on the active layer, stay inside the selection and follow symmetry.
 // ═══════════════════════════════════════════════
-import { state, emit, setColor } from './state.js';
+import { state, emit, setColor, setSelection } from './state.js';
 import { Stroke } from './stroke.js';
 import { linePoints, snapLine, PixelPerfect, shapePoints, shapeBox } from '../core/raster.js';
 import { fillMask } from '../core/fill.js';
+import { find, shown, locked } from '../core/layers.js';
+import { maskRect, maskEllipse, maskPolygon, combine } from '../core/selection.js';
+import { symmetryFor } from './symmetry.js';
+import { moveTool } from './move.js';
+import { toast } from '../ui/dialogs.js';
 
 let view = null, commit = null;
 export function initTools(v, onCommit) { view = v; commit = onCommit; }
@@ -13,9 +19,22 @@ export function initTools(v, onCommit) { view = v; commit = onCommit; }
 const dirty = (x0, y0, x1, y1) => view.invalidate(x0, y0, x1, y1);
 const colorFor = p => (p.secondary ? state.settings.secondary : state.settings.primary);
 
+// Can the active layer be drawn on? Says why not, once per press.
+export function drawable() {
+  const sp = state.sprite, n = find(sp, state.layerId)?.node;
+  let why = null;
+  if (!n) why = 'Pick a layer first';
+  else if (n.kind === 'group') why = 'Pick a layer inside the group to draw on';
+  else if (n.kind === 'reference') why = 'Reference layers are for tracing. Rasterize it (layer menu) to draw on it';
+  else if (!shown(sp, n.id)) why = 'This layer is hidden';
+  else if (locked(sp, n.id)) why = 'This layer is locked';
+  if (why) toast(why);
+  return !why;
+}
+
 function newStroke(p, extra = {}) {
-  const o = state.opts;
-  return new Stroke(state.cel, { color: colorFor(p), opacity: o.opacity, watercolor: o.watercolor !== false, ...extra }, dirty);
+  const o = state.opts, cel = state.cel;
+  return new Stroke(cel, { color: colorFor(p), opacity: o.opacity, watercolor: o.watercolor !== false, mask: state.selection?.mask || null, sym: symmetryFor(cel.w, cel.h), ...extra }, dirty);
 }
 
 function done(stroke) {
@@ -26,14 +45,16 @@ function done(stroke) {
 // ── Brush and eraser ──
 const brushLike = erase => ({
   down(p) {
+    if (!drawable()) return;
     const o = state.opts;
     this.s = newStroke(p, { erase });
     this.pp = o.pixelPerfect && o.type === 'solid' && o.size === 1 && !o.pressure ? new PixelPerfect() : null;
-    this.sm = [p.fx, p.fy];                 // stabilizer position
+    this.sm = [p.fx, p.fy];
     this.last = [p.x, p.y];
     this.paint(p.x, p.y, p.pressure);
   },
   move(p) {
+    if (!this.s) return;
     const o = state.opts;
     let fx = p.fx, fy = p.fy;
     if (o.stabilizer > 0) {
@@ -68,30 +89,29 @@ const brushLike = erase => ({
     }
     this.s.stamp(x, y, size, o.tip);
   },
-  up() { done(this.s); this.s = null; },
+  up() { if (this.s) done(this.s); this.s = null; },
   cancel() { this.s?.cancel(); this.s = null; },
 });
 
 // ── Line: press, drag, release ──
 const line = {
-  down(p) { this.s = newStroke(p); this.a = [p.x, p.y]; this.draw(p); },
-  move(p) { this.draw(p); },
+  down(p) { if (!drawable()) return; this.s = newStroke(p); this.a = [p.x, p.y]; this.draw(p); },
+  move(p) { if (this.s) this.draw(p); },
   draw(p) {
     const o = state.opts;
     let [x1, y1] = [p.x, p.y];
     if (o.perfectAngle || p.shift) [x1, y1] = snapLine(this.a[0], this.a[1], x1, y1);
     this.s.clear();
     for (const [x, y] of linePoints(this.a[0], this.a[1], x1, y1)) this.s.stamp(x, y, o.size, o.tip);
-    this.end = [x1, y1];
   },
-  up() { done(this.s); this.s = null; },
+  up() { if (this.s) done(this.s); this.s = null; },
   cancel() { this.s?.cancel(); this.s = null; },
 };
 
 // ── Shape: rectangle, ellipse or polygon ──
 const shape = {
-  down(p) { this.s = newStroke(p); this.a = [p.x, p.y]; this.draw(p); },
-  move(p) { this.draw(p); },
+  down(p) { if (!drawable()) return; this.s = newStroke(p); this.a = [p.x, p.y]; this.draw(p); },
+  move(p) { if (this.s) this.draw(p); },
   draw(p) {
     const o = state.opts;
     const [x0, y0, x1, y1] = shapeBox(this.a[0], this.a[1], p.x, p.y, o.perfectRatio || p.shift, o.fromCenter || p.alt);
@@ -100,16 +120,19 @@ const shape = {
     if (o.filled || o.size <= 1) for (const [x, y] of pts) this.s.plot(x, y);
     else for (const [x, y] of pts) this.s.stamp(x, y, o.size, o.tip);
   },
-  up() { done(this.s); this.s = null; },
+  up() { if (this.s) done(this.s); this.s = null; },
   cancel() { this.s?.cancel(); this.s = null; },
 };
+
+// What the bucket / wand / dropper look at: this layer, or everything visible
+const sampleSource = which => (which === 'all' ? view.comp : state.cel?.pixels);
 
 // ── Colour bucket ──
 const bucket = {
   down(p) {
     const cel = state.cel, o = state.opts;
-    if (p.x < 0 || p.y < 0 || p.x >= cel.w || p.y >= cel.h) return;
-    const mask = fillMask(cel.pixels, cel.w, cel.h, p.x, p.y, { tolerance: o.tolerance, contiguous: o.contiguous, eight: o.eight });
+    if (!cel || p.x < 0 || p.y < 0 || p.x >= cel.w || p.y >= cel.h || !drawable()) return;
+    const mask = fillMask(sampleSource(o.sample), cel.w, cel.h, p.x, p.y, { tolerance: o.tolerance, contiguous: o.contiguous, eight: o.eight });
     const s = newStroke(p);
     for (let i = 0; i < mask.length; i++) if (mask[i]) s.plot(i % cel.w, (i / cel.w) | 0);
     done(s);
@@ -118,11 +141,11 @@ const bucket = {
 };
 
 // ── Eye dropper ──
-export function pickAt(x, y) {
-  const cel = state.cel;
-  if (!cel || x < 0 || y < 0 || x >= cel.w || y >= cel.h) return null;
-  const o = (y * cel.w + x) * 4;
-  return [cel.pixels[o], cel.pixels[o + 1], cel.pixels[o + 2], cel.pixels[o + 3]];
+export function pickAt(x, y, which = state.settings.tools.dropper.sample) {
+  const sp = state.sprite, src = sampleSource(which);
+  if (!sp || !src || x < 0 || y < 0 || x >= sp.width || y >= sp.height) return null;
+  const o = (y * sp.width + x) * 4;
+  return [src[o], src[o + 1], src[o + 2], src[o + 3]];
 }
 
 const dropper = {
@@ -136,9 +159,77 @@ const dropper = {
   },
   up() {
     view.loupe = null; view.request();
-    if (!state.tempTool && state.opts.backToTool && this.prev) { emit('back-to-tool', this.prev); }
+    if (!state.tempTool && state.opts.backToTool && this.prev) emit('back-to-tool', this.prev);
   },
   cancel() { view.loupe = null; view.request(); },
 };
 
-export const TOOLS = { brush: brushLike(false), eraser: brushLike(true), line, shape, bucket, dropper };
+// ── Selection: rectangle, ellipse, lasso, polygon ──
+// Mode from the options, or Shift = add, Alt = subtract, Shift+Alt = intersect
+const modeFor = p => (p.shift && p.alt ? 'intersect' : p.shift ? 'add' : p.alt ? 'subtract' : state.opts.mode);
+function applySelection(mask, mode) {
+  setSelection(combine(state.selection?.mask, mask, mode));
+}
+
+const select = {
+  down(p) {
+    const o = state.opts;
+    if (o.shape === 'polygon') { this.polyTap(p); return; }
+    this.d = { a: [p.x, p.y], mode: modeFor(p), path: [[p.x, p.y]], moved: false, s0: [p.sx, p.sy] };
+    view.selPreview = { kind: o.shape === 'lasso' ? 'lasso' : o.shape, pts: o.shape === 'lasso' ? this.d.path : [[p.x, p.y], [p.x, p.y]] };
+    view.request();
+  },
+  move(p) {
+    const d = this.d;
+    if (state.opts.shape === 'polygon') { if (this.poly) { view.selPreview.hover = [p.x, p.y]; view.request(); } return; }
+    if (!d) return;
+    if (Math.hypot(p.sx - d.s0[0], p.sy - d.s0[1]) > 3) d.moved = true;
+    if (state.opts.shape === 'lasso') { const l = d.path.at(-1); if (l[0] !== p.x || l[1] !== p.y) d.path.push([p.x, p.y]); }
+    else view.selPreview.pts = [d.a, [p.x, p.y]];
+    view.request();
+  },
+  up(p) {
+    const d = this.d, sp = state.sprite;
+    if (!d) return;
+    this.d = null; view.selPreview = null;
+    if (!d.moved) { if (d.mode === 'replace') setSelection(null); view.request(); return; }    // a tap deselects
+    const W = sp.width, H = sp.height, sh = state.opts.shape;
+    const mask = sh === 'lasso' ? maskPolygon(W, H, d.path) : sh === 'ellipse' ? maskEllipse(W, H, d.a[0], d.a[1], p.x, p.y) : maskRect(W, H, d.a[0], d.a[1], p.x, p.y);
+    applySelection(mask, d.mode);
+  },
+  cancel() { this.d = null; this.poly = null; view.selPreview = null; view.request(); emit('polygon'); },
+  // polygon: tap each corner; tap the first one again, double-tap, or press Enter to finish
+  polyTap(p) {
+    const now = performance.now();
+    if (!this.poly) {
+      this.poly = { pts: [[p.x, p.y]], mode: modeFor(p), t: now };
+      view.selPreview = { kind: 'polygon', pts: this.poly.pts };
+    } else {
+      const f = this.poly.pts[0], l = this.poly.pts.at(-1);
+      const [fx, fy] = view.toScreen(f[0] + 0.5, f[1] + 0.5);
+      const closeToFirst = Math.hypot(fx - p.sx, fy - p.sy) < 14;
+      if ((closeToFirst && this.poly.pts.length > 2) || (now - this.poly.t < 320 && l[0] === p.x && l[1] === p.y)) { this.finishPolygon(); return; }
+      this.poly.pts.push([p.x, p.y]); this.poly.t = now;
+    }
+    view.request(); emit('polygon');
+  },
+  finishPolygon() {
+    const P = this.poly;
+    this.poly = null; view.selPreview = null;
+    if (P && P.pts.length > 2) applySelection(maskPolygon(state.sprite.width, state.sprite.height, P.pts), P.mode);
+    view.request(); emit('polygon');
+  },
+};
+
+// ── Magic wand: select by colour ──
+const wand = {
+  down(p) {
+    const sp = state.sprite, o = state.opts;
+    if (p.x < 0 || p.y < 0 || p.x >= sp.width || p.y >= sp.height) { if (modeFor(p) === 'replace') setSelection(null); return; }
+    const mask = fillMask(sampleSource(o.sample), sp.width, sp.height, p.x, p.y, { tolerance: o.tolerance, contiguous: o.contiguous, eight: o.eight });
+    applySelection(mask, modeFor(p));
+  },
+  move() {}, up() {}, cancel() {},
+};
+
+export const TOOLS = { brush: brushLike(false), eraser: brushLike(true), line, shape, bucket, dropper, select, wand, move: moveTool };

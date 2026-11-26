@@ -29,6 +29,4 @@ export default defineConfig({
       },
     },
   },
-  // Unit tests (Vitest): the pure drawing code. Browser tests live in tests/ (Playwright).
-  test: { include: ['unit/**/*.test.js'], environment: 'node' },
 });

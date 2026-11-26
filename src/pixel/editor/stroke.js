@@ -5,18 +5,21 @@
 //     the stroke crosses itself),
 //   • line and shape previews can be wiped and redrawn on every move,
 //   • the finished stroke becomes one undo step holding only the rectangle it touched.
+//  It also keeps inside the selection, and copies each pixel through symmetry when that's on.
 // ═══════════════════════════════════════════════
 import { blendOver } from '../core/color.js';
 import { makePatch } from '../core/history.js';
 import { tipOffsets } from '../core/raster.js';
 
 export class Stroke {
-  constructor(cel, { color, opacity = 100, watercolor = true, erase = false }, onDirty) {
+  constructor(cel, { color, opacity = 100, watercolor = true, erase = false, mask = null, sym = null }, onDirty) {
     this.cel = cel;
     this.W = cel.w; this.H = cel.h;
     this.px = cel.pixels;
     this.base = cel.pixels.slice();
     this.mask = new Uint8Array(this.W * this.H);
+    this.sel = mask;             // selection: only these pixels may change
+    this.sym = sym;
     this.color = color; this.opacity = opacity / 100; this.watercolor = watercolor; this.erase = erase;
     this.rect = null;            // what the stroke covers right now
     this.onDirty = onDirty;
@@ -31,9 +34,13 @@ export class Stroke {
 
   // Lay this stroke's colour on one pixel (once). alphaMul < 1 is used by the textured spray.
   plot(x, y, alphaMul = 1) {
+    if (this.sym) { for (const [a, b] of this.sym(x, y)) this.#plot(a, b, alphaMul); return; }
+    this.#plot(x, y, alphaMul);
+  }
+  #plot(x, y, alphaMul) {
     if (x < 0 || y < 0 || x >= this.W || y >= this.H) return;
     const i = y * this.W + x;
-    if (this.mask[i]) return;
+    if (this.mask[i] || (this.sel && !this.sel[i])) return;
     this.mask[i] = 1;
     const o = i * 4, b = this.base;
     const k = this.opacity * alphaMul;
@@ -50,12 +57,15 @@ export class Stroke {
 
   // Take one pixel back to how it was before the stroke (pixel-perfect corners)
   unplot(x, y) {
-    if (x < 0 || y < 0 || x >= this.W || y >= this.H) return;
-    const i = y * this.W + x;
-    if (!this.mask[i]) return;
-    this.mask[i] = 0;
-    this.px.set(this.base.subarray(i * 4, i * 4 + 4), i * 4);
-    this.onDirty?.(x, y, x, y);
+    const pts = this.sym ? this.sym(x, y) : [[x, y]];
+    for (const [a, b] of pts) {
+      if (a < 0 || b < 0 || a >= this.W || b >= this.H) continue;
+      const i = b * this.W + a;
+      if (!this.mask[i]) continue;
+      this.mask[i] = 0;
+      this.px.set(this.base.subarray(i * 4, i * 4 + 4), i * 4);
+      this.onDirty?.(a, b, a, b);
+    }
   }
 
   stamp(x, y, size, tip, alphaMul) {

@@ -3,6 +3,7 @@
 //  Settings live in localStorage under "pixel:…" keys (artwork lives in IndexedDB).
 // ═══════════════════════════════════════════════
 import { History } from '../core/history.js';
+import { bounds as maskBounds, outline } from '../core/selection.js';
 
 const listeners = new Map();
 export const on = (ev, fn) => { (listeners.get(ev) || listeners.set(ev, new Set()).get(ev)).add(fn); return () => listeners.get(ev).delete(fn); };
@@ -13,9 +14,13 @@ export const TOOL_DEFAULTS = {
   eraser: { size: 3, opacity: 100, tip: 'square', type: 'solid', pixelPerfect: false, pressure: false, pressureMin: 30, stabilizer: 0 },
   line: { size: 1, opacity: 100, tip: 'round', perfectAngle: false, watercolor: true },
   shape: { size: 1, opacity: 100, tip: 'round', kind: 'rect', sides: 6, filled: false, perfectRatio: false, fromCenter: false, watercolor: true },
-  bucket: { size: 1, opacity: 100, contiguous: true, eight: false, tolerance: 0, watercolor: true },
-  dropper: { size: 1, opacity: 100, backToTool: true },
+  bucket: { size: 1, opacity: 100, contiguous: true, eight: false, tolerance: 0, watercolor: true, sample: 'layer' },
+  dropper: { size: 1, opacity: 100, backToTool: true, sample: 'all' },
+  select: { size: 1, opacity: 100, shape: 'rect', mode: 'replace' },
+  wand: { size: 1, opacity: 100, mode: 'replace', contiguous: true, eight: false, tolerance: 0, sample: 'layer' },
+  move: { size: 1, opacity: 100, rotsprite: true },
 };
+export const DRAW_TOOLS = ['brush', 'eraser', 'line', 'shape', 'bucket'];
 
 const SETTINGS_DEFAULTS = {
   fingers: 'auto',          // 'auto' (navigate once a pencil is seen) | 'draw' | 'navigate'
@@ -25,6 +30,15 @@ const SETTINGS_DEFAULTS = {
   primary: [43, 29, 26, 255], secondary: [255, 248, 236, 255],
   tool: 'brush',
   tools: TOOL_DEFAULTS,
+  presets: {},              // tool → [{ name, opts }]
+  symmetry: { on: false, mode: 'mirror', count: 1, angle: 90, cx: 0.5, cy: 0.5 },
+  // General
+  autosave: true, toasts: true, undoButtons: true, opacitySlider: true, undoGestures: true, historyDepth: 100,
+  // Canvas
+  border: true, tiled: 'off', snapZoom: true, hoverPreview: true, antsOpacity: 100, guides: false,
+  // Drawing
+  longPressMs: 480, pastePosition: 'original',
+  keymap: {},               // action → ['Ctrl+Z', …] (only the ones you changed)
 };
 
 function load(key, fallback) {
@@ -37,20 +51,35 @@ export function store(key, value) {
 function loadSettings() {
   const s = { ...structuredClone(SETTINGS_DEFAULTS), ...load('pixel:settings', {}) };
   s.tools = Object.fromEntries(Object.entries(TOOL_DEFAULTS).map(([k, d]) => [k, { ...d, ...(s.tools?.[k] || {}) }]));
+  s.symmetry = { ...SETTINGS_DEFAULTS.symmetry, ...(s.symmetry || {}) };
   return s;
 }
 
+export const SETTINGS = SETTINGS_DEFAULTS;
 export const state = {
   settings: loadSettings(),
   sprite: null, layerId: null, frameId: null,
   history: new History(100),
-  tempTool: null,           // eye dropper while Alt / long press / the quick square is held
+  tempTool: null,
+  selection: null,          // { mask, bounds, segs } — what's selected on the canvas
+  selectedLayers: new Set(),
+  transform: null,          // a move / paste in progress (see transform.js)           // eye dropper while Alt / long press / the quick square is held
   sawPen: load('pixel:sawPen', false),   // once a pencil is used, fingers switch to navigating ("auto")
   noUI: false,
   get tool() { return this.tempTool || this.settings.tool; },
   get opts() { return this.settings.tools[this.tool]; },
   get cel() { return this.sprite?.cels.find(c => c.layerId === this.layerId && c.frameId === this.frameId) || null; },
 };
+
+// The selection (a mask), or null for none
+export function setSelection(mask) {
+  const W = state.sprite?.width;
+  const b = mask && W ? maskBounds(mask, W) : null;
+  state.selection = b ? { mask, bounds: b, segs: outline(mask, W, state.sprite.height) } : null;
+  emit('selection');
+}
+
+state.history.depth = state.settings.historyDepth;
 
 let saveT = 0;
 export function saveSettings() {
