@@ -4,6 +4,9 @@
 //  Phase 1: draw, palette, undo, gallery on this device, PNG export, backups, offline.
 //  Phase 2: layers and groups, blend modes, selections, move / transform, clipboard,
 //           symmetry, reference images, presets, settings, shortcuts.
+//  Phase 3: frames, linked cels, tags, onion skin, playback, GIF / APNG / WebP / sheets, .aseprite.
+//  Phase 4: indexed colour, palette tools (gradient, sort, reduce, files, Lospec, layout, lock),
+//           shading, and colour tools (replace, adjust, levels, outline, anti-alias, remap).
 // ═══════════════════════════════════════════════
 import '@fontsource/nunito/latin-400.css';
 import '@fontsource/nunito/latin-600.css';
@@ -21,6 +24,8 @@ import { initInput } from './editor/input.js';
 import { writeRect } from './core/history.js';
 import { leafLayers } from './core/layers.js';
 import { initDoc, applyStruct, addLayer, setActive } from './editor/doc.js';
+import { initColor, snapIncoming } from './editor/color.js';
+import * as colorEd from './editor/color.js';
 import { initMove, applyMove, cancelMove, discardMove, nudge, update as updateMove, startMove } from './editor/move.js';
 import { initClipboard, copy, pasteButton, onPasteEvent } from './editor/clipboard.js';
 import { initSelectOps, selectAll, deselect, invertSelection, clearSelected, fillSelected, outlineSelected } from './editor/selectOps.js';
@@ -147,6 +152,7 @@ const actions = {
 
 initTools(view, commit);
 initDoc({ commit, view });
+initColor(view);
 initMove(view, commit);
 initClipboard(view, commit);
 initSelectOps(view, commit);
@@ -199,7 +205,8 @@ async function importLayerImage(file, kind = 'reference') {
     const c = document.createElement('canvas'); c.width = sp.width; c.height = sp.height;
     const g = c.getContext('2d'); g.imageSmoothingEnabled = k < 1;
     g.drawImage(bmp, Math.floor((sp.width - w) / 2), Math.floor((sp.height - h) / 2), w, h);
-    addLayer(kind, (file.name || 'Image').replace(/\.[^.]+$/, ''), g.getImageData(0, 0, sp.width, sp.height).data);
+    const data = g.getImageData(0, 0, sp.width, sp.height).data;
+    addLayer(kind, (file.name || 'Image').replace(/\.[^.]+$/, ''), kind === 'reference' ? data : snapIncoming(data));
   } catch { toast("Couldn't open that image"); }
 }
 for (const [el, fn] of [[$('#stage'), f => importLayerImage(f)], [gallery, f => importFile(f)]]) {
@@ -285,6 +292,8 @@ async function openArt(id) {
     const top = leafLayers(sp).at(-1);
     state.layerId = top.id; state.selectedLayers = new Set([top.id]);
     state.history.clear();
+    sp.paletteBreaks ||= [];
+    state.paletteLocked = sp.palette.length > 0;      // palettes with colours open locked
     unsaved = false;
     document.body.classList.add('px-editing');
     gallery.hidden = true; editor.hidden = false;
@@ -331,4 +340,4 @@ persist();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
 // tests reach the editor through this
-if (import.meta.env.DEV) window.__px = { state, view, actions, openArt, showGallery, saveNow, setActive, addReference, discardMove, anim };
+if (import.meta.env.DEV) window.__px = { state, view, actions, openArt, showGallery, saveNow, setActive, addReference, discardMove, anim, color: colorEd };

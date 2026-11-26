@@ -8,7 +8,7 @@ import { encodeBackup, decodeBackup } from './core/format.js';
 import { BUILT_IN } from './core/palettes.js';
 import { readAseprite } from './core/aseprite.js';
 import { ICONS } from './ui/icons.js';
-import { openDialog, confirmBox, promptBox, toast, popover, esc } from './ui/dialogs.js';
+import { openDialog, confirmBox, promptBox, toast, popover, esc, seg, bindControls } from './ui/dialogs.js';
 import { thumbnail, download, openExport } from './ui/export.js';
 import { loadLibrary, saveLibrary } from './ui/palette.js';
 import { state, saveSettings, TOOL_DEFAULTS } from './editor/state.js';
@@ -158,7 +158,9 @@ export function newArtwork() {
       <label class="px-field"><span>Height</span><input type="number" class="px-na-h" min="1" max="${MAX_SIDE}" value="32"></label>
     </div>
     <label class="px-field"><span>Starting palette</span><select class="px-na-pal">
-      ${pals.map(([k, p]) => `<option value="${k}">${esc(p.name)}</option>`).join('')}<option value="none">Empty</option></select></label>`;
+      ${pals.map(([k, p]) => `<option value="${k}">${esc(p.name)}</option>`).join('')}<option value="none">Empty</option></select></label>
+    <div class="px-mini-label">Colour mode</div>
+    ${seg('mode', 'rgba', [['rgba', 'RGBA (any colour)'], ['indexed', 'Indexed (palette colours only)']])}`;
   const paint = () => body.querySelectorAll('.px-presets button').forEach(b => b.setAttribute('aria-checked', String(+b.dataset.w === w && +b.dataset.h === h)));
   body.querySelector('.px-presets').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -170,6 +172,8 @@ export function newArtwork() {
     w = Number(body.querySelector('.px-na-w').value); h = Number(body.querySelector('.px-na-h').value); paint();
   });
   paint();
+  let mode = 'rgba';
+  bindControls(body, (k, v) => { if (k === 'mode') mode = v; });
   return openDialog({
     title: 'New artwork', body, className: 'px-new-dialog',
     onOpen: ov => setTimeout(() => ov.querySelector('.px-na-name').select(), 0),
@@ -178,7 +182,8 @@ export function newArtwork() {
         if (!(w >= 1 && h >= 1 && w <= MAX_SIDE && h <= MAX_SIDE && Number.isInteger(w) && Number.isInteger(h))) { toast(`Size must be whole numbers from 1 to ${MAX_SIDE}`); return false; }
         const k = body.querySelector('.px-na-pal').value;
         const pal = k === 'none' ? [] : (k[0] === 'b' ? BUILT_IN : lib)[Number(k.slice(1))].colors;
-        const sp = createSprite({ name: body.querySelector('.px-na-name').value.trim() || 'Untitled', width: w, height: h, palette: pal });
+        if (mode === 'indexed' && !pal.length) { toast('Indexed artwork needs a starting palette'); return false; }
+        const sp = createSprite({ name: body.querySelector('.px-na-name').value.trim() || 'Untitled', width: w, height: h, palette: mode === 'indexed' ? pal.slice(0, 256) : pal, colorMode: mode });
         try { await saveArtwork(sp, thumbnail(sp)); } catch (err) { toast("Couldn't save: " + err.message); return false; }
         openArt(sp.id);
       },

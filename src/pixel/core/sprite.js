@@ -10,15 +10,15 @@ export const MAX_SIDE = 2048;
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-export function createSprite({ name = 'Untitled', width = 32, height = 32, palette = [] } = {}) {
+export function createSprite({ name = 'Untitled', width = 32, height = 32, palette = [], colorMode = 'rgba' } = {}) {
   width = Math.max(1, Math.min(MAX_SIDE, Math.round(width)));
   height = Math.max(1, Math.min(MAX_SIDE, Math.round(height)));
   const layer = { id: uid(), kind: 'regular', name: 'Layer 1', visible: true, locked: false, opacity: 255, blend: 'normal', autoLinkOnDuplicate: false };
   const frame = { id: uid(), durationMs: 100 };
   const now = Date.now();
   return {
-    id: uid(), name, width, height, colorMode: 'rgba',
-    palette: palette.map(c => (typeof c === 'string' ? hexToRgba(c) : [...c])).filter(Boolean),
+    id: uid(), name, width, height, colorMode: colorMode === 'indexed' ? 'indexed' : 'rgba',
+    palette: palette.map(c => (typeof c === 'string' ? hexToRgba(c) : [...c])).filter(Boolean), paletteBreaks: [],
     layers: [layer], frames: [frame], tags: [], tilesets: [], references: [],
     grid: { w: 16, h: 16, offsetX: 0, offsetY: 0 },
     cels: [{ layerId: layer.id, frameId: frame.id, x: 0, y: 0, w: width, h: height, pixels: new Uint8ClampedArray(width * height * 4) }],

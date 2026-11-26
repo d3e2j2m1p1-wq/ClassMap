@@ -6,6 +6,9 @@
 //    straight from one to the other. Charts are encrypted in the browsers before they leave
 //    (this code never has the key), and nothing is written anywhere: no database, no logs of
 //    content. A room lasts 10 minutes at most and is gone when either side leaves.
+//  • /api/lospec/<slug> passes on one public palette from lospec.com (for ClassMap Pixel's
+//    "Lospec palette" import, when the browser can't fetch it from Lospec directly). It only
+//    ever asks Lospec for that palette name; nothing about the person is sent or kept.
 // ═══════════════════════════════════════════════
 import { DurableObject } from 'cloudflare:workers';
 
@@ -24,9 +27,28 @@ export default {
       if (role !== 'send' && role !== 'recv') return new Response('Bad request', { status: 400 });
       return env.SHARE_ROOMS.get(env.SHARE_ROOMS.idFromName(code)).fetch(request);
     }
+    if (url.pathname.startsWith('/api/lospec/')) return lospec(url.pathname.slice('/api/lospec/'.length));
     return env.ASSETS.fetch(request);
   },
 };
+
+const SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;
+async function lospec(slug) {
+  if (!SLUG.test(slug)) return new Response('Not found', { status: 404 });
+  const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=86400' } });
+  try {
+    const res = await fetch(`https://lospec.com/palette-list/${slug}.json`, { cf: { cacheTtl: 86400, cacheEverything: true }, headers: { Accept: 'application/json' } });
+    if (res.status === 404) return json({ error: 'not found' }, 404);
+    if (!res.ok) return json({ error: 'lospec unavailable' }, 502);
+    const o = await res.json();
+    // pass on only what the editor uses
+    const colors = Array.isArray(o.colors) ? o.colors.filter(c => /^[0-9a-f]{6}$/i.test(c)).slice(0, 256) : [];
+    if (!colors.length) return json({ error: 'not found' }, 404);
+    return json({ name: String(o.name || slug).slice(0, 80), author: String(o.author || '').slice(0, 80), colors });
+  } catch {
+    return json({ error: 'lospec unavailable' }, 502);
+  }
+}
 
 // One room per share code. Holds at most one sender and one receiver, only while they're connected.
 export class ShareRoom extends DurableObject {

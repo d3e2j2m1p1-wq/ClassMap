@@ -44,6 +44,9 @@ const SETTINGS_DEFAULTS = {
   wrapFrames: true, numberFrom: 1,
   timeline: true,           // the timeline panel is open (not just its bar)
   preview: { open: false, x: 0, y: 0, w: 220, h: 220 },
+  // Colour
+  shading: { on: false, a: 0, b: 3, dir: 1 },   // ramp from swatch a to swatch b; dir 1 = towards b
+  placement: 'packed', paletteCols: 8,          // palette panel: 'packed' or 'grid' (fixed columns)
 };
 
 function load(key, fallback) {
@@ -59,6 +62,7 @@ function loadSettings() {
   s.symmetry = { ...SETTINGS_DEFAULTS.symmetry, ...(s.symmetry || {}) };
   s.onion = { ...SETTINGS_DEFAULTS.onion, ...(s.onion || {}) };
   s.preview = { ...SETTINGS_DEFAULTS.preview, ...(s.preview || {}) };
+  s.shading = { ...SETTINGS_DEFAULTS.shading, ...(s.shading || {}), on: false };
   return s;
 }
 
@@ -76,6 +80,7 @@ export const state = {
   transform: null,          // a move / paste in progress (see transform.js)           // eye dropper while Alt / long press / the quick square is held
   sawPen: load('pixel:sawPen', false),   // once a pencil is used, fingers switch to navigating ("auto")
   noUI: false,
+  paletteLocked: false,     // a locked palette can't lose colours (artworks with colours open locked)
   get tool() { return this.tempTool || this.settings.tool; },
   get opts() { return this.settings.tools[this.tool]; },
   get cel() { return this.sprite?.cels.find(c => c.layerId === this.layerId && c.frameId === this.frameId) || null; },

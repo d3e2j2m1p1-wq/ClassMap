@@ -12,7 +12,7 @@ import { makePatch } from '../core/history.js';
 import { tipOffsets } from '../core/raster.js';
 
 export class Stroke {
-  constructor(cel, { color, opacity = 100, watercolor = true, erase = false, mask = null, sym = null }, onDirty) {
+  constructor(cel, { color, opacity = 100, watercolor = true, erase = false, mask = null, sym = null, indexed = false, shade = null }, onDirty) {
     this.cel = cel;
     this.W = cel.w; this.H = cel.h;
     this.px = cel.pixels;
@@ -21,6 +21,11 @@ export class Stroke {
     this.sel = mask;             // selection: only these pixels may change
     this.sym = sym;
     this.color = color; this.opacity = opacity / 100; this.watercolor = watercolor; this.erase = erase;
+    // indexed: only whole palette colours go down (no see-through blending)
+    this.indexed = indexed;
+    if (indexed) { this.opacity = 1; this.watercolor = false; }
+    // shading: each pixel of the ramp moves one step along it; everything else stays
+    this.shade = erase ? null : shade;
     this.rect = null;            // what the stroke covers right now
     this.onDirty = onDirty;
   }
@@ -43,9 +48,12 @@ export class Stroke {
     if (this.mask[i] || (this.sel && !this.sel[i])) return;
     this.mask[i] = 1;
     const o = i * 4, b = this.base;
-    const k = this.opacity * alphaMul;
+    const k = this.indexed ? 1 : this.opacity * alphaMul;
     let out;
-    if (this.erase) {
+    if (this.shade) {
+      out = this.shade.get(((b[o] << 24 | b[o + 1] << 16 | b[o + 2] << 8 | b[o + 3]) >>> 0));
+      if (!out) return;                       // not in the ramp: untouched
+    } else if (this.erase) {
       out = k >= 1 ? [0, 0, 0, 0] : [b[o], b[o + 1], b[o + 2], Math.round(b[o + 3] * (1 - k))];
     } else {
       const c = [this.color[0], this.color[1], this.color[2], Math.round(this.color[3] * k)];

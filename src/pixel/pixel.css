@@ -184,6 +184,44 @@ body:not(.light) .px-tool.on { background: var(--surface3); color: var(--text); 
 .px-sw.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4.5px var(--blue); }
 .px-sw.lifted { transform: scale(1.22); box-shadow: 2px 3px 0 var(--pop); z-index: 1; position: relative; }
 .px-pal-empty { grid-column: 1 / -1; margin: 4px 0; font-size: 0.82rem; font-weight: 600; color: var(--text3); }
+/* Phase 4: colour */
+.px-swatches.grid { grid-template-columns: repeat(var(--cols, 8), minmax(0, 1fr)); gap: 4px; }
+.px-sw-gap { aspect-ratio: 1; }
+.px-sw.ramp { outline: 2px dashed var(--coral); outline-offset: 1px; }
+.px-sw.ramp-to { outline-style: solid; }
+.px-color-tools.on { background: var(--coral); color: #fff; border-radius: 9px; }
+.px-pal-mode { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 10px 0; }
+.px-pal-mode[hidden] { display: none; }
+.px-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface2); font: inherit; font-weight: 800; font-size: 0.72rem; color: var(--text2); }
+.px-badge svg { width: 13px; height: 13px; }
+.px-badge-shade { background: var(--coral); border-color: var(--ink); color: #fff; cursor: pointer; }
+.px-badge-lock { padding: 2px 6px; }
+.px-menu-toggle { display: flex; align-items: center; gap: 8px; }
+.px-menu-toggle svg { width: 18px; height: 18px; flex-shrink: 0; }
+.px-menu-toggle[aria-pressed="true"] { color: var(--blue); }
+.px-pal-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.px-pal-lib { max-width: 300px; }
+.px-strip { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+.px-strip i { width: 18px; height: 18px; border: 1.5px solid var(--line); border-radius: 4px; background: linear-gradient(var(--c), var(--c)), var(--check); }
+.px-strip span { font-weight: 800; font-size: 0.78rem; color: var(--text3); margin-left: 4px; }
+.px-preview-strip { min-height: 22px; display: flex; flex-direction: column; gap: 6px; }
+.px-preview-strip .px-strip i { width: 24px; height: 24px; }
+.px-ends { display: grid; grid-template-columns: auto auto 1fr auto auto; align-items: center; gap: 8px 10px; }
+.px-ends .px-mini-label:nth-child(3) { justify-self: end; }
+.px-cwell { width: 46px; height: 34px; padding: 0; border: 2px solid var(--line); border-radius: 9px; background: linear-gradient(var(--c), var(--c)), var(--check); box-shadow: 2px 2px 0 var(--pop); }
+.px-pop-top { z-index: 95; }
+.px-well-pick { display: flex; flex-direction: column; gap: 8px; width: 236px; }
+.px-well-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
+.px-col-dlg { width: min(460px, 100%); }
+.px-col-dialog { display: flex; flex-direction: column; gap: 12px; }
+.px-col-dialog textarea { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 8px 10px; border: 2px solid var(--border2); border-radius: 10px; background: var(--surface); color: var(--text); font: 600 0.86rem ui-monospace, monospace; resize: vertical; }
+.px-col-dialog details summary, .px-more summary { cursor: pointer; font-weight: 800; font-size: 0.86rem; color: var(--text2); }
+.px-more[open] { display: flex; flex-direction: column; gap: 10px; }
+.px-imp-name { font-weight: 900; font-size: 1.05rem; }
+/* colour tool dialogs sit to the side with a light backdrop, so the canvas preview shows */
+.px-overlay:has(.px-tool-dlg) { justify-content: flex-start; align-items: flex-start; background: rgba(8,50,58,0.08); backdrop-filter: none; padding-top: 70px; padding-left: 88px; }
+.px-tool-dlg { width: min(360px, 100%); max-height: calc(100vh - 90px); }
+.px-shade-pop .px-well-grid { max-height: 180px; overflow-y: auto; padding: 4px; }
 
 .px-info { position: absolute; left: 50%; bottom: calc(var(--tl, 0px) + 24px); transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 4px 6px 4px 14px; font-weight: 800; font-size: 0.82rem; font-variant-numeric: tabular-nums; color: var(--text2); z-index: 5; border-radius: 999px; }
 .px-xy { min-width: 58px; }
@@ -509,7 +547,10 @@ body:not(.light) .px-presets button[aria-checked="true"] { background: var(--sur
   .px-tl-name, .px-tl-corner { width: 86px; }
   .px-info { bottom: auto; }
   .px-preview { display: none !important; }
-  .px-pal-head { border-bottom: 0; border-right: 2px solid var(--border); padding: 6px; flex-wrap: wrap; width: 100px; flex-shrink: 0; align-content: center; justify-content: center; }
+  .px-pal-head { border-bottom: 0; border-right: 2px solid var(--border); padding: 6px; flex-wrap: wrap; width: 108px; flex-shrink: 0; align-content: center; justify-content: center; }
+  .px-pal-mode { display: none; }
+  .px-overlay:has(.px-tool-dlg) { align-items: flex-end; justify-content: center; padding: 0 8px calc(8px + env(safe-area-inset-bottom)); }
+  .px-tool-dlg { max-height: 48vh; }
   .px-pal-head .px-pal-spacer { display: none; }
   .px-pal-head .px-icon-btn { width: 30px; height: 30px; }
   .px-pal-head .px-icon-btn svg { width: 18px; height: 18px; }

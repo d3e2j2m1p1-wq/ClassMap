@@ -7,6 +7,7 @@ import { ACTIONS, keysFor, setKeys, resetKeys, comboOf, pretty } from '../editor
 import * as doc from '../editor/doc.js';
 import { MAX_SIDE } from '../core/sprite.js';
 import { openDialog, seg, toggle, range, bindControls, confirmBox, toast, esc } from './dialogs.js';
+import { openColorMode } from './colortools.js';
 
 const TABS = [['general', 'General'], ['canvas', 'Canvas'], ['drawing', 'Drawing'], ['features', 'Features'], ['keys', 'Shortcuts']];
 
@@ -41,7 +42,9 @@ export function openSettings(view, tab = 'general') {
         <button type="button" class="px-btn px-btn-ghost" data-a="resize">Resize canvas…</button>
         <button type="button" class="px-btn px-btn-ghost" data-a="crop">Crop to the art</button>
         <button type="button" class="px-btn px-btn-ghost" data-a="flipH">Flip ↔</button>
-        <button type="button" class="px-btn px-btn-ghost" data-a="flipV">Flip ↕</button></div>` : ''}`,
+        <button type="button" class="px-btn px-btn-ghost" data-a="flipV">Flip ↕</button></div>
+      <div class="px-mini-label">Colour mode: ${state.sprite.colorMode === 'indexed' ? 'Indexed' : 'RGBA'}</div>
+      <div class="px-set-row"><button type="button" class="px-btn px-btn-ghost" data-a="colorMode">${state.sprite.colorMode === 'indexed' ? 'Convert to RGBA…' : 'Convert to indexed…'}</button></div>` : ''}`,
     drawing: () => `
       <div class="px-mini-label">Fingers on the canvas</div>
       ${seg('fingers', s.fingers, [['auto', 'Auto'], ['draw', 'Draw'], ['navigate', 'Only move']])}
@@ -83,6 +86,7 @@ export function openSettings(view, tab = 'general') {
     }
     if (a === 'resetKeys') { resetKeys(); draw(); emit('settings'); }
     if (a === 'resize') { ov().remove(); openResize(); }
+    if (a === 'colorMode') { ov().remove(); openColorMode(); }
     if (a === 'crop') doc.cropToContent();
     if (a === 'flipH') doc.flipCanvas('h');
     if (a === 'flipV') doc.flipCanvas('v');

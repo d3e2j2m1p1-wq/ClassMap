@@ -4,12 +4,15 @@
 // ═══════════════════════════════════════════════
 import { colorDistance } from './color.js';
 
-export function fillMask(pixels, w, h, x, y, { tolerance = 0, contiguous = true, eight = false } = {}) {
+// index (optional): each pixel's palette index (−1 = transparent); tolerance then counts palette steps
+export function fillMask(pixels, w, h, x, y, { tolerance = 0, contiguous = true, eight = false, index = null } = {}) {
   const mask = new Uint8Array(w * h);
   if (x < 0 || y < 0 || x >= w || y >= h) return mask;
   const at = i => [pixels[i * 4], pixels[i * 4 + 1], pixels[i * 4 + 2], pixels[i * 4 + 3]];
-  const target = at(y * w + x);
-  const matches = i => colorDistance(at(i), target) <= tolerance;
+  const target = at(y * w + x), ti = index ? index[y * w + x] : 0;
+  const matches = index
+    ? i => (ti < 0 || index[i] < 0 ? index[i] === ti : Math.abs(index[i] - ti) <= tolerance)
+    : i => colorDistance(at(i), target) <= tolerance;
 
   if (!contiguous) {
     for (let i = 0; i < w * h; i++) if (matches(i)) mask[i] = 1;

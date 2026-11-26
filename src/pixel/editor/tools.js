@@ -12,6 +12,8 @@ import { maskRect, maskEllipse, maskPolygon, combine } from '../core/selection.j
 import { symmetryFor } from './symmetry.js';
 import { moveTool } from './move.js';
 import { toast } from '../ui/dialogs.js';
+import { indexed, paintColor, shadeTable } from './color.js';
+import { nearestFinder } from '../core/colorops.js';
 
 let view = null, commit = null;
 export function initTools(v, onCommit) { view = v; commit = onCommit; }
@@ -34,7 +36,10 @@ export function drawable() {
 
 function newStroke(p, extra = {}) {
   const o = state.opts, cel = state.cel;
-  return new Stroke(cel, { color: colorFor(p), opacity: o.opacity, watercolor: o.watercolor !== false, mask: state.selection?.mask || null, sym: symmetryFor(cel.w, cel.h), ...extra }, dirty);
+  return new Stroke(cel, {
+    color: paintColor(colorFor(p)), opacity: o.opacity, watercolor: o.watercolor !== false, mask: state.selection?.mask || null, sym: symmetryFor(cel.w, cel.h),
+    indexed: indexed(), shade: shadeTable(), ...extra,
+  }, dirty);
 }
 
 function done(stroke) {
@@ -127,12 +132,20 @@ const shape = {
 // What the bucket / wand / dropper look at: this layer, or everything visible
 const sampleSource = which => (which === 'all' ? view.comp : state.cel?.pixels);
 
+// In indexed mode the tolerance counts palette steps (how far apart two colours sit in the palette)
+function indexMap(o) {
+  if (!indexed() || !o.tolerance) return null;
+  const src = sampleSource(o.sample), near = nearestFinder(state.sprite.palette), out = new Int16Array(src.length / 4);
+  for (let i = 0, k = 0; k < src.length; i++, k += 4) out[i] = near(src[k], src[k + 1], src[k + 2], src[k + 3]);
+  return out;
+}
+
 // ── Colour bucket ──
 const bucket = {
   down(p) {
     const cel = state.cel, o = state.opts;
     if (!cel || p.x < 0 || p.y < 0 || p.x >= cel.w || p.y >= cel.h || !drawable()) return;
-    const mask = fillMask(sampleSource(o.sample), cel.w, cel.h, p.x, p.y, { tolerance: o.tolerance, contiguous: o.contiguous, eight: o.eight });
+    const mask = fillMask(sampleSource(o.sample), cel.w, cel.h, p.x, p.y, { tolerance: o.tolerance, contiguous: o.contiguous, eight: o.eight, index: indexMap(o) });
     const s = newStroke(p);
     for (let i = 0; i < mask.length; i++) if (mask[i]) s.plot(i % cel.w, (i / cel.w) | 0);
     done(s);
@@ -154,7 +167,7 @@ const dropper = {
   pick(p) {
     const c = pickAt(p.x, p.y);
     view.loupe = { sx: p.sx, sy: p.sy, px: p.x, py: p.y, color: c };
-    if (c && c[3]) setColor(p.secondary ? 'secondary' : 'primary', c);
+    if (c && c[3]) setColor(p.secondary ? 'secondary' : 'primary', paintColor(c));
     view.request();
   },
   up() {
@@ -226,7 +239,7 @@ const wand = {
   down(p) {
     const sp = state.sprite, o = state.opts;
     if (p.x < 0 || p.y < 0 || p.x >= sp.width || p.y >= sp.height) { if (modeFor(p) === 'replace') setSelection(null); return; }
-    const mask = fillMask(sampleSource(o.sample), sp.width, sp.height, p.x, p.y, { tolerance: o.tolerance, contiguous: o.contiguous, eight: o.eight });
+    const mask = fillMask(sampleSource(o.sample), sp.width, sp.height, p.x, p.y, { tolerance: o.tolerance, contiguous: o.contiguous, eight: o.eight, index: indexMap(o) });
     applySelection(mask, modeFor(p));
   },
   move() {}, up() {}, cancel() {},

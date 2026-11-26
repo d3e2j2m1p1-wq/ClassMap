@@ -119,7 +119,9 @@ export function openToolOptions(anchor) {
     `<span class="px-chip"><button type="button" data-p="${i}">${esc(p.name)}</button><button type="button" class="px-chip-x" data-px="${i}" aria-label="Delete ${esc(p.name)}">×</button></span>`).join('') || '<span class="px-hint">None yet</span>'}</div>
     <button type="button" class="px-btn px-btn-ghost px-preset-save">Save these settings as a preset</button></div>`;
   const render = () => {
-    el.innerHTML = `<div class="px-pop-title">${TOOL_INFO[name].label}</div>${OPTIONS[name](o)}${['dropper'].includes(name) ? '' : presetRow()}`;
+    const note = state.sprite?.colorMode === 'indexed' && ['brush', 'line', 'shape', 'bucket'].includes(name)
+      ? `<p class="px-hint px-indexed-note">Indexed colour: paints whole palette colours only (no see-through blending)${name === 'bucket' ? ', and tolerance counts palette steps' : ''}.</p>` : '';
+    el.innerHTML = `<div class="px-pop-title">${TOOL_INFO[name].label}</div>${OPTIONS[name](o)}${note}${['dropper'].includes(name) ? '' : presetRow()}`;
     bindControls(el, (k, v) => { o[k] = k === 'eight' ? !!v : v; saveSettings(); emit('options'); });
   };
   el.addEventListener('click', async e => {

@@ -7,7 +7,7 @@ import { zlib } from './format.js';
 const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
 export function crc32(bytes, crc = 0xFFFFFFFF) { for (let i = 0; i < bytes.length; i++) crc = CRC[(crc ^ bytes[i]) & 255] ^ (crc >>> 8); return crc; }
 
-function chunk(type, data) {
+export function chunk(type, data) {
   const out = new Uint8Array(12 + data.length), v = new DataView(out.buffer);
   v.setUint32(0, data.length);
   for (let i = 0; i < 4; i++) out[4 + i] = type.charCodeAt(i);
@@ -15,7 +15,7 @@ function chunk(type, data) {
   v.setUint32(8 + data.length, (crc32(out.subarray(4, 8 + data.length)) ^ 0xFFFFFFFF) >>> 0);
   return out;
 }
-const be = (...vals) => { const out = new Uint8Array(vals.reduce((a, [, n]) => a + n, 0)), v = new DataView(out.buffer); let p = 0; for (const [x, n] of vals) { if (n === 4) v.setUint32(p, x); else if (n === 2) v.setUint16(p, x); else v.setUint8(p, x); p += n; } return out; };
+export const be = (...vals) => { const out = new Uint8Array(vals.reduce((a, [, n]) => a + n, 0)), v = new DataView(out.buffer); let p = 0; for (const [x, n] of vals) { if (n === 4) v.setUint32(p, x); else if (n === 2) v.setUint16(p, x); else v.setUint8(p, x); p += n; } return out; };
 
 // Rows, each starting with filter type 0 (none) — pixel art compresses well like this
 function scanlines(px, w, h) {

@@ -12,6 +12,7 @@ import { uid } from './sprite.js';
 import { isGroup, walk } from './layers.js';
 import { contentBounds } from './sprite.js';
 import { rgbaToHex, hexToRgba } from './color.js';
+import { toIndexes } from './colorops.js';
 
 export const BLENDS = ['normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'color-dodge', 'color-burn', 'hard-light', 'soft-light',
   'difference', 'exclusion', 'hue', 'saturation', 'color', 'luminosity', 'addition', 'subtract', 'divide'];
@@ -176,7 +177,7 @@ export async function readAseprite(input) {
   const now = Date.now();
   return {
     sprite: {
-      id: uid(), name: 'Imported', width: W, height: H, colorMode: 'rgba',
+      id: uid(), name: 'Imported', width: W, height: H, colorMode: depth === 8 ? 'indexed' : 'rgba',
       palette: palette.filter(Boolean).slice(0, 256).map(c => [...c]),
       layers: roots, frames, tags: tags.map(t => ({ ...t, from: Math.min(t.from, frames.length - 1), to: Math.min(t.to, frames.length - 1) })),
       tilesets: [], references: [],
@@ -208,14 +209,25 @@ export async function writeAseprite(sp) {
   const visit = (list, level) => { for (const n of list) { order.push({ n, level }); if (isGroup(n)) visit(n.children, level + 1); } };
   visit(sp.layers, 0);
   const indexOf = new Map(order.map((o, i) => [o.n.id, i]));
+  // Indexed artwork is written as an 8-bit indexed file when every pixel is a palette colour
+  // (a transparent entry is added at the end if the palette has none). Otherwise 32-bit RGBA.
+  let pal = sp.palette, ti = 0, indexed = false;
+  if (sp.colorMode === 'indexed' && sp.palette.length) {
+    pal = sp.palette.map(c => [...c]);
+    ti = pal.findIndex(c => c[3] === 0);
+    if (ti < 0) { ti = pal.length; pal.push([0, 0, 0, 0]); }
+    indexed = pal.length <= 256 && sp.cels.every(c => toIndexes(c.pixels, pal, ti));
+    if (!indexed) { pal = sp.palette; ti = 0; }
+  }
+  const bpp = indexed ? 1 : 4;
   const frames = [];
   for (let f = 0; f < sp.frames.length; f++) {
     const fr = sp.frames[f], chunks = [];
     if (f === 0) {
       chunks.push(chunk(0x2007, w => { w.u16(1); w.u16(0); w.u32(0); w.zeros(8); }));          // sRGB
-      if (sp.palette.length) chunks.push(chunk(0x2019, w => {
-        w.u32(sp.palette.length); w.u32(0); w.u32(sp.palette.length - 1); w.zeros(8);
-        for (const c of sp.palette) { w.u16(0); w.u8(c[0]); w.u8(c[1]); w.u8(c[2]); w.u8(c[3]); }
+      if (pal.length) chunks.push(chunk(0x2019, w => {
+        w.u32(pal.length); w.u32(0); w.u32(pal.length - 1); w.zeros(8);
+        for (const c of pal) { w.u16(0); w.u8(c[0]); w.u8(c[1]); w.u8(c[2]); w.u8(c[3]); }
       }));
       for (const { n, level } of order) chunks.push(chunk(0x2004, w => {
         const g = isGroup(n);
@@ -253,8 +265,9 @@ export async function writeAseprite(sp) {
       if (firstShare >= 0) continue;                // linked to an empty cel: nothing to write
       const b = contentBounds(cel.pixels, W, H);
       if (!b) continue;
-      const raw = new Uint8Array(b.w * b.h * 4);
-      for (let y = 0; y < b.h; y++) raw.set(cel.pixels.subarray(((b.y + y) * W + b.x) * 4, ((b.y + y) * W + b.x + b.w) * 4), y * b.w * 4);
+      const raw = new Uint8Array(b.w * b.h * bpp);
+      const full = indexed ? toIndexes(cel.pixels, pal, ti) : cel.pixels;
+      for (let y = 0; y < b.h; y++) raw.set(full.subarray(((b.y + y) * W + b.x) * bpp, ((b.y + y) * W + b.x + b.w) * bpp), y * b.w * bpp);
       const data = await zlib(raw);
       chunks.push(chunk(0x2005, w => { w.u16(li); w.i16(b.x); w.i16(b.y); w.u8(op); w.u16(2); w.i16(0); w.zeros(5); w.u16(b.w); w.u16(b.h); w.push(data); }));
       if (cel.userData) chunks.push(chunk(0x2020, w => { w.u32(1); w.str(cel.userData); }));
@@ -267,9 +280,9 @@ export async function writeAseprite(sp) {
   }
   const h = new Writer();
   const total = 128 + frames.reduce((a, f) => a + f.length, 0);
-  h.u32(total); h.u16(0xA5E0); h.u16(sp.frames.length); h.u16(W); h.u16(H); h.u16(32); h.u32(3);
-  h.u16(sp.frames[0]?.durationMs || 100); h.u32(0); h.u32(0); h.u8(0); h.zeros(3);
-  h.u16(sp.palette.length || 0); h.u8(1); h.u8(1);
+  h.u32(total); h.u16(0xA5E0); h.u16(sp.frames.length); h.u16(W); h.u16(H); h.u16(indexed ? 8 : 32); h.u32(3);
+  h.u16(sp.frames[0]?.durationMs || 100); h.u32(0); h.u32(0); h.u8(indexed ? ti : 0); h.zeros(3);
+  h.u16(pal.length || 0); h.u8(1); h.u8(1);
   h.i16(sp.grid?.offsetX || 0); h.i16(sp.grid?.offsetY || 0); h.u16(sp.grid?.w || 16); h.u16(sp.grid?.h || 16);
   h.zeros(84);
   const out = new Writer();

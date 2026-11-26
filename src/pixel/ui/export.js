@@ -7,6 +7,7 @@ import { compositeFrame, contentBounds } from '../core/sprite.js';
 import { composeFrame } from '../core/compose.js';
 import { encodeGIF } from '../core/gif.js';
 import { encodeAPNG } from '../core/apng.js';
+import { encodeIndexedPNG } from '../core/png.js';
 import { encodeWebP, canEncodeWebP } from '../core/webp.js';
 import { buildSheet, sheetJSON } from '../core/sheet.js';
 import { writeAseprite } from '../core/aseprite.js';
@@ -52,6 +53,15 @@ export function download(blob, name) {
 }
 
 const toBlob = canvas => new Promise(r => canvas.toBlob(r, 'image/png'));
+
+// The current frame as an indexed PNG (null if blending made colours outside the palette)
+async function indexedPNG(sprite, scale, crop) {
+  const W = sprite.width, c = crop || { x: 0, y: 0, w: W, h: sprite.height };
+  const full = composeFrame(sprite, state.frameId), px = new Uint8ClampedArray(c.w * c.h * 4);
+  for (let y = 0; y < c.h; y++) px.set(full.subarray(((c.y + y) * W + c.x) * 4, ((c.y + y) * W + c.x + c.w) * 4), y * c.w * 4);
+  const s = Math.max(1, Math.round(scale));
+  return encodeIndexedPNG(scalePixels(px, c.w, c.h, s), c.w * s, c.h * s, sprite.palette);
+}
 
 // Nearest-neighbour enlarge of an RGBA image by a whole number
 export function scalePixels(px, w, h, s) {
@@ -103,7 +113,7 @@ export function openExport(sprite) {
     <p class="px-ex-size"></p>`;
   const loopRow = () => `<div class="px-mini-label">Loop</div>${seg('loop', o.loop, [[0, 'Forever'], [1, 'Once'], [3, '3 times']])}`;
   const panes = {
-    png: () => `${scaleRow()}${toggle('trim', o.trim, 'Trim see-through edges')}<p class="px-hint">Exports the current frame.</p>`,
+    png: () => `${scaleRow()}${toggle('trim', o.trim, 'Trim see-through edges')}<p class="px-hint">Exports the current frame.${sprite.colorMode === 'indexed' ? ' Indexed artwork is saved as a palette PNG (it keeps your palette\'s order).' : ''}</p>`,
     gif: () => `${rangeRow()}${scaleRow()}${loopRow()}<p class="px-hint">GIFs have up to 256 colours and no half-see-through pixels (those become fully clear or solid).</p>`,
     apng: () => `${rangeRow()}${scaleRow()}${loopRow()}<p class="px-hint">Animated PNG: every colour and see-through level, plays in all current browsers.</p>`,
     webp: () => webp ? `${rangeRow()}${scaleRow()}${loopRow()}` : '<p class="px-hint">This browser can\'t make WebP files. Try GIF or APNG, or open ClassMap Pixel in Chrome, Edge or Firefox.</p>',
@@ -160,7 +170,13 @@ export function openExport(sprite) {
   async function make() {
     const name = safeName(body.querySelector('.px-ex-name').value);
     const W = sprite.width * o.scale, H = sprite.height * o.scale;
-    if (o.tab === 'png') return [{ blob: await toBlob(renderToCanvas(sprite, o.scale, crop(), state.frameId)), name: name + '.png' }];
+    if (o.tab === 'png') {
+      if (sprite.colorMode === 'indexed') {          // a palette PNG that keeps the palette's order
+        const bytes = await indexedPNG(sprite, o.scale, crop());
+        if (bytes) return [{ blob: new Blob([bytes], { type: 'image/png' }), name: name + '.png' }];
+      }
+      return [{ blob: await toBlob(renderToCanvas(sprite, o.scale, crop(), state.frameId)), name: name + '.png' }];
+    }
     if (o.tab === 'ase') return [{ blob: new Blob([await writeAseprite(sprite)], { type: 'application/octet-stream' }), name: name + '.aseprite' }];
     const frames = frameList(sprite, o);
     if (o.tab === 'gif') return [{ blob: new Blob([encodeGIF(frames, W, H, { loop: o.loop })], { type: 'image/gif' }), name: name + '.gif' }];

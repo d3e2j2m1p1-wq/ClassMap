@@ -16,14 +16,21 @@ export function initDoc(opts) { ({ commit, view } = opts); }
 
 const snap = () => {
   const sp = state.sprite;
-  return { layers: cloneTree(sp.layers), cels: sp.cels.slice(), frames: sp.frames.map(f => ({ ...f })), tags: sp.tags.map(t => ({ ...t })), width: sp.width, height: sp.height, active: state.layerId, frame: state.frameId };
+  return {
+    layers: cloneTree(sp.layers), cels: sp.cels.slice(), frames: sp.frames.map(f => ({ ...f })), tags: sp.tags.map(t => ({ ...t })), width: sp.width, height: sp.height, active: state.layerId, frame: state.frameId,
+    palette: sp.palette.map(c => [...c]), paletteBreaks: [...(sp.paletteBreaks || [])], colorMode: sp.colorMode,
+  };
 };
+export { snap as snapshot };
 
 export function applyStruct(s) {
   const sp = state.sprite;
   const resized = sp.width !== s.width || sp.height !== s.height;
   sp.layers = cloneTree(s.layers); sp.cels = s.cels.slice(); sp.width = s.width; sp.height = s.height;
   sp.frames = s.frames.map(f => ({ ...f })); sp.tags = s.tags.map(t => ({ ...t }));
+  const palChanged = s.palette && (s.colorMode !== sp.colorMode || JSON.stringify(s.palette) !== JSON.stringify(sp.palette) || String(s.paletteBreaks) !== String(sp.paletteBreaks || []));
+  if (s.palette) { sp.palette = s.palette.map(c => [...c]); sp.paletteBreaks = [...s.paletteBreaks]; sp.colorMode = s.colorMode; }
+  if (palChanged) emit('palette');
   if (!sp.frames.some(f => f.id === state.frameId)) state.frameId = sp.frames.some(f => f.id === s.frame) ? s.frame : sp.frames[0].id;
   state.selectedFrames = new Set([state.frameId]);
   setActive(find(sp, s.active) ? s.active : leafLayers(sp).at(-1)?.id);
@@ -44,6 +51,14 @@ export function structural(fn, label) {
   const step = { kind: 'struct', label, before, after };
   commit(Array.isArray(extra) && extra.length ? { kind: 'multi', steps: [step, ...extra] } : step);
   if (sp.width !== before.width || sp.height !== before.height) { emit('resized'); view.setSprite(); } else view.recompose();
+  emit('layers'); emit('frames');
+  if (before.colorMode !== sp.colorMode || JSON.stringify(before.palette) !== JSON.stringify(sp.palette) || String(before.paletteBreaks) !== String(sp.paletteBreaks || [])) emit('palette');
+}
+
+// Record a change made in steps (a live preview): call with the snapshot from before it began
+export function commitSince(before, label) {
+  const after = snap();
+  commit({ kind: 'struct', label, before, after });
   emit('layers'); emit('frames');
 }
 

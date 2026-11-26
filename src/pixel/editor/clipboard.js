@@ -13,6 +13,7 @@ import { makePatch } from '../core/history.js';
 import { startMove, applyMove, movable } from './move.js';
 import { structural, deleteLayers } from './doc.js';
 import { toast } from '../ui/dialogs.js';
+import { snapIncoming } from './color.js';
 
 let view = null, commit = null;
 export function initClipboard(v, c) { view = v; commit = c; }
@@ -81,6 +82,7 @@ function pasteBlock(block, w, h, x, y) {
   if (!movable(state.layerId)) { toast2('Pick a visible, unlocked regular layer to paste into'); return; }
   setSelection(null);
   const [px, py] = placeAt(w, h, x, y);
+  block = snapIncoming(block);                    // indexed: only palette colours come in
   if (startMove({ block, w, h, x: px, y: py })) { emit('set-tool', 'move'); toast2('Pasted — drag to place it, then ✓'); }
 }
 
