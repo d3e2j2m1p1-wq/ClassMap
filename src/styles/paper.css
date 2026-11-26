@@ -256,3 +256,47 @@ a.landing-logo:hover .landing-logo-wren { transform: rotate(-8deg); }
 .landing-logo-wren { transition: transform 0.2s; }
 .landing-header .site-link { color: #fff; text-decoration: none; }
 @media (max-width: 700px) { .landing-header .site-link { display: none; } }
+
+/* ═══ Home header: compact controls (G, Español, gear, small switch) ═══ */
+.landing-header-actions { gap: 8px !important; }
+.hdr-icon {
+  position: relative; width: 36px; height: 36px; padding: 0; display: inline-grid; place-items: center; cursor: pointer;
+  background: #fff; color: var(--ink); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 2px 2px 0 var(--ink);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.hdr-icon:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+.hdr-icon:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+.hdr-icon:focus-visible { outline: 3px solid var(--aqua); outline-offset: 2px; }
+body:not(.light) .hdr-icon { border-color: #000; box-shadow: 2px 2px 0 #000; }
+.gear-btn svg { transition: transform 0.4s; }
+.gear-btn:hover svg, .gear-btn[aria-expanded="true"] svg { transform: rotate(60deg); }
+.landing-header .lang-btn { height: 36px; border-radius: 10px; }
+.landing-header .theme-switch.lg { width: 90px; height: 32px; border-width: 2px; box-shadow: 2px 2px 0 var(--ink); }
+
+/* the G: sync state as a dot, details in a small menu */
+.sync-area { position: relative; display: inline-flex; }
+.sync-pill { position: relative; display: inline-flex; border: 0; padding: 0; background: none; }
+.g-dot { position: absolute; right: -5px; top: -5px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ink); background: var(--green); }
+.sync-btn.warn .g-dot { background: #F5B544; }
+.sync-pill.syncing .g-dot { background: var(--aqua); animation: g-pulse 1s ease-in-out infinite; }
+.sync-pill.error .g-dot { background: var(--coral); }
+@keyframes g-pulse { 50% { scale: 0.7; } }
+.sync-menu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; min-width: 230px; padding: 8px; display: flex; flex-direction: column; gap: 4px;
+  background: var(--surface); color: var(--text); border: 2px solid var(--line); border-radius: 12px; box-shadow: 4px 4px 0 var(--pop);
+}
+.sync-menu[hidden] { display: none; }
+.sync-menu .sync-email { max-width: none; padding: 4px 8px; font-size: 0.78rem; color: var(--text3); }
+.sync-menu button { text-align: left; padding: 8px 10px; border: 0; border-radius: 8px; background: none; color: var(--text); font: 700 0.86rem var(--font); cursor: pointer; }
+.sync-menu button:hover { background: var(--surface2); }
+.sync-menu .sync-out { color: var(--text2); font-weight: 600; }
+
+/* Send or receive in the left bar */
+.share-side { display: flex; width: calc(100% - 24px); margin: 12px 12px 0; padding: 8px 12px 8px 8px; }
+.share-side img { width: 50px; }
+.share-side + .got-code { margin-top: 10px; }
+@media (max-width: 700px) {
+  .landing-subtitle { display: none; }
+  .landing-header .theme-switch.lg { width: 80px; height: 30px; }
+}
+@media (prefers-reduced-motion: reduce) { .gear-btn svg, .sync-pill.syncing .g-dot { animation: none; transition: none; } }

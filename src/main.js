@@ -59,7 +59,7 @@ import { toggleTableToolMenu, updateTableToolBadge } from './layout/tableGroups.
 import { clearLayout } from './layout/tables.js';
 import { flushSave, manualSave, markDirty } from './storage/autosave.js';
 import { exportEverything, restoreEverything } from './storage/backup.js';
-import { initDrive, signIn as driveSignIn, signOut as driveSignOut, syncNow as driveSyncNow } from './storage/drive.js';
+import { initDrive, signIn as driveSignIn, signOut as driveSignOut, syncNow as driveSyncNow, toggleSyncMenu } from './storage/drive.js';
 import { CLASS_COLORS, initStorage, saveLandingData } from './storage/landingData.js';
 import { guessGroupForClass } from './roster/nameList.js';
 import { exportData, importDataFromFile } from './storage/chartFile.js';
@@ -112,6 +112,7 @@ Object.assign(window, {
   driveSignIn,
   driveSignOut,
   driveSyncNow,
+  toggleSyncMenu,
   duplicateChart,
   esc,
   exportData,

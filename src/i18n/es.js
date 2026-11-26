@@ -562,7 +562,7 @@ export default {
 "Swapped.": "Intercambiados.",
 "Switch light or dark theme": "Cambiar tema claro u oscuro",
 "Switch who's grouped together": "Cambiar quién está agrupado",
-"Sync problem — retry": "Problema al sincronizar; reintentar",
+"Sync problem — retry": "Problema al sincronizar — reintentar",
 "Syncing…": "Sincronizando…",
 "Table": "Mesa",
 "Table name": "Nombre de la mesa",
@@ -1106,5 +1106,10 @@ export default {
 "🔔 Desk bell": "🔔 Timbre de mesa",
 "🔔 Marimba": "🔔 Marimba",
 "🔔 Birdsong": "🔔 Canto de pájaros",
-"🔔 Singing bowl": "🔔 Cuenco tibetano"
+"🔔 Singing bowl": "🔔 Cuenco tibetano",
+"Settings and more": "Ajustes y más",
+"Sign in with Google — keep your classes in your own Google Drive and use them on any device": "Inicia sesión con Google — guarda tus clases en tu propio Google Drive y úsalas en cualquier dispositivo",
+"Reconnect Google Drive": "Reconectar Google Drive",
+"Google Drive: {}": "Google Drive: {}",
+"Sign out of Google": "Cerrar sesión de Google"
 };

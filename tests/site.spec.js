@@ -59,7 +59,8 @@ test('the home page links to contact, and the app links back to the website', as
   await page.goto('/app/');
   await page.waitForFunction(() => window.__classmapStarted);
   await expect(page.locator('a.landing-logo')).toHaveAttribute('href', '/');
-  await page.getByRole('link', { name: '← Website' }).click();
+  await page.locator('#homeMore [aria-haspopup]').click();
+  await page.getByRole('menuitem', { name: /ClassMap website/ }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator('h1')).toContainText('your rules');
 });

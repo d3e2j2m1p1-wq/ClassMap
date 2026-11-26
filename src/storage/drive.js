@@ -208,7 +208,8 @@ export async function signOut() {
     message: 'Your classes stay on this device, and the copy in your Google Drive stays there too. You can sign in again any time.',
     confirmLabel: 'Sign out',
   });
-  if (!ok) return;
+  menuOpen = false;
+  if (!ok) { renderSyncArea(); return; }
   try { if (token && window.google) window.google.accounts.oauth2.revoke(token, () => {}); } catch (e) {}
   token = null; tokenExpires = 0;
   sync = {};
@@ -218,25 +219,42 @@ export async function signOut() {
 
 function setStatus(s) { status = s; renderSyncArea(); }
 
-// ── Home page sign-in / status ──
+// ── Home page sign-in / status: a square Google "G" ──
+//    Signed out: tap to sign in. Signed in: a coloured dot shows the state; tap for a small menu.
+const G_LOGO = `<svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.9 6.2C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.6c0-1.6-.1-3.1-.4-4.6H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.8c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.5 28.5c-.5-1.4-.8-2.9-.8-4.5s.3-3.1.8-4.5l-7.9-6.2C.9 16.6 0 20.2 0 24s.9 7.4 2.6 10.7l7.9-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.8c-2.1 1.4-4.8 2.3-8.5 2.3-6.3 0-11.6-4.1-13.5-9.7l-7.9 6.2C6.6 42.6 14.6 48 24 48z"/></svg>`;
+let menuOpen = false;
+function closeSyncMenu(e) {
+  if (e && document.getElementById('syncArea')?.contains(e.target)) return;
+  menuOpen = false;
+  document.removeEventListener('pointerdown', closeSyncMenu, true);
+  renderSyncArea();
+}
+export function toggleSyncMenu() {
+  menuOpen = !menuOpen;
+  if (menuOpen) document.addEventListener('pointerdown', closeSyncMenu, true);
+  else document.removeEventListener('pointerdown', closeSyncMenu, true);
+  renderSyncArea();
+}
 export function renderSyncArea() {
   const el = document.getElementById('syncArea');
   if (!el) return;
   if (!driveEnabled()) { el.innerHTML = ''; return; }
   if (!wasSignedIn()) {
-    el.innerHTML = `<button type="button" class="sync-btn" onclick="driveSignIn()" title="Keep your classes in your own Google Drive and use them on any device">
-      <span class="g-mark" aria-hidden="true">G</span> Sign in with Google</button>`;
+    el.innerHTML = `<button type="button" class="hdr-icon g-btn sync-btn" onclick="driveSignIn()" aria-label="Sign in with Google" title="Sign in with Google — keep your classes in your own Google Drive and use them on any device">${G_LOGO}</button>`;
     return;
   }
   if (!hasToken()) {
-    el.innerHTML = `<button type="button" class="sync-btn warn" onclick="driveSignIn()" title="${esc(sync.email)} — Google sign-ins last about an hour">☁ Reconnect Google Drive</button>`;
+    el.innerHTML = `<button type="button" class="hdr-icon g-btn sync-btn warn" onclick="driveSignIn()" aria-label="Reconnect Google Drive" title="${esc(sync.email)} — Google sign-ins last about an hour. Tap to reconnect.">${G_LOGO}<i class="g-dot"></i></button>`;
     return;
   }
   const text = status === 'syncing' ? 'Syncing…' : status === 'error' ? 'Sync problem — retry' : 'Saved to Drive';
   el.innerHTML = `<div class="sync-pill ${status}">
-      <button type="button" class="sync-main" onclick="driveSyncNow()" title="Sync now">☁ ${text}</button>
-      <span class="sync-email">${esc(sync.email)}</span>
-      <button type="button" class="sync-out" onclick="driveSignOut()" title="Sign out" aria-label="Sign out of Google">✕</button>
+      <button type="button" class="hdr-icon g-btn" onclick="toggleSyncMenu()" aria-haspopup="true" aria-expanded="${menuOpen}" aria-label="Google Drive: ${text}" title="Google Drive: ${text}">${G_LOGO}<i class="g-dot"></i></button>
+      <div class="sync-menu" ${menuOpen ? '' : 'hidden'}>
+        <span class="sync-email">${esc(sync.email)}</span>
+        <button type="button" class="sync-main" onclick="driveSyncNow()">☁ ${text}</button>
+        <button type="button" class="sync-out" onclick="driveSignOut()">Sign out of Google</button>
+      </div>
     </div>`;
 }
 

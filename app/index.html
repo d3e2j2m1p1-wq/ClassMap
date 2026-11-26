@@ -343,13 +343,9 @@
     <div class="landing-subtitle">Your classroom seating organizer</div>
     <div class="landing-header-actions" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
       <div id="syncArea" class="sync-area"></div>
-      <a class="btn btn-ghost btn-sm site-link" href="/" title="Back to the ClassMap website: guides, privacy, contact">← Website</a>
-      <button class="share-btn" onclick="openShare()" title="Send classes and charts to another device or teacher, or receive them — no files, no accounts">
-        <img src="/art/wren-card.webp" width="600" height="495" alt=""><span><b>Send or receive classes</b><small>to a device or teacher</small></span>
-      </button>
       <button class="btn btn-ghost btn-sm lang-btn" onclick="toggleLanguage()" data-no-i18n title="Español / English">🌐 Español</button>
       <div class="home-more" id="homeMore">
-        <button class="btn btn-ghost btn-sm" onclick="toggleHomeMore(event)" aria-haspopup="true" aria-expanded="false" title="More">⋯ More</button>
+        <button class="hdr-icon gear-btn" onclick="toggleHomeMore(event)" aria-haspopup="true" aria-expanded="false" title="Settings and more" aria-label="Settings and more"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.4 7.4 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .2.3.4.5.4h4c.2 0 .5-.2.5-.4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7z"/></svg></button>
         <div class="home-more-menu" role="menu" hidden>
           <button role="menuitem" onclick="closeHomeMore();exportEverything()"><span>⬇ Back up everything</span><small>every class and chart in one file</small></button>
           <button role="menuitem" onclick="closeHomeMore();document.getElementById('restoreFile').click()"><span>📂 Import file</span><small>a chart file or a full backup</small></button>
@@ -383,6 +379,9 @@
         <button class="btn btn-primary btn-sm" onclick="addLandingClass()">Add</button>
       </div>
       <button type="button" class="gc-import-btn" onclick="openClassroomImport()" hidden><span class="gc-mark" aria-hidden="true">▦</span> Import from Google Classroom</button>
+      <button class="share-btn share-side" onclick="openShare()" title="Send classes and charts to another device or teacher, or receive them — no files, no accounts">
+        <img src="/art/wren-card.webp" width="600" height="495" alt=""><span><b>Send or receive classes</b><small>to a device or teacher</small></span>
+      </button>
       <form class="got-code" onsubmit="event.preventDefault();openReceive(this.code.value);this.reset()" autocomplete="off">
         <label for="gotCodeInput">Got a code?</label>
         <div><input id="gotCodeInput" name="code" maxlength="7" placeholder="ABC-123" autocapitalize="characters" spellcheck="false"><button class="btn btn-ghost btn-sm" type="submit">Receive</button></div>

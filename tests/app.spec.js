@@ -1411,6 +1411,12 @@ test('Google Drive: sign in uploads; a change from another device comes back mer
 
   await page.getByRole('button', { name: /Sign in with Google/ }).click();
   await expect(page.locator('.sync-pill')).toContainText('Saved to Drive');
+  // the G opens a small menu with the account and Sign out
+  await page.locator('.sync-pill .g-btn').click();
+  await expect(page.locator('.sync-menu')).toBeVisible();
+  await expect(page.locator('.sync-menu')).toContainText('teacher@example.com');
+  await page.mouse.click(700, 500);
+  await expect(page.locator('.sync-menu')).toBeHidden();
   expect(drive.uploads).toBe(1);
   expect(drive.file.classes.map(c => c.name)).toEqual(['Laptop class']);
 
