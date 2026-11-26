@@ -27,57 +27,27 @@
 .ai-body h4 { font-size: 0.78rem; margin-top: 4px; color: var(--text); }
 .ai-body ul { padding-left: 18px; display: flex; flex-direction: column; gap: 3px; color: var(--text2); }
 .ai-body p { color: var(--text2); }
-.ai-lead { color: var(--text) !important; }
 .ai-fine { font-size: 0.74rem; color: var(--text3) !important; }
 .ai-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .ai-row.end { justify-content: flex-end; }
 .ai-link { background: none; border: none; color: var(--blue); cursor: pointer; font: inherit; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
 
-.ai-search input, .ai-input, .ai-student {
+.ai-search input {
   width: 100%; background: var(--surface2); color: var(--text); border: 1px solid var(--border2);
   border-radius: 8px; padding: 8px 10px; font: inherit; outline: none;
 }
-.ai-input { resize: vertical; min-height: 70px; }
-.ai-search input:focus, .ai-input:focus, .ai-student:focus { border-color: var(--blue); }
+.ai-search input:focus { border-color: var(--blue); }
 
-.ai-tools { display: flex; flex-direction: column; gap: 6px; }
-.ai-tool {
-  display: flex; gap: 10px; align-items: center; text-align: left; font: inherit; color: var(--text); cursor: pointer;
-  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px;
-}
-.ai-tool:hover { border-color: var(--blue); }
-.ai-tool[data-off] { opacity: 0.6; }
-.ai-tool > span:last-child { display: flex; flex-direction: column; }
-.ai-tool small { color: var(--text3); font-size: 0.72rem; }
-.ai-tool-i { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--blue-dim); color: var(--blue); font-size: 0.95rem; flex-shrink: 0; }
-
-.ai-card { background: var(--blue-dim); border: 1px solid var(--blue); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.ai-card p { color: var(--text) !important; font-size: 0.78rem; }
 .ai-note { background: var(--surface2); border-radius: 8px; padding: 8px 10px; font-size: 0.78rem; color: var(--text2); }
 .ai-note.warn { background: var(--amber-dim); color: var(--text); }
 .ai-note.ok { background: var(--green-dim); color: var(--text); }
 .ai-note small { color: var(--text3); }
-
-.ai-check { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.ai-check div { background: var(--surface2); border-radius: 8px; padding: 6px 9px; display: flex; flex-direction: column; }
-.ai-check span { font-size: 0.68rem; color: var(--text3); }
-.ai-check b { font-size: 0.78rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ai-models { display: flex; flex-direction: column; gap: 6px; }
-.ai-model { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 10px; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; }
-.ai-model:has(input:checked) { border-color: var(--blue); }
-.ai-model input { margin-top: 3px; }
-.ai-model small { color: var(--text3); font-size: 0.72rem; }
-
-.ai-progress { height: 10px; border-radius: 6px; background: var(--surface3); overflow: hidden; }
-.ai-progress > div { height: 100%; background: var(--blue); transition: width 0.2s; }
 
 .ai-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ai-chip { font-size: 0.74rem; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface2); cursor: pointer; color: var(--text2); }
 .ai-chip input { display: none; }
 .ai-chip:has(input:checked) { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
 
-.ai-out { display: flex; flex-direction: column; gap: 8px; }
-.ai-out:empty { display: none; }
 .ai-msg { background: var(--surface2); border-radius: 10px; padding: 10px 12px; white-space: pre-wrap; color: var(--text); }
 .ai-msg ul { color: var(--text); white-space: normal; }
 .typing::after { content: '▍'; animation: ai-blink 1s steps(2) infinite; color: var(--blue); margin-left: 1px; }
@@ -96,26 +66,10 @@
 .ai-plan li.conflict small { color: var(--amber); }
 .ai-plan li.duplicate { opacity: 0.55; }
 
-.ai-tip {
-  position: fixed; z-index: 940; width: min(300px, calc(100vw - 16px)); padding: 12px 14px;
-  background: var(--surface); color: var(--text); border: 1px solid var(--blue); border-radius: 12px;
-  box-shadow: 0 12px 36px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem;
-  animation: ai-in 0.25s ease-out;
-}
-.ai-tip p { color: var(--text2); }
-@keyframes ai-in { from { opacity: 0; transform: translateY(8px); } }
-
-.ai-menu {
-  position: fixed; z-index: 960; min-width: 240px; padding: 6px;
-  background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-}
-.ai-menu .tm-item { flex-direction: column; align-items: flex-start; gap: 1px; }
-.ai-menu .tm-item[data-k="remove"] span { color: var(--rose); }
-
 /* Never on the projector or on paper */
 body.presenting .ai-root { display: none !important; }
 @media print { .ai-root { display: none !important; } }
-@media (prefers-reduced-motion: reduce) { .ai-bubble, .ai-tip, .ai-progress > div { transition: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .ai-bubble { transition: none; animation: none; } }
 
 /* ── Chat ── */
 .ai-chat { display: flex; flex-direction: column; gap: 8px; max-height: 340px; min-height: 60px; overflow-y: auto; padding-right: 2px; }
@@ -139,6 +93,8 @@ body.presenting .ai-root { display: none !important; }
 .ai-ask-in:focus { border-color: var(--blue); }
 .ai-send { width: 38px; height: 38px; border-radius: 10px; border: none; background: var(--blue); color: #fff; cursor: pointer; font-size: 0.95rem; flex-shrink: 0; }
 .ai-send:hover { filter: brightness(1.1); }
-.ai-tools { flex-direction: row; }
-.ai-tools .ai-tool { flex: 1; padding: 7px 8px; }
-.ai-tools .ai-tool-i { width: 26px; height: 26px; }
+
+/* not understood: the closest answers and phrasings, as chips */
+.ai-near { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+.ai-near .ai-chip:disabled { opacity: 0.55; cursor: default; }
+.ai-part + .ai-part { margin-top: 8px; }

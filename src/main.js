@@ -163,7 +163,7 @@ Object.assign(window, {
 
 // Dev/test only: every module's exports in one place (used by tests/ and handy in the console)
 if (import.meta.env.DEV) {
-  const all = import.meta.glob(['./**/*.js', '!./main.js', '!./ai/aiWorker.js', '!./site/**'], { eager: true });
+  const all = import.meta.glob(['./**/*.js', '!./main.js', '!./site/**'], { eager: true });
   window.__cm = Object.assign({ store }, ...Object.values(all));
 }
 
@@ -225,7 +225,7 @@ try {
   initAttendanceMode();  // ✓ Attendance in the Assign view
   initParticipationMode(); // ★ Points in the Assign view
   if (classroomEnabled()) document.querySelectorAll('.gc-import-btn').forEach(b => { b.hidden = false; });
-  initAssistant();       // help + on-device AI (lower right)
+  initAssistant();       // Ask ClassMap (lower right)
   // index.html shows a "couldn't start" screen if this line is never reached
   window.__classmapStarted = true;
 })();

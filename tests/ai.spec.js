@@ -1,44 +1,13 @@
-// Browser tests for the ClassMap helper and the on-device AI.
-// The real model can't run here (no GPU), so a stand-in engine answers instead.
+// Browser tests for Ask ClassMap (the helper). There is no AI: a pattern reader, typo fixes,
+// common rephrasings, the help search, and real class data.
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'fs';
 
-const GOOD_DEVICE = { webgpu: true, gpu: 'Test GPU', storageFreeGB: 50, memoryGB: 8, mobile: false, promptApi: 'none' };
-
-async function open(page, { device = GOOD_DEVICE, prefs = null } = {}) {
+async function open(page) {
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
-  await page.addInitScript(([d, p]) => {
-    if (d) window.__cmAiDevice = d;
-    if (p && !sessionStorage.getItem('cm-ai-set')) { localStorage.setItem('cm-ai', JSON.stringify(p)); sessionStorage.setItem('cm-ai-set', '1'); }
-  }, [device, prefs]);
   await page.goto('/app/');
   await page.waitForFunction(() => window.__cm && window.__classmapStarted);
   return errors;
-}
-
-// A stand-in for the model: streams a canned reply, chosen by what it was asked
-async function mockEngine(page, replies = {}) {
-  await page.evaluate(r => {
-    const calls = [];
-    window.__aiCalls = calls;
-    window.__cm.setEngineForTests({
-      state: 'off', model: null,
-      async load(key, onProgress) {
-        this.state = 'loading';
-        for (let i = 1; i <= 4; i++) { onProgress({ loaded: i * 25e6, total: 100e6 }); await new Promise(x => setTimeout(x, 30)); }
-        this.state = 'ready'; this.model = key;
-      },
-      async chat(messages, { onToken = () => {} } = {}) {
-        calls.push(messages);
-        const sys = messages[0].content;
-        const reply = /command reader/.test(sys) ? r.command : /seating wishes into rules/.test(sys) ? r.rules : /edit emails/.test(sys) ? r.email : /plan seating and daily support/.test(sys) ? r.accom : r.help;
-        for (const w of String(reply).split(/(?<= )/)) onToken(w);
-        return String(reply);
-      },
-      stop() {}, unload() { this.state = 'off'; },
-    });
-  }, { command: '[{"action":"none"}]', rules: '[]', email: 'Hello.', accom: '- Seat near the front', help: 'Use the Rules tab.', ...replies });
 }
 
 // A class with real-looking names, on the home page
@@ -58,21 +27,6 @@ async function classOnHome(page) {
 }
 const panel = page => page.locator('.ai-panel');
 const bubble = page => page.locator('.ai-bubble');
-
-test('helper button: first-visit tip once, then quiet', async ({ page }) => {
-  const errors = await open(page);
-  await expect(bubble(page)).toBeVisible();
-  await expect(page.locator('.ai-tip')).toBeVisible({ timeout: 4000 });
-  await expect(page.locator('.ai-tip')).toContainText('never leaves this device');
-  await page.locator('.ai-tip-no').click();
-  await expect(page.locator('.ai-tip')).toHaveCount(0);
-  await page.reload();
-  await page.waitForFunction(() => window.__classmapStarted);
-  await page.waitForTimeout(2000);
-  await expect(page.locator('.ai-tip')).toHaveCount(0);
-  await expect(bubble(page)).toBeVisible();
-  expect(errors).toEqual([]);
-});
 
 // Type into the helper and send
 async function ask(page, text) {
@@ -94,19 +48,8 @@ async function chartWithSeats(page) {
   });
 }
 
-test('no WebGPU: no tip, no AI offer; how-to questions get the written answer', async ({ page }) => {
-  await open(page, { device: { ...GOOD_DEVICE, webgpu: false, gpu: '' } });
-  await page.waitForTimeout(2000);
-  await expect(page.locator('.ai-tip')).toHaveCount(0);
-  await bubble(page).click();
-  await expect(panel(page)).toContainText('needs a browser with WebGPU');
-  await expect(panel(page).locator('.ai-learn')).toHaveCount(0);
-  const reply = await ask(page, 'how do I keep two students apart?');
-  await expect(reply.locator('.ai-hit').first()).toContainText('Keep apart');
-});
-
 test('“how do I add a class” gives the real steps, and offers to do it', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true } });
+  await open(page);
   await bubble(page).click();
   const reply = await ask(page, 'How do I add a new class?');
   await expect(reply.locator('.ai-hit').first()).toContainText('“New class name…” box');
@@ -116,7 +59,7 @@ test('“how do I add a class” gives the real steps, and offers to do it', asy
 });
 
 test('chat makes a class with students, only after Apply; Undo takes it back', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true } });
+  await open(page);
   await bubble(page).click();
   const reply = await ask(page, 'Can you create a new class called Period 4 with Jo Smith, Sam Lee and Ana Diaz?');
   await expect(reply.locator('.ai-plan')).toContainText('Create the class Period 4');
@@ -131,7 +74,7 @@ test('chat makes a class with students, only after Apply; Undo takes it back', a
 });
 
 test('chat: add and tag students, answer from the real roster', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true } });
+  await open(page);
   await classOnHome(page);
   await bubble(page).click();
   let reply = await ask(page, 'add students: Jo Smith, Liam Johnson');
@@ -151,7 +94,7 @@ test('chat: add and tag students, answer from the real roster', async ({ page })
 });
 
 test('plain-English rules in the chat: preview, Apply, Undo', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true } });
+  await open(page);
   await classOnHome(page);
   await bubble(page).click();
   const reply = await ask(page, 'Keep Liam and Owen apart. Sofia needs to sit near the front. Spread out the IEP kids.');
@@ -174,7 +117,7 @@ test('plain-English rules in the chat: preview, Apply, Undo', async ({ page }) =
 });
 
 test('rules: unclear names ask which one; existing rules are marked', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true } });
+  await open(page);
   await classOnHome(page);
   await page.evaluate(() => { const c = window.__cm.store.landingData.classes[0]; c.hardRules.push({ type: 'separate', studentA: 'Liam Johnson', studentB: 'Owen Park' }); });
   await bubble(page).click();
@@ -187,7 +130,7 @@ test('rules: unclear names ask which one; existing rules are marked', async ({ p
 });
 
 test('chart questions and seat changes come from the real chart', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true } });
+  await open(page);
   await classOnHome(page);
   await chartWithSeats(page);
   await bubble(page).click();
@@ -216,85 +159,8 @@ test('chart questions and seat changes come from the real chart', async ({ page 
   await expect(reply).toContainText('Liam & Owen should be separated');
 });
 
-test('requests the reader can’t follow go to the AI, which only picks the action', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true, enabled: true, model: 'small' } });
-  await mockEngine(page, { command: '[{"action":"rules","text":"Keep Liam and Jaden apart"},{"action":"create_class","name":"Sixth Period"}]' });
-  await classOnHome(page);
-  await bubble(page).click();
-  await expect(panel(page)).toContainText('AI on');
-  const reply = await ask(page, 'Liam does better when he is not distracted by Jaden, and I am picking up a sixth period group');
-  await expect(reply.locator('.ai-plan').first()).toContainText('Keep Liam Johnson and Jayden Smith apart');
-  await expect(reply.locator('.ai-plan').nth(1)).toContainText('Create the class Sixth Period');
-  const sys = await page.evaluate(() => window.__aiCalls[0][0].content);
-  expect(sys).toContain('Students: Liam Johnson, Owen Park');
-  // made-up actions are ignored
-  await mockEngine(page, { command: '[{"action":"delete_everything"}]' });
-  const r2 = await ask(page, 'do the thing with the stuff');
-  await expect(r2).toContainText('I can’t do that yet');
-});
-
-test('Learn more: device check, turn on with progress, then Remove AI', async ({ page }) => {
-  await open(page);
-  await mockEngine(page);
-  await page.locator('.ai-tip-more').click({ timeout: 4000 });
-  const p = panel(page);
-  await expect(p).toContainText('never leave this device');
-  await expect(p.locator('.ai-check')).toContainText('Test GPU');
-  await expect(p.locator('.ai-check')).toContainText('8 GB or more');
-  await expect(p.locator('input[name=aiModel][value=large]')).toBeChecked();   // 8 GB → the larger model
-  await p.locator('.ai-turnon').click();
-  await expect(p).toContainText('ClassMap helper', { timeout: 5000 });
-  await expect(p).toContainText('AI on · Larger');
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cm-ai')).enabled)).toBe(true);
-  // ⋮ → Remove
-  await p.locator('.ai-menu-btn').click();
-  await page.locator('.ai-menu [data-k="remove"]').click();
-  await page.locator('.cm-btn-confirm').click();
-  await expect(p).toContainText('AI off');
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('cm-ai')).enabled)).toBe(false);
-});
-
-test('parent email polish streams in and copies', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await open(page, { prefs: { tipSeen: true, enabled: true, model: 'small' } });
-  await mockEngine(page, { email: 'Dear Ms. Garcia,\n\nThank you for meeting with me on Tuesday.' });
-  await bubble(page).click();
-  await panel(page).locator('.ai-tool[data-v="email"]').click();
-  await panel(page).locator('.ai-input').fill('hi ms garcia thanks for meeting tues');
-  await panel(page).locator('.ai-chip', { hasText: 'In Spanish' }).click();
-  await panel(page).locator('.ai-go').click();
-  await expect(panel(page).locator('.ai-email')).toContainText('Thank you for meeting with me on Tuesday.');
-  const sys = await page.evaluate(() => window.__aiCalls[0][0].content);
-  expect(sys).toContain('Spanish');
-  expect(sys).toContain('Keep every name, date, time and fact');
-  await panel(page).locator('.ai-copy').click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('Dear Ms. Garcia');
-});
-
-test('accommodation summary: notes, then suggested tags and front seat only after Apply', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true, enabled: true, model: 'small' } });
-  await mockEngine(page, { accom: '- Seat near the board\n- Give directions one step at a time\n- Allow movement breaks' });
-  await classOnHome(page);
-  await bubble(page).click();
-  await panel(page).locator('.ai-tool[data-v="accom"]').click();
-  await panel(page).locator('.ai-student').selectOption('s6');
-  await panel(page).locator('.ai-input').fill('504 plan. Preferential seating near instruction. Extended time 1.5x. Breaks as needed.');
-  await panel(page).locator('.ai-go').click();
-  await expect(panel(page).locator('.ai-sum li')).toHaveCount(3);
-  // the student's name isn't sent to the model
-  expect(JSON.stringify(await page.evaluate(() => window.__aiCalls[0]))).not.toContain('Jayden');
-  const plan = panel(page).locator('.ai-plan');
-  await expect(plan).toContainText('Tag Jayden Smith: “504”, “Preferential seating”');
-  await expect(plan).toContainText('Seat Jayden Smith toward the front');
-  expect(await page.evaluate(() => window.__cm.store.landingData.classes[0].students.find(s => s.id === 's6').tags)).toEqual([]);
-  await plan.locator('.ai-apply').click();
-  const r = await page.evaluate(() => { const c = window.__cm.store.landingData.classes[0]; return [c.students.find(s => s.id === 's6').tags, c.hardRules]; });
-  expect(r[0]).toEqual(['504', 'Preferential seating']);
-  expect(r[1]).toEqual([{ type: 'front', studentA: 'Jayden Smith', studentB: '' }]);
-});
-
 test('helper hides while presenting, and can be dragged', async ({ page }) => {
-  await open(page, { prefs: { tipSeen: true } });
+  await open(page);
   await page.evaluate(() => {
     const cm = window.__cm;
     document.getElementById('newClassInput').value = 'P1';
@@ -321,15 +187,57 @@ test('helper hides while presenting, and can be dragged', async ({ page }) => {
   expect(pos.b).toBeGreaterThan(100);
 });
 
-test('AI file routes only serve the two models and the runtime', async ({ request }) => {
-  const w = 'http://127.0.0.1:8799';
-  expect((await request.get(`${w}/models/someone/other-model/resolve/main/config.json`)).status()).toBe(404);
-  expect((await request.get(`${w}/models/onnx-community/Qwen3.5-0.8B-ONNX-OPT/resolve/main/../../x`)).status()).toBe(404);
-  expect((await request.get(`${w}/ai-runtime/evil.js`)).status()).toBe(404);
-  expect((await request.post(`${w}/ai-runtime/ort-wasm-simd-threaded.asyncify.wasm`)).status()).toBe(405);
-  // the Worker's runtime version must match the one Transformers.js was built with
-  const src = readFileSync(new URL('../worker/index.js', import.meta.url), 'utf8');
-  const pinned = /ORT_VERSION = '([^']+)'/.exec(src)[1];
-  const dep = JSON.parse(readFileSync(new URL('../node_modules/@huggingface/transformers/package.json', import.meta.url), 'utf8')).dependencies['onnxruntime-web'];
-  expect(pinned).toBe(dep);
+test('the helper is plain code: no AI download, no AI wording, old model files cleaned up', async ({ page, request }) => {
+  const asked = [];
+  page.on('request', r => asked.push(r.url()));
+  const errors = await open(page);
+  await bubble(page).click();
+  await expect(panel(page)).toContainText('Ask ClassMap');
+  await expect(panel(page)).not.toContainText(/\bAI\b/);
+  expect(asked.filter(u => /\/models\/|ai-runtime|huggingface|onnx|transformers/.test(u))).toEqual([]);
+  // the server no longer hands out model files
+  expect((await request.get('http://127.0.0.1:8799/models/onnx-community/Qwen3.5-0.8B-ONNX-OPT/resolve/main/config.json')).status()).not.toBe(200);
+  // the service worker deletes the old model cache
+  const sw = await (await request.get('/sw.js')).text();
+  expect(sw).toContain('transformers-cache');
+  expect(errors).toEqual([]);
+});
+
+test('everyday phrasings and typos are understood', async ({ page }) => {
+  await open(page);
+  await classOnHome(page);
+  await bubble(page).click();
+  let reply = await ask(page, 'Dont let Liam sit with Owen');
+  await expect(reply.locator('.ai-plan')).toContainText('Keep Liam Johnson and Owen Park apart');
+  reply = await ask(page, 'Sofia and Mia shouldnt sit together');
+  await expect(reply.locator('.ai-plan')).toContainText('Keep Sofia Kim and Mia Chen apart');
+  reply = await ask(page, 'seperate Jayden and Liam');
+  await expect(reply.locator('.ai-plan')).toContainText('Keep Jayden Smith and Liam Johnson apart');
+  reply = await ask(page, 'please set a timer for 3 minutes');
+  await expect(reply).toContainText('3-minute timer');
+  await page.evaluate(() => { window.__cm.closeTools(); window.__cm.openPanel(); });
+  reply = await ask(page, 'make a clas called Period 5');
+  await expect(reply.locator('.ai-plan')).toContainText('Create the class Period 5');
+  reply = await ask(page, 'how do i bakup my clases');
+  await expect(reply.locator('.ai-hit').first()).toContainText('How do I back up or restore?');
+  reply = await ask(page, 'make it dark');
+  await expect(reply.locator('.ai-hit').first()).toContainText('light and dark');
+  // a student's name is never "corrected"
+  await page.evaluate(() => { const c = window.__cm.store.landingData.classes[0]; c.students.push({ id: 's9', name: 'Asign Patel', gender: 'none', tags: [] }); window.__cm.saveLandingData(); });
+  reply = await ask(page, 'keep Asign and Liam apart');
+  await expect(reply.locator('.ai-plan')).toContainText('Keep Asign Patel and Liam Johnson apart');
+});
+
+test('not understood: closest help answers, phrasings that work, and a way to tell us', async ({ page }) => {
+  await open(page);
+  await classOnHome(page);
+  await bubble(page).click();
+  const reply = await ask(page, 'help me with the projecter thing');
+  await expect(reply).toContainText('I’m not sure what you mean');
+  await expect(reply.locator('.ai-near-q').first()).toBeVisible();
+  await reply.locator('.ai-near-q', { hasText: 'projector' }).click();
+  await expect(page.locator('.ai-bot .ai-hit').last()).toContainText('Present');
+  await reply.locator('.ai-ex').first().click();
+  await expect(page.locator('.ai-ask-in')).not.toHaveValue('');
+  await expect(reply.locator('a[href="/contact/"]')).toBeVisible();
 });

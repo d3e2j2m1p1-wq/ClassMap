@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 //  The helper in Spanish: the usual ways a teacher asks, rewritten into the English phrasing
 //  the command reader knows ("Separa a Liam y Owen" → "Keep Liam and Owen apart").
-//  Anything not covered goes to the on-device AI (which reads Spanish) or the help search.
+//  Anything not covered goes to the help search, which also reads Spanish.
 // ═══════════════════════════════════════════════
 const NUM = { uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, diez: 10, quince: 15, veinte: 20, treinta: 30 };
 const n = w => (w && (+w || NUM[w.toLowerCase()])) || '';

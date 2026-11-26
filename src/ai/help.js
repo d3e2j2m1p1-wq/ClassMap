@@ -1,8 +1,9 @@
 import { isSpanish, translate } from '../i18n/i18n.js';
+import { dist } from './understand.js';
 // ═══════════════════════════════════════════════
-//  HELP SEARCH — works with the AI off.
+//  HELP SEARCH
 //  Short answers about the app, plus every section of the guides on classmap.dev.
-//  With the AI on, the best matches are handed to the model as its only source.
+//  Matches whole words, word beginnings, and words with a small typo.
 // ═══════════════════════════════════════════════
 
 // `do`: what to type into the helper to have it done for you
@@ -18,9 +19,10 @@ export const FAQ = [
   { q: 'What are tags?', a: 'Tags (IEP, 504, ELL, Strong reader …) mark students so rules can use them, like spreading IEP students across groups or seating ELL students with a strong reader. Add them with 🏷 next to a name in the Roster tab, or tell the helper: “Tag Owen as IEP.” Tags never show on the projector or the printed chart; private tags also stay off the substitute page.', k: 'tags iep 504 ell label mark private badge' },
   { q: 'How do I show the chart on the projector?', a: 'In a chart, press Present. It opens full screen with names only; tags and notes stay hidden. Press Esc to leave.', k: 'present projector full screen show class' },
   { q: 'How do I print the chart or make a sub plan?', a: 'In a chart, use Print. You can print the seating chart, and a substitute page with the class’s rules (private tags left out).', k: 'print substitute sub plan paper pdf' },
-  { q: 'How do I move a chart to another device or teacher?', a: 'Use ⋯ → Send to another device. The other device opens classmap.dev, chooses Receive, and enters the code. It’s encrypted from end to end and nothing is stored on a server.', k: 'send receive share transfer another device teacher airdrop code' },
-  { q: 'Where is my data stored?', a: 'On this device, in your browser. There are no accounts. Use “Back up everything” on the home page now and then to keep a copy.', k: 'data stored saved privacy backup where cloud account' },
-  { q: 'How do I back up or restore?', a: 'On the home page, use “Back up everything” to download every class and chart as one file, and Import file to restore it on any device.', k: 'backup restore export import file' },
+  { q: 'How do I move a chart to another device or teacher?', a: 'Press “Send or receive classes” in the left bar of the home page (or ⇡ Send in a chart). The other device opens classmap.dev/app and types the code into “Got a code?”. It’s encrypted from end to end and nothing is stored on a server.', k: 'send receive share transfer another device teacher airdrop code phone' },
+  { q: 'Where is my data stored?', a: 'On this device, in your browser. There are no ClassMap accounts. To keep a copy, sign in with Google (the G at the top of the home page) to save it in your own Google Drive, or use ⚙ → Back up everything now and then.', k: 'data stored saved privacy backup where cloud account google drive' },
+  { q: 'How do I back up or restore?', a: 'On the home page, open ⚙ → Back up everything to download every class and chart as one file, and ⚙ → Import file to restore it on any device. Or sign in with Google (the G at the top) and it’s saved to your Google Drive automatically.', k: 'backup restore export import file google drive sync' },
+  { q: 'How do I use ClassMap on more than one device?', a: 'Sign in with Google (the G at the top of the home page) on each device: your classes are kept in your own Google Drive and stay in sync. For a one-time move, use “Send or receive classes” in the left bar.', k: 'sync devices laptop phone ipad home school google drive sign in account' },
   { q: 'How do I undo?', a: 'Press Ctrl+Z (⌘Z on a Mac) or the ↶ button at the top. Deleted charts and classes also show an Undo button for a few seconds.', k: 'undo mistake deleted back' },
   { q: 'Can ClassMap arrange the tables for me?', a: 'Yes. In the Layout tab, Room check points out blocked doors and walkways, Tidy up straightens tables, and Arrange for me suggests a whole layout. Nothing moves until you press Apply.', k: 'arrange tidy room check walkway smart layout suggest' },
   { q: 'How do I track participation?', a: 'Open a chart, go to Assign and press ★ Points (bottom left). Tap a student each time they take part; the bar lists who hasn’t had a turn yet today. In the Name picker you can “Favor fewer points” so quieter students get called on more. Points stay on this device and never show on the projector.', k: 'participation points tally called on quiet students turn engagement', do: '' },
@@ -29,7 +31,9 @@ export const FAQ = [
   { q: 'How do I take attendance?', a: 'Open a chart, go to Assign and press ✓ Attendance (bottom left). Tap a student once for absent, twice for late, again for here, then Copy the list for your school’s system. You can also use “Here” in the 🧰 Tools tab. Attendance stays on this device and never shows on the projector.', k: 'attendance absent late tardy roll call present missing', do: 'Take attendance' },
   { q: 'Can I leave students out of the name picker?', a: 'Yes. In the Name picker, press “Skip list” and tap the students who shouldn’t be called on at random. They stay in groups and everything else. Absent students are skipped automatically.', k: 'skip exclude leave out name picker random call on anxious', do: '' },
   { q: 'How do I pick a random student or make groups?', a: 'Open a class on the home page and choose the 🧰 Tools tab (or ⋯ in a chart). The Name picker gives everyone a turn before anyone repeats; the Group maker makes groups that follow your class rules. Mark absent students with “Here” at the top.', k: 'random name picker call on student groups group maker activity partners absent', do: 'Make groups of ' },
-  { q: 'What can the helper do?', a: 'Type what you want in your own words. It can make classes, add and tag students, set seating rules, swap or move seats, pin students, auto-assign, and answer questions like “Who’s tagged IEP?” or “Who sits next to Owen?”. Answers come from your real class data, and nothing changes until you press Apply. With the on-device AI on, it also understands more ways of asking, polishes parent emails and sums up accommodations; it runs in your browser and student information never leaves this device.', k: 'ai assistant helper model on-device private chat what can you do' },
+  { q: 'What can Ask ClassMap do?', a: 'Type what you want in everyday words. It can make classes, add and tag students, set seating rules (“Keep Liam and Owen apart”), swap or move seats, pin students, auto-assign, start a timer, take attendance, and answer questions like “Who’s tagged IEP?” or “Who sits next to Owen?”. Answers come from your real class data, and nothing changes until you press Apply. Everything stays on this device.', k: 'ask classmap helper assistant chat what can you do bubble' },
+  { q: 'How do I switch between light and dark?', a: 'Tap the little scene at the top right (or drag the lens across it). Your choice is remembered on this device.', k: 'dark mode light theme night colors switch' },
+  { q: 'How do I use ClassMap in Spanish?', a: 'Press “Español” at the top of the home page. Press it again (“English”) to switch back.', k: 'spanish español language english translate idioma' },
 ];
 
 const GUIDES = [
@@ -61,7 +65,7 @@ async function loadGuides() {
   return out;
 }
 
-const STOP = new Set(('a an the to of in on for and or i my do does how what can is it be with at from this that me you your we our ' +
+const STOP = new Set(('a an the to of in on for and or i my do does how what can is it be with at from this that me you your we our help please need want get ' +
   'el la los las un una unos unas de del al y o en con por para que qué cómo como mi mis tu tus se es son lo le me puedo hago hacer').split(' '));
 const plain = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const words = s => plain(s).replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(w => w && !STOP.has(w));
@@ -71,17 +75,21 @@ function score(qWords, text, boost = 1) {
   const t = words(text).map(stem);
   const set = new Set(t);
   let n = 0;
-  qWords.forEach(w => { if (set.has(w)) n += 2; else if (w.length > 3 && t.some(x => x.startsWith(w.slice(0, 4)))) n += 1; });
+  qWords.forEach(w => {
+    if (set.has(w)) n += 2;
+    else if (w.length > 3 && t.some(x => x.startsWith(w.slice(0, 4)))) n += 1;
+    else if (w.length >= 5 && t.some(x => x.length >= 4 && dist(w, x, 1) <= 1)) n += 1;   // a small typo
+  });
   return n * boost;
 }
 
 // [{ kind: 'faq'|'guide', title, text, url? , score }]
-export async function searchHelp(query, limit = 5) {
+export async function searchHelp(query, limit = 5, minScore = 2) {
   const q = words(query).map(stem);
   if (!q.length) return [];
   // in Spanish, the Spanish wording of each answer is searched too
   const es = s => (isSpanish() ? ' ' + translate(s) : '');
   const faq = FAQ.map(f => ({ kind: 'faq', title: f.q, text: f.a, score: score(q, f.q + es(f.q) + ' ' + f.k, 1.5) + score(q, f.a + es(f.a), 0.5) }));
   const guides = (await loadGuides()).map(g => ({ kind: 'guide', title: g.heading ? `${g.title} — ${g.heading}` : g.title, text: g.text.trim(), url: g.url, score: score(q, g.heading, 1.2) + score(q, g.text, 0.4) + score(q, g.title, 0.6) }));
-  return [...faq, ...guides].filter(r => r.score >= 2).sort((a, b) => b.score - a.score).slice(0, limit);
+  return [...faq, ...guides].filter(r => r.score >= minScore).sort((a, b) => b.score - a.score).slice(0, limit);
 }

@@ -2,9 +2,8 @@
 //  SEATING RULES IN PLAIN ENGLISH
 //  "Keep Liam and Owen apart. Ana needs the front. Spread out the IEP kids."
 //  → [{ type: 'separate', a: Liam, b: Owen }, { type: 'front', a: Ana }, { type: 'spread', tag: 'IEP' }]
-//  1. A careful pattern reader handles the usual ways teachers say things (fast, exact, no AI needed).
-//  2. Anything it can't read goes to the on-device model, asked for JSON only.
-//  3. Every name is matched against the class roster; unknown or unclear names are pointed out.
+//  1. A careful pattern reader handles the usual ways teachers say things.
+//  2. Every name is matched against the class roster; unknown or unclear names are pointed out.
 //  Nothing is changed until the teacher presses Apply.
 // ═══════════════════════════════════════════════
 import { classTags, tagKey } from '../landing/tags.js';
@@ -132,60 +131,6 @@ export function parseRules(text, cls) {
 }
 const escRx = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// ── 2. The model, for whatever the pattern reader couldn't read ──
-export function rulesPrompt(cls, text) {
-  const names = (cls.students || []).map(s => s.name).join(', ');
-  const tags = classTags(cls).join(', ') || '(none)';
-  return [
-    { role: 'system', content:
-`You turn a teacher's seating wishes into rules. Reply with JSON only: an array of objects, nothing else.
-Rule shapes:
-{"type":"separate","a":NAME,"b":NAME}  keep two students apart
-{"type":"near","a":NAME,"b":NAME}      seat two students near each other
-{"type":"partners","a":NAME,"b":NAME}  put two students in the same group
-{"type":"front","a":NAME}              seat a student toward the front
-{"type":"back","a":NAME}               seat a student toward the back
-{"type":"spread","tag":TAG}            students with this tag in different groups
-{"type":"helper","tag":TAG,"helperTag":TAG}  each TAG student sits with a helperTag student
-Use only these students: ${names}
-Use only these tags: ${tags}
-If something isn't a seating rule, leave it out. If nothing fits, reply [].` },
-    { role: 'user', content: text },
-  ];
-}
-
-// Pull the rules out of the model's reply and check every name against the roster
-export function readModelRules(reply, cls) {
-  const m = String(reply).match(/\[[\s\S]*\]/);
-  if (!m) return { rules: [], unclear: [] };
-  let arr;
-  try { arr = JSON.parse(m[0]); } catch { return { rules: [], unclear: [] }; }
-  const index = rosterIndex(cls.students || []);
-  const tags = classTags(cls);
-  const rules = [], unclear = [];
-  const who = name => {
-    if (!name) return null;
-    const { found, unclear: u } = findStudents(String(name), index);
-    if (u.length) { unclear.push({ text: name, options: u[0].options }); return null; }
-    if (found.length !== 1) { unclear.push({ text: name, options: [] }); return null; }
-    return found[0].student;
-  };
-  const tagOf = t => tags.find(x => tagKey(x) === tagKey(t || '')) || null;
-  (Array.isArray(arr) ? arr : []).forEach(r => {
-    if (!r || !RULE_LABEL[r.type]) return;
-    if (r.type === 'spread') { const t = tagOf(r.tag); if (t) rules.push({ type: 'spread', tag: t }); return; }
-    if (r.type === 'helper') { const t = tagOf(r.tag), h = tagOf(r.helperTag); if (t && h && t !== h) rules.push({ type: 'helper', tag: t, helperTag: h }); return; }
-    const a = who(r.a);
-    if (!a) return;
-    if (r.type === 'front' || r.type === 'back') { rules.push({ type: r.type, a }); return; }
-    const b = who(r.b);
-    if (b && b.id !== a.id) rules.push({ type: r.type, a, b });
-  });
-  return { rules, unclear };
-}
-
-// ── 3. The plan shown before anything changes ──
-// Each item: { rule, text, status: 'new'|'duplicate'|'conflict', note }
 export function planRules(rules, existing) {
   const key = r => r.type === 'spread' ? `spread|${tagKey(r.tag)}` : r.type === 'helper' ? `helper|${tagKey(r.tag)}|${tagKey(r.helperTag)}`
     : ['separate', 'near', 'partners'].includes(r.type) ? `${r.type}|${[r.studentA, r.studentB].map(norm).sort().join('|')}` : `${r.type}|${norm(r.studentA)}`;

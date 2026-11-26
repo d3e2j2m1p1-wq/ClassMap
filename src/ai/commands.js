@@ -1,10 +1,8 @@
 // ═══════════════════════════════════════════════
 //  WHAT THE TEACHER ASKED FOR → WHAT CLASSMAP DOES
-//  The AI's only job is to understand the request. The answer, or the change, always comes from
-//  ClassMap's own code and the real class data, so it can't make up facts.
-//    1. readCommand()  — a careful pattern reader for the usual ways of asking (works with the AI off)
-//    2. commandPrompt() / readModelCommand() — the on-device model, for everything else (JSON only)
-//    3. planCommands() — turns requests into an answer, or a "Here's what I'll do" plan with Apply
+//  The answer, or the change, always comes from ClassMap's own code and the real class data.
+//    1. readCommand()  — a careful pattern reader for the usual ways of asking
+//    2. planCommands() — turns requests into an answer, or a "Here's what I'll do" plan with Apply
 // ═══════════════════════════════════════════════
 import { store } from '../core/store.js';
 import { esc, state } from '../core/state.js';
@@ -131,59 +129,7 @@ export function readCommand(raw, ctx) {
   return null;
 }
 
-// ══ 2. The model ══
-const SHAPES = `{"action":"create_class","name":"Period 4","students":["Liam","Ana"]}
-{"action":"add_students","names":["Liam Johnson","Ana Ruiz"]}
-{"action":"tag","names":["Owen"],"tag":"IEP"}   {"action":"untag","names":["Owen"],"tag":"IEP"}
-{"action":"rules","text":"Keep Liam and Owen apart"}   (seating rules for the class: apart, near, same group, front, back, spread out a tag)
-{"action":"new_chart"}   {"action":"open_class","name":"Period 3"}
-{"action":"swap","a":"Liam","b":"Ana"}   {"action":"seat_near","a":"Liam","b":"Ana"}
-{"action":"pin","names":["Mia"]}   {"action":"unpin","names":["Mia"]}   {"action":"unseat","names":["Mia"]}
-{"action":"auto_assign"}
-{"action":"attendance","names":["Liam"],"status":"absent"}   (status: absent, tardy or here; for today)   {"action":"list_absent"}   {"action":"take_attendance"}
-{"action":"timer","minutes":5}   {"action":"voice","level":0}   (voice level 0–3)   {"action":"name_tents"}   (print name tents or desk labels)
-{"action":"pick_name"}   (call on a random student)   {"action":"make_groups","size":4}   or   {"action":"make_groups","count":6}
-{"action":"where","name":"Liam"}   {"action":"neighbors","name":"Liam"}   {"action":"unplaced"}
-{"action":"check_rules"}   {"action":"list_rules"}   {"action":"list_tag","tag":"IEP"}
-{"action":"count"}   {"action":"list_students"}   {"action":"list_classes"}
-{"action":"help","query":"how to print"}   (questions about how to use the app)
-{"action":"none"}   (anything else)`;
-
-export function commandPrompt(ctx, text) {
-  const names = ctx.cls ? (ctx.editing ? state.students : ctx.cls.students || []).map(s => s.name).join(', ') : '';
-  return [
-    { role: 'system', content:
-`You are the command reader for ClassMap, a seating chart app for teachers. Turn the teacher's message into actions. Reply with a JSON array only, nothing else.
-Actions:
-${SHAPES}
-Classes: ${ctx.classes.map(c => c.name).join(', ') || '(none yet)'}
-Current class: ${ctx.cls ? ctx.cls.name : '(none)'}${ctx.editing ? ' (a seating chart is open)' : ''}
-Students: ${names || '(none)'}
-Tags: ${ctx.cls ? classTags(ctx.cls).join(', ') : ''}
-Use names exactly as the teacher wrote them. Never invent students. The teacher may write in Spanish; the JSON stays as shown. If the message asks for several things, return several actions in order.` },
-    { role: 'user', content: 'Can you make me a new class for 5th period and put Jo and Sam in it?' },
-    { role: 'assistant', content: '[{"action":"create_class","name":"5th Period","students":["Jo","Sam"]}]' },
-    { role: 'user', content: 'Jo keeps talking to Sam, they need to be split up' },
-    { role: 'assistant', content: '[{"action":"rules","text":"Keep Jo and Sam apart"}]' },
-    { role: 'user', content: text },
-  ];
-}
-
-const KNOWN = new Set(['timer', 'voice', 'name_tents', 'attendance', 'list_absent', 'take_attendance', 'pick_name', 'make_groups', 'create_class', 'add_students', 'tag', 'untag', 'rules', 'new_chart', 'open_class', 'swap', 'seat_near', 'pin', 'unpin', 'unseat', 'auto_assign', 'where', 'neighbors', 'unplaced', 'check_rules', 'list_rules', 'list_tag', 'count', 'list_students', 'list_classes', 'help', 'none']);
-export function readModelCommand(reply) {
-  const m = String(reply).match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-  if (!m) return null;
-  let v;
-  try { v = JSON.parse(m[0]); } catch { return null; }
-  const arr = (Array.isArray(v) ? v : [v]).filter(c => c && KNOWN.has(c.action));
-  // keep only the fields each action uses, as plain strings
-  const str = x => typeof x === 'string' ? x.trim().slice(0, 80) : '';
-  const list = x => (Array.isArray(x) ? x : typeof x === 'string' ? splitNames(x) : []).map(str).filter(Boolean).slice(0, 60);
-  const num = x => (Number.isFinite(+x) && +x > 0 && +x < 40 ? +x : null);
-  return arr.map(c => ({ action: c.action, minutes: num(c.minutes), level: [0, 1, 2, 3].includes(+c.level) ? +c.level : null, status: ['absent', 'tardy', 'here'].includes(c.status) ? c.status : 'absent', size: num(c.size), count: num(c.count), name: str(c.name), names: list(c.names), students: list(c.students), tag: str(c.tag), a: str(c.a), b: str(c.b), text: str(c.text), query: str(c.query) })).slice(0, 6);
-}
-
-// ══ 3. Plans ══
+// ══ 2. Plans ══
 // Each result: { kind: 'answer', html } · { kind: 'plan', items: [html], apply(), done } ·
 //              { kind: 'rules', text } · { kind: 'help', query } · { kind: 'pick', text, options }
 const classByName = (ctx, name) => {

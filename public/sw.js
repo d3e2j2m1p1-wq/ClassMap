@@ -3,15 +3,16 @@
 //    the cached copy is used only when offline.
 //  • Built JS/CSS files: cache first. Their names include a content hash, so a cached
 //    file is never out of date — a new release simply uses new names.
-const CACHE = 'classmap-v2';
+const CACHE = 'classmap-v3';
 
 self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      // only our own old caches — the on-device AI keeps its model in 'transformers-cache'
-      .then(keys => Promise.all(keys.filter(k => k.startsWith('classmap-') && k !== CACHE).map(k => caches.delete(k))))
+      // our own old caches, and the model files of the on-device AI that ClassMap used to have
+      // ('transformers-cache', often over a gigabyte) — removed so teachers get that space back
+      .then(keys => Promise.all(keys.filter(k => (k.startsWith('classmap-') && k !== CACHE) || k === 'transformers-cache').map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -20,8 +21,6 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
-  // AI model files are big and the AI caches them itself — don't keep a second copy
-  if (url.pathname.startsWith('/models/') || url.pathname.startsWith('/ai-runtime/')) return;
 
   if (req.mode === 'navigate') {
     e.respondWith(

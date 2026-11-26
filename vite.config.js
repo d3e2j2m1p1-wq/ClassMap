@@ -12,11 +12,6 @@ const guides = Object.fromEntries(
 export default defineConfig({
   // Relative paths, so the built site works in any folder
   base: './',
-  // The on-device AI runs in a module Web Worker (src/ai/aiWorker.js)
-  worker: { format: 'es' },
-  // Use the onnxruntime build that loads its 27 MB engine file at run time (from /ai-runtime/ — see
-  // worker/index.js) instead of copying it into the site: Cloudflare won't host files over 25 MiB.
-  resolve: { conditions: ['onnxruntime-web-use-extern-wasm'] },
   build: {
     outDir: 'dist',
     // One JS file and one CSS file per page, with a content hash in their names. A new release
