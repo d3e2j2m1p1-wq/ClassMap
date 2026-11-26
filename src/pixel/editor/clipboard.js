@@ -77,13 +77,14 @@ function placeAt(w, h, x, y) {
   return [Math.round(Math.min(Math.max(cx, 0), sp.width) - w / 2), Math.round(Math.min(Math.max(cy, 0), sp.height) - h / 2)];
 }
 
-function pasteBlock(block, w, h, x, y) {
+// Start placing a block of pixels (paste, text, objects): it lands as a move you can adjust
+export function pasteBlock(block, w, h, x, y, message = 'Pasted — drag to place it, then ✓', exact = false) {
   if (state.transform) applyMove();
   if (!movable(state.layerId)) { toast2('Pick a visible, unlocked regular layer to paste into'); return; }
   setSelection(null);
-  const [px, py] = placeAt(w, h, x, y);
+  const [px, py] = exact && x != null ? [x, y] : placeAt(w, h, x, y);
   block = snapIncoming(block);                    // indexed: only palette colours come in
-  if (startMove({ block, w, h, x: px, y: py })) { emit('set-tool', 'move'); toast2('Pasted — drag to place it, then ✓'); }
+  if (startMove({ block, w, h, x: px, y: py })) { emit('set-tool', 'move'); toast2(message); }
 }
 
 export function pasteInternal() {

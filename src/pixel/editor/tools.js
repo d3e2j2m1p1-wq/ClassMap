@@ -14,6 +14,9 @@ import { moveTool } from './move.js';
 import { toast } from '../ui/dialogs.js';
 import { indexed, paintColor, shadeTable } from './color.js';
 import { nearestFinder } from '../core/colorops.js';
+import { find as findItem, decode as decodeItem } from './library.js';
+
+const magicSource = (sp, n) => (sp.frames.some(f => f.id === n.magic?.from) ? n.magic.from : sp.frames[0].id);
 
 let view = null, commit = null;
 export function initTools(v, onCommit) { view = v; commit = onCommit; }
@@ -28,17 +31,26 @@ export function drawable() {
   if (!n) why = 'Pick a layer first';
   else if (n.kind === 'group') why = 'Pick a layer inside the group to draw on';
   else if (n.kind === 'reference') why = 'Reference layers are for tracing. Rasterize it (layer menu) to draw on it';
+  else if (n.kind === 'magic' && state.frameId !== magicSource(sp, n)) why = `This magic layer is drawn on frame ${sp.frames.findIndex(f => f.id === magicSource(sp, n)) + state.settings.numberFrom}; the other frames are made from it`;
   else if (!shown(sp, n.id)) why = 'This layer is hidden';
   else if (locked(sp, n.id)) why = 'This layer is locked';
   if (why) toast(why);
   return !why;
 }
 
+// The custom brush picked in the brush / eraser options (null if none)
+function customBrush(o) {
+  if (o.tip !== 'custom') return null;
+  const b = decodeItem(findItem('brushes', o.customId));
+  if (!b) { toast('Pick a custom brush in the tool options first'); return null; }
+  return { ...b, own: !!o.brushColors };
+}
+
 function newStroke(p, extra = {}) {
   const o = state.opts, cel = state.cel;
   return new Stroke(cel, {
     color: paintColor(colorFor(p)), opacity: o.opacity, watercolor: o.watercolor !== false, mask: state.selection?.mask || null, sym: symmetryFor(cel.w, cel.h),
-    indexed: indexed(), shade: shadeTable(), ...extra,
+    indexed: indexed(), shade: shadeTable(), snap: indexed() ? c => paintColor(c) : null, ...extra,
   }, dirty);
 }
 
@@ -52,8 +64,10 @@ const brushLike = erase => ({
   down(p) {
     if (!drawable()) return;
     const o = state.opts;
-    this.s = newStroke(p, { erase });
-    this.pp = o.pixelPerfect && o.type === 'solid' && o.size === 1 && !o.pressure ? new PixelPerfect() : null;
+    const custom = customBrush(o);
+    this.s = newStroke(p, { erase, custom });
+    this.tip = o.tip === 'custom' && !custom ? 'round' : o.tip;
+    this.pp = o.pixelPerfect && o.type === 'solid' && o.size === 1 && !o.pressure && (o.tip === 'round' || o.tip === 'square') ? new PixelPerfect() : null;
     this.sm = [p.fx, p.fy];
     this.last = [p.x, p.y];
     this.paint(p.x, p.y, p.pressure);
@@ -92,7 +106,7 @@ const brushLike = erase => ({
       if (r.add) this.s.plot(x, y);
       return;
     }
-    this.s.stamp(x, y, size, o.tip);
+    this.s.stamp(x, y, size, this.tip);
   },
   up() { if (this.s) done(this.s); this.s = null; },
   cancel() { this.s?.cancel(); this.s = null; },
@@ -245,4 +259,10 @@ const wand = {
   move() {}, up() {}, cancel() {},
 };
 
-export const TOOLS = { brush: brushLike(false), eraser: brushLike(true), line, shape, bucket, dropper, select, wand, move: moveTool };
+// ── Text: tap where it should start; the text dialog opens and the text lands there to place ──
+const text = {
+  down(p) { if (drawable()) emit('open-text', { x: p.x, y: p.y }); },
+  move() {}, up() {}, cancel() {},
+};
+
+export const TOOLS = { brush: brushLike(false), eraser: brushLike(true), line, shape, bucket, dropper, select, wand, move: moveTool, text };

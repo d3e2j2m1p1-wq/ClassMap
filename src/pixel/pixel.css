@@ -579,3 +579,27 @@ body:not(.light) .px-presets button[aria-checked="true"] { background: var(--sur
   .px-pop, .px-overlay { animation: none; }
   .px-card, .px-btn, .px-tool { transition: none; }
 }
+
+/* ═══ Phase 5a: text, brushes, objects, live effects ═══ */
+.px-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+.px-lib-item { aspect-ratio: 1; padding: 3px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--check); display: grid; place-items: center; overflow: hidden; }
+.px-lib-item img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+.px-lib-item.on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4.5px var(--blue); }
+.px-brushes { display: flex; flex-direction: column; gap: 8px; }
+.px-objects { width: 300px; }
+.px-text-dialog textarea { margin: 0; font: 700 1rem Nunito, sans-serif; }
+.px-text-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+.px-text-preview { max-width: 100%; align-self: flex-start; image-rendering: pixelated; background: var(--check); border: 1.5px solid var(--border2); border-radius: 8px; padding: 6px; }
+.px-stack { display: flex; flex-direction: column; gap: 6px; }
+.px-stack-row { border: 2px solid var(--border2); border-radius: 12px; background: var(--surface); }
+.px-stack-row.open { border-color: var(--line); }
+.px-stack-head { display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 8px; }
+.px-stack-head .px-icon-btn { width: 32px; height: 32px; font-weight: 900; }
+.px-stack-head .px-icon-btn svg { width: 18px; height: 18px; }
+.px-stack-on { gap: 0; }
+.px-stack-name { flex: 1; text-align: left; border: 0; background: none; font-weight: 800; font-size: 0.92rem; padding: 6px 4px; color: var(--text); }
+.px-stack-body { display: flex; flex-direction: column; gap: 10px; padding: 4px 12px 12px; }
+.px-stack-add { display: flex; gap: 8px; }
+.px-stack-add select { flex: 1; padding: 8px 10px; border: 2px solid var(--border2); border-radius: 10px; background: var(--surface); color: var(--text); font: 700 0.9rem Nunito, sans-serif; }
+.px-fx-dlg .px-dialog-actions { flex-wrap: wrap; }
+.px-toolbox { overflow-y: auto; scrollbar-width: none; }

@@ -6,7 +6,7 @@
 // ═══════════════════════════════════════════════
 import { state, on, emit } from './state.js';
 import { tipOffsets } from '../core/raster.js';
-import { composeRect, composeFrame } from '../core/compose.js';
+import { composeRect, composeFrame, hasLiveLayers, hasPost, postProcess, finalFrame } from '../core/compose.js';
 import { corners } from '../core/transform.js';
 import { symCenter, symLines } from './symmetry.js';
 
@@ -53,7 +53,7 @@ export class View {
     this.sheet.width = sp.width; this.sheet.height = sp.height;
     this.comp = composeFrame(sp, state.frameId);
     this.image = new ImageData(this.comp, sp.width, sp.height);
-    this.sheetCtx.putImageData(this.image, 0, 0);
+    this.sheetCtx.putImageData(hasPost(sp) ? new ImageData(postProcess(sp, this.comp), sp.width, sp.height) : this.image, 0, 0);
     this.dirty = null;
     this.fit();
   }
@@ -72,7 +72,7 @@ export class View {
     if (tint) {
       g.drawImage(this.frameCanvas(frameId), 0, 0);
       if (tint.toUpperCase() !== '#FFFFFF') { g.globalCompositeOperation = 'source-atop'; g.globalAlpha = 0.65; g.fillStyle = tint; g.fillRect(0, 0, sp.width, sp.height); }
-    } else g.putImageData(new ImageData(composeFrame(sp, frameId), sp.width, sp.height), 0, 0);
+    } else g.putImageData(new ImageData(finalFrame(sp, frameId), sp.width, sp.height), 0, 0);
     this.cache.set(key, c);
     return c;
   }
@@ -190,10 +190,15 @@ export class View {
     const sp = state.sprite, ctx = this.ctx;
     if (!sp || !this.cw || !this.comp) return;
     if (this.dirty) {
-      const d = this.dirty;
+      let d = this.dirty;
+      // magic / modifier layers can move pixels anywhere: recompose the whole picture
+      if (hasLiveLayers(sp)) d = { x0: 0, y0: 0, x1: sp.width - 1, y1: sp.height - 1 };
       composeRect(sp, state.frameId, this.comp, d);
-      const x0 = Math.max(0, d.x0), y0 = Math.max(0, d.y0);
-      this.sheetCtx.putImageData(this.image, 0, 0, x0, y0, Math.min(sp.width - 1, d.x1) - x0 + 1, Math.min(sp.height - 1, d.y1) - y0 + 1);
+      if (hasPost(sp)) this.sheetCtx.putImageData(new ImageData(postProcess(sp, this.comp), sp.width, sp.height), 0, 0);
+      else {
+        const x0 = Math.max(0, d.x0), y0 = Math.max(0, d.y0);
+        this.sheetCtx.putImageData(this.image, 0, 0, x0, y0, Math.min(sp.width - 1, d.x1) - x0 + 1, Math.min(sp.height - 1, d.y1) - y0 + 1);
+      }
       this.dirty = null;
     }
     const dpr = devicePixelRatio || 1, S = state.settings;

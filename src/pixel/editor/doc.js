@@ -7,7 +7,7 @@
 import { state, emit } from './state.js';
 import { uid } from '../core/sprite.js';
 import { cloneTree, find, insert, remove, isGroup, leafLayers, walk, within } from '../core/layers.js';
-import { composeFrame, blendInto } from '../core/compose.js';
+import { composeFrame, blendInto, layerResult } from '../core/compose.js';
 import { contentBounds } from '../core/sprite.js';
 import { toast } from '../ui/dialogs.js';
 
@@ -19,6 +19,7 @@ const snap = () => {
   return {
     layers: cloneTree(sp.layers), cels: sp.cels.slice(), frames: sp.frames.map(f => ({ ...f })), tags: sp.tags.map(t => ({ ...t })), width: sp.width, height: sp.height, active: state.layerId, frame: state.frameId,
     palette: sp.palette.map(c => [...c]), paletteBreaks: [...(sp.paletteBreaks || [])], colorMode: sp.colorMode,
+    post: structuredClone(sp.post || []), postHidden: !!sp.postHidden,
   };
 };
 export { snap as snapshot };
@@ -30,6 +31,7 @@ export function applyStruct(s) {
   sp.frames = s.frames.map(f => ({ ...f })); sp.tags = s.tags.map(t => ({ ...t }));
   const palChanged = s.palette && (s.colorMode !== sp.colorMode || JSON.stringify(s.palette) !== JSON.stringify(sp.palette) || String(s.paletteBreaks) !== String(sp.paletteBreaks || []));
   if (s.palette) { sp.palette = s.palette.map(c => [...c]); sp.paletteBreaks = [...s.paletteBreaks]; sp.colorMode = s.colorMode; }
+  if (s.post) { sp.post = structuredClone(s.post); sp.postHidden = s.postHidden; emit('post'); }
   if (palChanged) emit('palette');
   if (!sp.frames.some(f => f.id === state.frameId)) state.frameId = sp.frames.some(f => f.id === s.frame) ? s.frame : sp.frames[0].id;
   state.selectedFrames = new Set([state.frameId]);
@@ -175,10 +177,11 @@ export function mergeDown() {
     const top = f.node, patches = [];
     for (const fr of sp.frames) {
       const a = sp.cels.find(c => c.layerId === below.id && c.frameId === fr.id), b = sp.cels.find(c => c.layerId === top.id && c.frameId === fr.id);
-      if (!a || !b) continue;
+      const bp = layerResult(sp, top, fr.id);          // with its motion / modifiers worked in
+      if (!a || !bp) continue;
       const merged = { ...a, pixels: a.pixels.slice() };
-      const k = (top.opacity ?? 255) / 255 * (b.opacity ?? 255) / 255;
-      if (top.visible) for (let i = 0; i < merged.pixels.length; i += 4) if (b.pixels[i + 3]) blendInto(merged.pixels, i, b.pixels[i], b.pixels[i + 1], b.pixels[i + 2], b.pixels[i + 3] / 255 * k, top.blend || 'normal');
+      const k = (top.opacity ?? 255) / 255 * (b?.opacity ?? 255) / 255;
+      if (top.visible) for (let i = 0; i < merged.pixels.length; i += 4) if (bp[i + 3]) blendInto(merged.pixels, i, bp[i], bp[i + 1], bp[i + 2], bp[i + 3] / 255 * k, top.blend || 'normal');
       delete merged.link;
       sp.cels[sp.cels.indexOf(a)] = merged;
     }

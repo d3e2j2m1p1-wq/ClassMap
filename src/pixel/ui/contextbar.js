@@ -40,7 +40,9 @@ export function render() {
       + '<span class="px-ctx-sep"></span>'
       + b('copy', 'copy', 'Copy') + b('cut', 'cut', 'Cut') + b('paste', 'paste', 'Paste')
       + '<span class="px-ctx-sep"></span>'
-      + b('fill', 'fill', 'Fill') + b('outline', 'outline', 'Outline') + b('clear', 'trash', 'Clear') + b('move', 'move', 'Move');
+      + b('fill', 'fill', 'Fill') + b('outline', 'outline', 'Outline') + b('clear', 'trash', 'Clear') + b('move', 'move', 'Move')
+      + '<span class="px-ctx-sep"></span>'
+      + b('saveBrush', 'brush', 'Save as brush') + b('saveObject', 'stamp', 'Save as object');
   }
   el.innerHTML = html;
   el.hidden = !html;

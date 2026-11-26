@@ -39,6 +39,7 @@ export function spriteToJSON(sp) {
     id: sp.id, name: sp.name, width: sp.width, height: sp.height, colorMode: sp.colorMode,
     palette: sp.palette.map(c => rgbaToHex(c)),
     ...(sp.paletteBreaks?.length ? { paletteBreaks: sp.paletteBreaks } : {}),
+    ...(sp.post?.length ? { post: sp.post, postHidden: !!sp.postHidden } : {}),
     layers: sp.layers, frames: sp.frames, tags: sp.tags, tilesets: [], grid: sp.grid,
     references: (sp.references || []).map(({ id, name, src, x, y, w, h, zoom, px, py, opacity, min, hidden }) => ({ id, name, src, x, y, w, h, zoom, px, py, opacity, min, hidden })),
     // linked cels share one pixel array: the first is saved, the rest point at its frame
@@ -67,6 +68,7 @@ export function spriteFromJSON(o) {
     id: o.id, name: o.name || 'Untitled', width: W, height: H, colorMode: o.colorMode || 'rgba',
     palette: (o.palette || []).map(hexToRgba).filter(Boolean),
     paletteBreaks: Array.isArray(o.paletteBreaks) ? o.paletteBreaks.filter(Number.isInteger) : [],
+    post: Array.isArray(o.post) ? o.post : [], postHidden: !!o.postHidden,
     layers: o.layers, frames: o.frames, tags: o.tags || [], tilesets: [], references: Array.isArray(o.references) ? o.references : [],
     grid: o.grid || { w: 16, h: 16, offsetX: 0, offsetY: 0 },
     cels: (() => {

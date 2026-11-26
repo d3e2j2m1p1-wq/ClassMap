@@ -15,6 +15,7 @@ import {
 } from '../editor/color.js';
 import { colorWell, strip, css } from './paltools.js';
 import { loadLibrary } from './palette.js';
+import { openPost } from './effects.js';
 
 const pal = () => state.sprite.palette;
 const phone = () => matchMedia('(max-width: 700px)').matches;
@@ -25,6 +26,7 @@ export function openColorTools(anchor) {
   el.className = 'px-menu';
   el.innerHTML = `
     <button type="button" data-a="shading" class="px-menu-toggle" aria-pressed="${sh.on}">${ICONS.tint}Shading${sh.on ? ' — on' : '…'}</button>
+    <button type="button" data-a="post" class="px-menu-toggle" aria-pressed="${!!state.sprite.post?.length}">${ICONS.magic}Picture effects (shadow, glow, CRT…)</button>
     <hr>
     <div class="px-menu-title">Change the art's colours</div>
     <button type="button" data-a="replace">Replace a colour…</button>
@@ -40,7 +42,7 @@ export function openColorTools(anchor) {
   el.addEventListener('click', e => {
     const a = e.target.closest('button')?.dataset.a; if (!a) return;
     pop.close();
-    ({ shading: () => shadingPanel(anchor), replace: replaceDialog, adjust: adjustDialog, levels: levelsDialog, outline: outlineDialog, aa: aaDialog, remap: remapDialog, mode: openColorMode })[a]?.();
+    ({ post: openPost, shading: () => shadingPanel(anchor), replace: replaceDialog, adjust: adjustDialog, levels: levelsDialog, outline: outlineDialog, aa: aaDialog, remap: remapDialog, mode: openColorMode })[a]?.();
   });
 }
 

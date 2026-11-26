@@ -6,6 +6,7 @@ import { state, on, emit, setTool, saveSettings, TOOL_DEFAULTS } from '../editor
 import { ICONS, TOOL_INFO, TOOL_ORDER } from './icons.js';
 import { popover, seg, toggle, range, bindControls, promptBox, esc, toast } from './dialogs.js';
 import { keysFor, pretty } from '../editor/keymap.js';
+import { brushOptions, brushClick, openText, openObjects } from './library.js';
 
 const phone = () => matchMedia('(max-width: 700px)').matches;
 
@@ -14,9 +15,11 @@ const keyHint = t => { const k = keysFor('tool.' + t)[0]; return k ? ` (${pretty
 export function initToolbox(el) {
   el.innerHTML = TOOL_ORDER.map(k =>
     `<button type="button" class="px-tool" data-tool="${k}" aria-label="${TOOL_INFO[k].label}${keyHint(k)}" title="${TOOL_INFO[k].label}${keyHint(k)} — tap again for options">${ICONS[k]}</button>`).join('')
-    + `<span class="px-tool-sep"></span><button type="button" class="px-tool px-sym-btn" aria-label="Symmetry" title="Symmetry — tap to switch on, tap again for options">${ICONS.symmetry}</button>`;
+    + `<span class="px-tool-sep"></span><button type="button" class="px-tool px-sym-btn" aria-label="Symmetry" title="Symmetry — tap to switch on, tap again for options">${ICONS.symmetry}</button>`
+    + `<button type="button" class="px-tool px-obj-btn" aria-label="Objects" title="Objects — stamp saved pieces of art">${ICONS.stamp}</button>`;
   el.addEventListener('click', e => {
     const b = e.target.closest('.px-tool'); if (!b) return;
+    if (b.classList.contains('px-obj-btn')) { openObjects(b); return; }
     if (b.classList.contains('px-sym-btn')) {
       const S = state.settings.symmetry;
       if (!S.on) { S.on = true; saveSettings(); emit('symmetry'); } else openSymmetry(b);
@@ -59,14 +62,16 @@ const MODES = v => `<div class="px-mini-label">When you select again</div>${seg(
 const OPTIONS = {
   brush: o => `
     ${seg('type', o.type, [['solid', 'Solid'], ['spray', 'Spray'], ['spray-soft', 'Soft spray']])}
-    ${seg('tip', o.tip, [['round', 'Round'], ['square', 'Square']])}
+    ${seg('tip', o.tip, o.type === 'solid' ? [['round', 'Round'], ['square', 'Square'], ['custom', 'Custom'], ['jumble', 'Jumble'], ['blur', 'Blur']] : [['round', 'Round'], ['square', 'Square']])}
+    ${brushOptions(o)}
     ${toggle('pixelPerfect', o.pixelPerfect, 'Pixel perfect (clean 1 px curves)')}
     ${toggle('watercolor', o.watercolor, 'Blend see-through colour with what\'s under it')}
     ${toggle('pressure', o.pressure, 'Pencil pressure changes size')}
     ${range('pressureMin', o.pressureMin, 5, 100, 'Lightest press', '%')}
     ${range('stabilizer', o.stabilizer, 0, 10, 'Steady hand (smoothing)')}`,
   eraser: o => `
-    ${seg('tip', o.tip, [['round', 'Round'], ['square', 'Square']])}
+    ${seg('tip', o.tip, [['round', 'Round'], ['square', 'Square'], ['custom', 'Custom']])}
+    ${brushOptions(o)}
     ${toggle('pixelPerfect', o.pixelPerfect, 'Pixel perfect')}
     ${toggle('pressure', o.pressure, 'Pencil pressure changes size')}
     ${range('stabilizer', o.stabilizer, 0, 10, 'Steady hand (smoothing)')}
@@ -104,6 +109,9 @@ const OPTIONS = {
   move: o => `
     ${toggle('rotsprite', o.rotsprite, 'Keep pixel edges crisp when rotating (RotSprite)')}
     <p class="px-hint">Drag inside to move, corners and edges to resize (Shift keeps the shape), the round handle to rotate (snaps to right angles; Shift = 15° steps). Arrow keys nudge 1 px, Shift+arrows 10 px. Enter or ✓ applies.</p>`,
+  text: () => `
+    <p class="px-hint">Tap the canvas where the text should go. Pick a pixel font (always sharp) or one of this device's fonts, then drag the text into place.</p>
+    <button type="button" class="px-btn px-btn-ghost" data-text="open">Write text…</button>`,
   dropper: o => `
     ${seg('sample', o.sample, [['all', 'Everything visible'], ['layer', 'This layer']])}
     ${toggle('backToTool', o.backToTool, 'Go back to the last tool after picking')}
@@ -121,10 +129,17 @@ export function openToolOptions(anchor) {
   const render = () => {
     const note = state.sprite?.colorMode === 'indexed' && ['brush', 'line', 'shape', 'bucket'].includes(name)
       ? `<p class="px-hint px-indexed-note">Indexed colour: paints whole palette colours only (no see-through blending)${name === 'bucket' ? ', and tolerance counts palette steps' : ''}.</p>` : '';
-    el.innerHTML = `<div class="px-pop-title">${TOOL_INFO[name].label}</div>${OPTIONS[name](o)}${note}${['dropper'].includes(name) ? '' : presetRow()}`;
-    bindControls(el, (k, v) => { o[k] = k === 'eight' ? !!v : v; saveSettings(); emit('options'); });
+    el.innerHTML = `<div class="px-pop-title">${TOOL_INFO[name].label}</div>${OPTIONS[name](o)}${note}${['dropper', 'text'].includes(name) ? '' : presetRow()}`;
+    bindControls(el, (k, v) => {
+      o[k] = k === 'eight' ? !!v : v;
+      if (k === 'type' && v !== 'solid' && !['round', 'square'].includes(o.tip)) o.tip = 'round';
+      saveSettings(); emit('options');
+      if (k === 'tip' || k === 'type') { render(); pop?.place(); }
+    });
   };
   el.addEventListener('click', async e => {
+    if (await brushClick(e, o, () => { render(); pop.place(); })) return;
+    if (e.target.closest('[data-text]')) { pop.close(); openText(null); return; }
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.p) { Object.assign(o, structuredClone(presets()[b.dataset.p].opts)); saveSettings(); emit('options'); render(); toast(`"${presets()[b.dataset.p].name}" applied`); }
     else if (b.dataset.px) { presets().splice(Number(b.dataset.px), 1); saveSettings(); render(); }
@@ -136,8 +151,9 @@ export function openToolOptions(anchor) {
       saveSettings(); toast(`Saved "${nm}"`);
     }
   });
+  let pop = null;
   render();
-  const pop = popover(anchor, el, { side: phone() ? 'top' : 'right', className: 'px-opts-pop' });
+  pop = popover(anchor, el, { side: phone() ? 'top' : 'right', className: 'px-opts-pop' });
 }
 
 // ── A vertical slider (built by hand: native vertical ranges are unreliable on iPad) ──

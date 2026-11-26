@@ -10,6 +10,9 @@ import * as doc from '../editor/doc.js';
 import { copyLayers, pasteLayers } from '../editor/clipboard.js';
 import { ICONS } from './icons.js';
 import { popover, promptBox, esc, toast } from './dialogs.js';
+import { openModifiers, openMagic } from './effects.js';
+import { bakeLayer } from '../editor/live.js';
+import { liveStack } from '../core/effects.js';
 
 let root, list, view, importImage;
 const thumbCanvas = document.createElement('canvas');
@@ -40,7 +43,7 @@ export function render() {
   if (!sp || !list) return;
   list.innerHTML = displayRows(sp).map(({ node: n, depth }) => {
     const g = isGroup(n), active = n.id === state.layerId, sel = state.selectedLayers.has(n.id);
-    const badge = [n.blend && n.blend !== 'normal' ? BLEND_MODES.find(b => b[0] === n.blend)?.[1] : '', (n.opacity ?? 255) < 255 ? Math.round(n.opacity / 2.55) + '%' : '', n.kind === 'reference' ? 'Ref' : ''].filter(Boolean).join(' · ');
+    const badge = [n.blend && n.blend !== 'normal' ? BLEND_MODES.find(b => b[0] === n.blend)?.[1] : '', (n.opacity ?? 255) < 255 ? Math.round(n.opacity / 2.55) + '%' : '', n.kind === 'reference' ? 'Ref' : '', n.kind === 'magic' ? 'Magic' : '', liveStack(n.modifiers) ? 'Mods' : ''].filter(Boolean).join(' · ');
     return `<div class="px-row${active ? ' active' : ''}${sel ? ' sel' : ''}${g ? ' group' : ''}${n.visible ? '' : ' hidden-layer'}" role="listitem" data-id="${n.id}" style="--d:${depth}">
       <button type="button" class="px-row-btn px-row-eye" aria-label="${n.visible ? 'Hide' : 'Show'} ${esc(n.name)}">${n.visible ? ICONS.eye : ICONS.eyeOff}</button>
       ${g ? `<button type="button" class="px-row-btn px-row-caret${n.collapsed ? '' : ' open'}" aria-label="${n.collapsed ? 'Open' : 'Close'} group">${ICONS.chevron}</button><span class="px-row-folder">${ICONS.folder}</span>`
@@ -139,6 +142,9 @@ function props(anchor, id) {
       <button type="button" class="px-btn px-btn-ghost" data-a="dup">Duplicate</button>
       ${isGroup(n) ? '' : '<button type="button" class="px-btn px-btn-ghost" data-a="merge">Merge down</button>'}
       ${n.kind === 'reference' ? '<button type="button" class="px-btn px-btn-ghost" data-a="raster">Rasterize</button>' : ''}
+      ${n.kind === 'regular' || n.kind === 'magic' ? `<button type="button" class="px-btn px-btn-ghost" data-a="mods">Modifiers…</button>
+        <button type="button" class="px-btn px-btn-ghost" data-a="magic">${n.kind === 'magic' ? 'Motion…' : 'Make magic…'}</button>` : ''}
+      ${n.kind === 'magic' || liveStack(n.modifiers) ? '<button type="button" class="px-btn px-btn-ghost" data-a="bake">Bake into pixels</button>' : ''}
       <button type="button" class="px-btn px-btn-danger" data-a="del">Delete</button>
     </div>`;
   const name = el.querySelector('.px-lp-name');
@@ -153,6 +159,9 @@ function props(anchor, id) {
     if (a === 'dup') doc.duplicateLayers();
     if (a === 'merge') doc.mergeDown();
     if (a === 'raster') doc.rasterize(id);
+    if (a === 'mods') openModifiers(id);
+    if (a === 'magic') openMagic(id);
+    if (a === 'bake') bakeLayer(id);
     if (a === 'del') doc.deleteLayers();
   });
   const pop = popover(anchor, el, { side: 'left', className: 'px-opts-pop' });
@@ -173,6 +182,8 @@ function layerMenu(anchor) {
     <button type="button" data-a="cut">Cut layers</button>
     <button type="button" data-a="paste">Paste layers</button>
     <hr>
+    <button type="button" data-a="magicNew">New magic layer (moves by itself)…</button>
+    <button type="button" data-a="mods">Modifiers for this layer…</button>
     <button type="button" data-a="ref">Reference layer from an image…</button>
     ${n?.kind === 'reference' ? '<button type="button" data-a="raster">Rasterize reference layer</button>' : ''}
     <button type="button" data-a="del" class="danger">Delete</button>`;
@@ -183,6 +194,8 @@ function layerMenu(anchor) {
     ({
       add: () => doc.addLayer(), group: () => doc.addGroup(), dup: () => doc.duplicateLayers(), merge: () => doc.mergeDown(),
       flatten: () => doc.flattenVisible(), copy: () => copyLayers(false), cut: () => copyLayers(true), paste: () => pasteLayers(),
+      magicNew: () => { doc.addLayer(); openMagic(state.layerId); },
+      mods: () => openModifiers(state.layerId),
       ref: () => importImage('reference'), raster: () => doc.rasterize(state.layerId), del: () => doc.deleteLayers(),
     })[a]?.();
   });

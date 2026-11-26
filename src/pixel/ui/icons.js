@@ -20,6 +20,10 @@ export const ICONS = {
   eye: svg('<path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>'),
   grid: svg('<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M9.2 3.5v17M14.8 3.5v17M3.5 9.2h17M3.5 14.8h17"/>'),
   palette: svg('<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.4 0 1.9-1 1.5-2.1-.5-1.3.2-2.4 1.6-2.4h1.7a3.7 3.7 0 0 0 3.7-3.7C20.5 7 16.7 3.5 12 3.5z"/><circle cx="7.8" cy="11" r="1.2" fill="currentColor"/><circle cx="10.5" cy="7.3" r="1.2" fill="currentColor"/><circle cx="15" cy="7.6" r="1.2" fill="currentColor"/>'),
+  text: svg('<path d="M5 6.5V4.5h14v2"/><path d="M12 4.5v15"/><path d="M9 19.5h6"/>'),
+  stamp: svg('<path d="M9.5 13.5V9a2.5 2.5 0 1 1 5 0v4.5"/><path d="M4.5 13.5h15v3h-15z"/><path d="M6 19.5h12"/>'),
+  magic: svg('<path d="M12 3.5l1.6 4.4 4.4 1.6-4.4 1.6L12 15.5l-1.6-4.4L6 9.5l4.4-1.6z"/><path d="M18.5 15l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/><path d="M5.5 16l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4L3.5 18l1.4-.6z"/>'),
+  sliders: svg('<path d="M5 5v14M12 5v14M19 5v14"/><circle cx="5" cy="9" r="2" fill="currentColor"/><circle cx="12" cy="15" r="2" fill="currentColor"/><circle cx="19" cy="8" r="2" fill="currentColor"/>'),
   tint: svg('<path d="M12 3.5c3.4 4.2 6 7.3 6 10.5a6 6 0 0 1-12 0c0-3.2 2.6-6.3 6-10.5z"/><path d="M12 3.5v16.5a6 6 0 0 0 6-6c0-3.2-2.6-6.3-6-10.5z" fill="currentColor" stroke="none"/>'),
   lock: svg('<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),
   unlock: svg('<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 7.7-1.6"/>'),
@@ -75,5 +79,6 @@ export const TOOL_INFO = {
   select: { label: 'Selection', key: 'M' },
   wand: { label: 'Magic wand', key: 'W' },
   move: { label: 'Move', key: 'V' },
+  text: { label: 'Text', key: 'T' },
 };
-export const TOOL_ORDER = ['brush', 'eraser', 'line', 'shape', 'bucket', 'dropper', 'select', 'wand', 'move'];
+export const TOOL_ORDER = ['brush', 'eraser', 'line', 'shape', 'bucket', 'dropper', 'select', 'wand', 'move', 'text'];

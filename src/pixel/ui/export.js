@@ -3,8 +3,8 @@
 //  PNG (one frame), GIF, APNG, animated WebP, sprite sheet + JSON, and .aseprite.
 //  Everything is scaled up with crisp pixels (nearest neighbour).
 // ═══════════════════════════════════════════════
-import { compositeFrame, contentBounds } from '../core/sprite.js';
-import { composeFrame } from '../core/compose.js';
+import { contentBounds } from '../core/sprite.js';
+import { finalFrame, bakeSprite } from '../core/compose.js';
 import { encodeGIF } from '../core/gif.js';
 import { encodeAPNG } from '../core/apng.js';
 import { encodeIndexedPNG } from '../core/png.js';
@@ -22,7 +22,7 @@ const MAX_OUT = 8192, MAX_ANIM = 4096;
 // The artwork (all visible layers) of one frame drawn at `scale`, optionally cropped to `crop`
 export function renderToCanvas(sprite, scale = 1, crop = null, frameId) {
   const W = sprite.width, H = sprite.height;
-  const px = frameId ? composeFrame(sprite, frameId) : compositeFrame(sprite, state.sprite === sprite ? state.frameId : sprite.frames[0].id);
+  const px = finalFrame(sprite, frameId || (state.sprite === sprite ? state.frameId : sprite.frames[0].id));
   const src = document.createElement('canvas');
   src.width = W; src.height = H;
   src.getContext('2d').putImageData(new ImageData(px, W, H), 0, 0);
@@ -57,7 +57,7 @@ const toBlob = canvas => new Promise(r => canvas.toBlob(r, 'image/png'));
 // The current frame as an indexed PNG (null if blending made colours outside the palette)
 async function indexedPNG(sprite, scale, crop) {
   const W = sprite.width, c = crop || { x: 0, y: 0, w: W, h: sprite.height };
-  const full = composeFrame(sprite, state.frameId), px = new Uint8ClampedArray(c.w * c.h * 4);
+  const full = finalFrame(sprite, state.frameId), px = new Uint8ClampedArray(c.w * c.h * 4);
   for (let y = 0; y < c.h; y++) px.set(full.subarray(((c.y + y) * W + c.x) * 4, ((c.y + y) * W + c.x + c.w) * 4), y * c.w * 4);
   const s = Math.max(1, Math.round(scale));
   return encodeIndexedPNG(scalePixels(px, c.w, c.h, s), c.w * s, c.h * s, sprite.palette);
@@ -79,7 +79,7 @@ function frameList(sp, { range, direction, scale }) {
   const seq = exportSequence(from, to, direction);
   const memo = new Map();
   return seq.map((i, k) => {
-    if (!memo.has(i)) memo.set(i, scalePixels(composeFrame(sp, fr[i].id), sp.width, sp.height, scale));
+    if (!memo.has(i)) memo.set(i, scalePixels(finalFrame(sp, fr[i].id), sp.width, sp.height, scale));
     return { pixels: memo.get(i), delayMs: fr[i].durationMs, name: `${safeName(sp.name)} ${k}.png`, index: i };
   });
 }
@@ -131,7 +131,7 @@ export function openExport(sprite) {
       <div class="px-tabpane">${panes[o.tab]()}</div>`;
     paint();
   };
-  const crop = () => (o.trim ? contentBounds(compositeFrame(sprite, state.frameId), sprite.width, sprite.height) : null);
+  const crop = () => (o.trim ? contentBounds(finalFrame(sprite, state.frameId), sprite.width, sprite.height) : null);
   const paint = () => {
     const size = body.querySelector('.px-ex-size');
     const c = o.tab === 'png' ? (crop() || { w: sprite.width, h: sprite.height }) : { w: sprite.width, h: sprite.height };
@@ -177,7 +177,7 @@ export function openExport(sprite) {
       }
       return [{ blob: await toBlob(renderToCanvas(sprite, o.scale, crop(), state.frameId)), name: name + '.png' }];
     }
-    if (o.tab === 'ase') return [{ blob: new Blob([await writeAseprite(sprite)], { type: 'application/octet-stream' }), name: name + '.aseprite' }];
+    if (o.tab === 'ase') return [{ blob: new Blob([await writeAseprite(bakeSprite(sprite))], { type: 'application/octet-stream' }), name: name + '.aseprite' }];
     const frames = frameList(sprite, o);
     if (o.tab === 'gif') return [{ blob: new Blob([encodeGIF(frames, W, H, { loop: o.loop })], { type: 'image/gif' }), name: name + '.gif' }];
     if (o.tab === 'apng') return [{ blob: new Blob([await encodeAPNG(frames, W, H, { loop: o.loop })], { type: 'image/png' }), name: name + '.png' }];

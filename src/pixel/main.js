@@ -25,6 +25,8 @@ import { writeRect } from './core/history.js';
 import { leafLayers } from './core/layers.js';
 import { initDoc, applyStruct, addLayer, setActive } from './editor/doc.js';
 import { initColor, snapIncoming } from './editor/color.js';
+import { openText, saveBrush, saveObject } from './ui/library.js';
+import { initLive } from './editor/live.js';
 import * as colorEd from './editor/color.js';
 import { initMove, applyMove, cancelMove, discardMove, nudge, update as updateMove, startMove } from './editor/move.js';
 import { initClipboard, copy, pasteButton, onPasteEvent } from './editor/clipboard.js';
@@ -146,6 +148,7 @@ const actions = {
       deselect, invert: invertSelection, copy: () => copy(), cut: () => copy({ cut: true }), paste: pasteButton,
       fill: fillSelected, outline: outlineSelected, clear: clearSelected,
       move: () => { setTool('move'); startMove(); },
+      saveBrush: () => saveBrush(), saveObject: () => saveObject(),
     })[a]?.();
   },
 };
@@ -153,6 +156,7 @@ const actions = {
 initTools(view, commit);
 initDoc({ commit, view });
 initColor(view);
+initLive(view);
 initMove(view, commit);
 initClipboard(view, commit);
 initSelectOps(view, commit);
@@ -176,6 +180,7 @@ on('transform', () => view.animateAnts());
 on('changed', () => {});
 on('dirty', () => markDirty());
 on('symmetry', () => view.request());
+on('open-text', at => openText(at));
 document.addEventListener('paste', onPasteEvent);
 
 // eye dropper → back to the tool you were using

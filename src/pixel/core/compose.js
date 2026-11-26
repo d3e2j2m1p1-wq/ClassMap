@@ -3,6 +3,7 @@
 //  plus addition, subtract and divide). The screen, thumbnails, export and merging all use
 //  this one function, so what you see is what you export.
 // ═══════════════════════════════════════════════
+import { runStack, liveStack, MODIFIERS, POST, magicFrame } from './effects.js';
 import { isGroup } from './layers.js';
 
 export const BLEND_MODES = [
@@ -108,10 +109,11 @@ function composeNodes(sprite, frameId, nodes, buf, x0, y0, rw, rh, hook) {
       for (let i = 0; i < g.length; i += 4) if (g[i + 3]) blendInto(buf, i, g[i], g[i + 1], g[i + 2], g[i + 3] / 255 * op, mode);
       continue;
     }
-    const cel = (hook && hook(n, frameId)) || celOf(sprite, n.id, frameId);
+    const cel = n.kind === 'magic' ? magicCel(sprite, n, frameId, hook) : (hook && hook(n, frameId)) || celOf(sprite, n.id, frameId);
     if (!cel) continue;
     const k = op * (cel.opacity ?? 255) / 255;
-    const px = cel.pixels, fast = mode === 'normal' && k >= 1;
+    const px = liveStack(n.modifiers) ? runStack(cel.pixels, W, sprite.height, n.modifiers, MODIFIERS) : cel.pixels;
+    const fast = mode === 'normal' && k >= 1;
     for (let y = 0; y < rh; y++) {
       let s = ((y0 + y) * W + x0) * 4, d = y * rw * 4;
       for (let x = 0; x < rw; x++, s += 4, d += 4) {
@@ -128,4 +130,57 @@ export function composeFrame(sprite, frameId = sprite.frames[0].id, hook) {
   const out = new Uint8ClampedArray(sprite.width * sprite.height * 4);
   composeRect(sprite, frameId, out, { x0: 0, y0: 0, x1: sprite.width - 1, y1: sprite.height - 1 }, hook);
   return out;
+}
+
+// ── live layers (magic motion, modifier stacks) and post-processing ──
+
+// A magic layer is drawn on one frame (magic.from); every other frame is made from it
+export function magicCel(sprite, n, frameId, hook) {
+  const g = n.magic || {};
+  const fromId = sprite.frames.some(f => f.id === g.from) ? g.from : sprite.frames[0].id;
+  const src = (hook && hook(n, fromId)) || celOf(sprite, n.id, fromId);
+  if (!src) return null;
+  if (frameId === fromId) return src;
+  const k = sprite.frames.findIndex(f => f.id === frameId) - sprite.frames.findIndex(f => f.id === fromId);
+  return { ...src, pixels: magicFrame(src.pixels, sprite.width, sprite.height, g, k) };
+}
+
+// Does any layer change pixels away from where they're drawn? (then the whole canvas recomposes)
+export function hasLiveLayers(sprite) {
+  let live = false;
+  const visit = list => { for (const n of list) { if (n.kind === 'magic' || liveStack(n.modifiers)) live = true; if (isGroup(n)) visit(n.children); } };
+  visit(sprite.layers);
+  return live;
+}
+
+export const hasPost = sprite => !sprite.postHidden && liveStack(sprite.post);
+export const postProcess = (sprite, px) => (hasPost(sprite) ? runStack(px, sprite.width, sprite.height, sprite.post, POST) : px);
+
+// The finished picture of a frame, effects included (what exports and thumbnails show)
+export const finalFrame = (sprite, frameId, hook) => postProcess(sprite, composeFrame(sprite, frameId, hook));
+
+// The pixels a layer shows on a frame, with its motion and modifiers worked in (for baking)
+export function layerResult(sprite, n, frameId) {
+  const cel = n.kind === 'magic' ? magicCel(sprite, n, frameId) : celOf(sprite, n.id, frameId);
+  if (!cel) return null;
+  return liveStack(n.modifiers) ? runStack(cel.pixels, sprite.width, sprite.height, n.modifiers, MODIFIERS) : cel.pixels.slice();
+}
+
+// A copy of the sprite where magic and modifier layers are plain layers (for file formats)
+export function bakeSprite(sprite) {
+  const live = [];
+  const visit = list => list.map(n => {
+    if (isGroup(n)) return { ...n, children: visit(n.children) };
+    if (n.kind === 'magic' || liveStack(n.modifiers)) { live.push(n); return { ...n, kind: 'regular', modifiers: undefined, magic: undefined }; }
+    return n;
+  });
+  const layers = visit(sprite.layers);
+  if (!live.length) return sprite;
+  const ids = new Set(live.map(n => n.id));
+  const cels = sprite.cels.filter(c => !ids.has(c.layerId));
+  for (const n of live) for (const f of sprite.frames) {
+    const px = layerResult(sprite, n, f.id);
+    if (px) cels.push({ layerId: n.id, frameId: f.id, x: 0, y: 0, w: sprite.width, h: sprite.height, pixels: px });
+  }
+  return { ...sprite, layers, cels };
 }

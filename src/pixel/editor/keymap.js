@@ -8,7 +8,7 @@ import { state, saveSettings } from './state.js';
 export const ACTIONS = [
   ['tool.brush', 'Brush', ['B']], ['tool.eraser', 'Eraser', ['E']], ['tool.line', 'Line', ['L']], ['tool.shape', 'Shape', ['U']],
   ['tool.select', 'Selection', ['M']], ['tool.wand', 'Magic wand', ['W']], ['tool.bucket', 'Color bucket', ['G']],
-  ['tool.dropper', 'Eye dropper', ['I']], ['tool.move', 'Move', ['V']],
+  ['tool.dropper', 'Eye dropper', ['I']], ['tool.move', 'Move', ['V']], ['tool.text', 'Text', ['T']],
   ['swap', 'Swap colours', ['X']],
   ['undo', 'Undo', ['Ctrl+Z']], ['redo', 'Redo', ['Ctrl+Shift+Z', 'Ctrl+Y']],
   ['copy', 'Copy', ['Ctrl+C']], ['copyMerged', 'Copy everything visible', ['Ctrl+Shift+C']], ['cut', 'Cut', ['Ctrl+X']], ['paste', 'Paste', ['Ctrl+V']],

@@ -19,6 +19,7 @@ export const TOOL_DEFAULTS = {
   select: { size: 1, opacity: 100, shape: 'rect', mode: 'replace' },
   wand: { size: 1, opacity: 100, mode: 'replace', contiguous: true, eight: false, tolerance: 0, sample: 'layer' },
   move: { size: 1, opacity: 100, rotsprite: true },
+  text: { size: 1, opacity: 100 },
 };
 export const DRAW_TOOLS = ['brush', 'eraser', 'line', 'shape', 'bucket'];
 
