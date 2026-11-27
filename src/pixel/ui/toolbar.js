@@ -194,6 +194,21 @@ function vslider(el, { label, min, max, get, set, curve = 1, unit = '' }) {
   return paint;
 }
 
+// Desktop: the size / opacity sliders go under the toolbox when they fit, otherwise beside it
+// (measured, so adding tools never makes the two overlap). Phones use the CSS layout.
+export function layoutRails() {
+  const tb = document.querySelector('.px-toolbox'), sl = document.querySelector('.px-sliders');
+  if (!tb || !sl) return;
+  const side = state.settings.lefty ? 'right' : 'left', other = side === 'left' ? 'right' : 'left';
+  sl.style.left = sl.style.right = sl.style.top = '';
+  if (matchMedia('(max-width: 700px)').matches) return;
+  const H = tb.parentElement.clientHeight, gap = 12;
+  const below = tb.offsetTop + tb.offsetHeight + gap;
+  sl.style[other] = 'auto';
+  if (below + sl.offsetHeight + 14 <= H) { sl.style.top = below + 'px'; sl.style[side] = '14px'; }
+  else { sl.style.top = tb.offsetTop + 'px'; sl.style[side] = (14 + tb.offsetWidth + 8) + 'px'; }
+}
+
 export function initSliders(el, actions) {
   el.innerHTML = `
     <button type="button" class="px-icon-btn px-undo" aria-label="Undo" title="Undo (Ctrl+Z · two-finger tap)">${ICONS.undo}</button>

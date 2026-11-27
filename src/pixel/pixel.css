@@ -498,7 +498,7 @@ body:not(.light) .px-presets button[aria-checked="true"] { background: var(--sur
   .px-sliders { left: 84px; top: 14px; }
 }
 @media (min-width: 701px) and (max-width: 1000px) {
-  .px-timeline { right: 14px; bottom: auto; top: auto; }
+  .px-timeline { right: 14px; }
   .px-right { bottom: calc(var(--tl, 0px) + 28px); }
 }
 @media (max-height: 700px) and (min-width: 701px) {
@@ -666,3 +666,7 @@ body.px-contrast .px-top { border-bottom: 2px solid #fff; }
   .px-tiles-flips .px-hint { display: none; }
   .px-tiles-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 34px; overflow-x: auto; min-height: 0; }
 }
+
+/* buttons own their presses (an icon swapped mid-tap can't swallow the click) */
+.px-tl-btn svg, .px-tool svg, .px-icon-btn svg, .px-ref-btn svg, .px-joy-btn svg, .px-joy-hub svg { pointer-events: none; }
+@media (min-width: 701px) { .px-toolbox { max-height: calc(100% - 28px); } }

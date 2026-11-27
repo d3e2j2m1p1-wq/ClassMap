@@ -78,8 +78,15 @@ export function render() {
   if (!root || !sp) return;
   const S = state.settings, fr = sp.frames, cur = anim.frameIndex();
   root.classList.toggle('folded', !S.timeline);
-  root.querySelector('.px-tl-play').innerHTML = state.playing ? ICONS.pause : ICONS.play;
-  root.querySelector('.px-tl-play').classList.toggle('on', state.playing);
+  // Swap the play / pause icon only when it changes: replacing it on every frame while playing
+  // swallowed the tap meant to stop playback
+  const pb = root.querySelector('.px-tl-play');
+  if (pb.dataset.state !== String(state.playing)) {
+    pb.dataset.state = String(state.playing);
+    pb.innerHTML = state.playing ? ICONS.pause : ICONS.play;
+    pb.setAttribute('aria-label', state.playing ? 'Pause' : 'Play');
+    pb.classList.toggle('on', state.playing);
+  }
   root.querySelector('.px-tl-onion').classList.toggle('on', S.onion.on);
   root.querySelector('[data-a="preview"]').classList.toggle('on', S.preview.open);
   root.querySelector('.px-tl-count').textContent = `${cur + S.numberFrom} / ${fr.length - 1 + S.numberFrom}`;

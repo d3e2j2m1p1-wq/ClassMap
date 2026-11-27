@@ -157,3 +157,35 @@ test('a broken .px file gets a polite message', async ({ page }) => {
   await page.setInputFiles('.px-open-file', { name: 'thing.px', mimeType: 'application/octet-stream', buffer: Buffer.alloc(80) });
   await expect(page.locator('.px-toast')).toContainText(/\.px/);
 });
+
+test('the play button pauses playback on a click (desktop and phone)', async ({ page }) => {
+  for (const vp of [{ width: 1280, height: 800 }, { width: 390, height: 780 }]) {
+    await page.setViewportSize(vp);
+    await newArt(page, { w: 8, h: 8 });
+    await page.evaluate(() => { __px.anim.addFrame(); __px.anim.addFrame(); for (const f of __px.state.sprite.frames) f.durationMs = 60; });
+    if (vp.width < 700 && !(await page.locator('.px-tl-play').isVisible())) await page.click('.px-timeline-btn');
+    await page.click('.px-tl-play');
+    expect(await page.evaluate(() => __px.state.playing)).toBe(true);
+    await page.waitForTimeout(300);                                       // several frames go by
+    await page.click('.px-tl-play', { delay: 150 });                      // a real press lasts a moment
+    expect(await page.evaluate(() => __px.state.playing)).toBe(false);
+    await expect(page.locator('.px-tl-play')).toHaveAttribute('aria-label', 'Play');
+  }
+});
+
+test('the sliders never overlap the toolbox, at any window height', async ({ page }) => {
+  for (const h of [1070, 900, 800, 640]) {
+    await page.setViewportSize({ width: 1280, height: h });
+    if (h === 1070) await newArt(page);
+    await page.waitForTimeout(150);
+    const a = await page.locator('.px-toolbox').boundingBox(), b = await page.locator('.px-sliders').boundingBox();
+    const overlap = a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+    expect(overlap, `height ${h}`).toBe(false);
+    expect(b.y + b.height).toBeLessThanOrEqual(h);
+  }
+  // a new artwork in a narrow, tall window: the canvas starts clear of the sliders
+  await page.setViewportSize({ width: 1000, height: 1070 });
+  await newArt(page);
+  const s = await page.locator('.px-sliders').boundingBox(), st = await page.locator('#stage').boundingBox();
+  expect(st.x + await page.evaluate(() => __px.view.ox)).toBeGreaterThanOrEqual(s.x + s.width);
+});

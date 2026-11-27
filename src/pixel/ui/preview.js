@@ -70,7 +70,8 @@ const fitZoom = () => { const sp = state.sprite; return Math.max(0.1, Math.min((
 function paint() {
   const sp = state.sprite;
   if (!sp || el.hidden) return;
-  el.querySelector('[data-a="play"]').innerHTML = playing ? ICONS.pause : ICONS.play;
+  const pb = el.querySelector('[data-a="play"]');                 // swap the icon only when it changes
+  if (pb.dataset.state !== String(playing)) { pb.dataset.state = String(playing); pb.innerHTML = playing ? ICONS.pause : ICONS.play; }
   const dpr = devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   const g = cv.getContext('2d');

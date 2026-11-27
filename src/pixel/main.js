@@ -35,7 +35,7 @@ import * as colorEd from './editor/color.js';
 import { initMove, applyMove, cancelMove, discardMove, nudge, update as updateMove, startMove } from './editor/move.js';
 import { initClipboard, copy, pasteButton, onPasteEvent } from './editor/clipboard.js';
 import { initSelectOps, selectAll, deselect, invertSelection, clearSelected, fillSelected, outlineSelected } from './editor/selectOps.js';
-import { initToolbox, initSliders, initInfo, nudgeSize } from './ui/toolbar.js';
+import { initToolbox, initSliders, initInfo, nudgeSize, layoutRails } from './ui/toolbar.js';
 import { initPalette, render as renderPalette } from './ui/palette.js';
 import { initLayers, render as renderLayers } from './ui/layers.js';
 import { initContextBar, render as renderContext } from './ui/contextbar.js';
@@ -212,6 +212,12 @@ initSelectOps(view, commit);
 initInput(view, actions);
 initToolbox($('.px-toolbox'));
 initSliders($('.px-sliders'), actions);
+// keep the sliders clear of the toolbox whatever the window size
+const relayout = () => { layoutRails(); if (state.sprite) view.resize(); };
+new ResizeObserver(() => requestAnimationFrame(relayout)).observe($('.px-toolbox'));
+addEventListener('resize', () => requestAnimationFrame(relayout));
+on('theme', () => requestAnimationFrame(relayout));
+document.fonts?.ready.then(() => requestAnimationFrame(relayout));
 initPalette($('.px-palette'), () => markDirty());
 initLayers($('.px-layers'), view, { importImage: kind => pickFile(f => importLayerImage(f, kind)) });
 initContextBar($('.px-context'), actions);
@@ -357,6 +363,7 @@ async function openArt(id) {
     if (location.hash !== '#/art/' + id) history.pushState(null, '', '#/art/' + id);
     renderTimeline();
     view.resize();
+    layoutRails();                       // place the sliders before the canvas is fitted around them
     view.setSprite();
     emit('sprite'); emit('history'); emit('tool'); emit('selection'); emit('transform'); emit('frames');
     renderPalette(); renderLayers(); renderTimeline();
