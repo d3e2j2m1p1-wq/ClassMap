@@ -3,6 +3,7 @@
 //    the cached copy is used only when offline.
 //  • Built JS/CSS files: cache first. Their names include a content hash, so a cached
 //    file is never out of date — a new release simply uses new names.
+//  • /notes (ClassMap Notes) is skipped: it has its own service worker and offline copy.
 const CACHE = 'classmap-v3';
 
 self.addEventListener('install', () => self.skipWaiting());
@@ -20,7 +21,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   const url = new URL(req.url);
-  if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  // /notes is a separate app with its own offline worker (notes-sw.js); leave it alone
+  if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/notes')) return;
 
   if (req.mode === 'navigate') {
     e.respondWith(
