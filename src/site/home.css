@@ -234,7 +234,12 @@ img.layer:not(.teacher) { height: auto; } img.layer { user-select: none; -webkit
 .pixel-tip code { font: 700 0.86rem ui-monospace, Menlo, Consolas, monospace; background: var(--cream); border: 1.5px solid #E4D6BC; border-radius: 6px; padding: 1px 6px; word-break: break-all; }
 .pixel-frame { justify-self: center; background: repeating-conic-gradient(#F3E8D2 0 25%, #FFFDF7 0 50%) 0 0 / 40px 40px; border: 3.5px solid var(--ink); border-radius: 18px; box-shadow: 10px 10px 0 var(--coral); padding: 28px; }
 .pixel-art { display: block; width: min(320px, 70vw); height: auto; image-rendering: pixelated; }
-@media (max-width: 900px) { .pixel-teaser { grid-template-columns: 1fr; } .pixel-frame { order: -1; } }
+/* ClassMap Notes: same layout as the Pixel teaser, picture on the left, cream paper */
+.notes-teaser { background: var(--cream); grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+.notes-teaser .pixel-copy { order: 2; }
+.notes-frame { background: #F3E8D2; box-shadow: 10px 10px 0 var(--teal); padding: 22px; }
+.notes-art { display: block; width: min(320px, 70vw); height: auto; }
+@media (max-width: 900px) { .pixel-teaser, .notes-teaser { grid-template-columns: 1fr; } .pixel-frame { order: -1; } .notes-teaser .pixel-copy { order: 0; } }
 
 /* ═══ GUIDES ═══ */
 .guides-teaser { background: var(--cream); padding: 100px clamp(20px, 6vw, 96px) 80px; }
