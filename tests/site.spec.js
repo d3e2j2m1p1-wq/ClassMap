@@ -53,7 +53,6 @@ test('contact form writes an email in the teacher’s own email app', async ({ p
 
 test('the home page links to contact, and the app links back to the website', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('.nav a[href="contact/"]')).toHaveCount(1);
   await expect(page.locator('.footer a[href="contact/"]')).toHaveCount(1);
   await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
   await page.goto('/app/');
@@ -62,5 +61,5 @@ test('the home page links to contact, and the app links back to the website', as
   await page.locator('#homeMore [aria-haspopup]').click();
   await page.getByRole('menuitem', { name: /ClassMap website/ }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.locator('h1')).toContainText('your rules');
+  await expect(page.locator('h1')).toContainText('seating charts');
 });

@@ -1,4 +1,4 @@
-// The home page: scroll story, Try it, little tools, and carrying names into the app
+// The home page: the hero, the seating story, Try it, little tools, and carrying names into the app
 import { test, expect } from '@playwright/test';
 
 function watch(page) {
@@ -17,7 +17,7 @@ const scrollThrough = async (page, sel, f) => {
 test('home page loads with no errors and builds the room as you scroll', async ({ page }) => {
   const errors = watch(page);
   await page.goto('/');
-  await expect(page.locator('h1')).toContainText('your rules');
+  await expect(page.locator('h1')).toContainText('seating charts');
   await expect(page.locator('.room .name')).toHaveCount(16);
   await scrollThrough(page, '.builder', 0.05);
   await expect(page.locator('.steps li.on')).toHaveAttribute('data-step', '0');
@@ -30,6 +30,26 @@ test('home page loads with no errors and builds the room as you scroll', async (
   // Owen and Max swapped: Owen now sits at the last table
   const [owen, liam] = await Promise.all(['Owen', 'Liam'].map(n => page.locator('.room .name', { hasText: n }).boundingBox()));
   expect(Math.abs(owen.y - liam.y)).toBeGreaterThan(50);
+  expect(errors).toEqual([]);
+});
+
+test('hero: Notes and seating charts come first, and the things around the teacher drift as you scroll', async ({ page }) => {
+  const errors = watch(page);
+  await page.goto('/');
+  await expect(page.locator('.app-card a[href="notes/"]')).toBeVisible();
+  await expect(page.locator('.app-card a[href="app/"]')).toBeVisible();
+  await expect(page.locator('.hero-art [data-depth]')).toHaveCount(17);
+  // every picture in the hero loads
+  const broken = await page.evaluate(() => [...document.querySelectorAll('.hero-art img')].filter(i => !i.complete || !i.naturalWidth).map(i => i.src));
+  expect(broken).toEqual([]);
+  const cal = page.locator('.hl-calendar');
+  const before = await cal.evaluate(el => el.style.transform);
+  await page.evaluate(() => scrollTo(0, 300));
+  await expect.poll(() => cal.evaluate(el => el.style.transform)).not.toBe(before);
+  // the calendar sits on the right, so it drifts right and up
+  const m = (await cal.evaluate(el => el.style.transform)).match(/translate3d\((-?[\d.]+)px, (-?[\d.]+)px/);
+  expect(+m[1]).toBeGreaterThan(0);
+  expect(+m[2]).toBeLessThan(0);
   expect(errors).toEqual([]);
 });
 

@@ -7,9 +7,9 @@ import '@fontsource/nunito/latin-900.css';
 import '@fontsource/caveat/latin-700.css';
 // ═══════════════════════════════════════════════
 //  ClassMap home page: scroll effects and the little demos
-//  · hero layers move at different speeds (parallax)
-//  · "How it works" is pinned while the room builds itself
-//  · paper planes fly out of the laptop and always come home
+//  · hero: the things around the teacher drift apart as you scroll
+//    and lean toward the mouse
+//  · "Seating charts" is pinned while the room builds itself
 //  · Try it: paste names → a chart → carry it into the app
 //  Everything here runs in the browser; nothing is sent anywhere.
 // ═══════════════════════════════════════════════
@@ -97,42 +97,62 @@ function drawBuilder(p) {
   steps.forEach((s, i) => { s.classList.toggle('on', i === step); s.classList.toggle('done', i < step); });
 }
 
-// ═══ Privacy: planes fly out and loop home ═══
-const planes = $$('.ps-plane');
-function drawPlanes(p) {
-  const art = $('.ps-art');
-  const R = Math.min(art.clientWidth, art.clientHeight) * 0.46;
-  planes.forEach((pl, i) => {
-    const base = (i / planes.length) * Math.PI * 2;
-    const t = clamp(p * 1.1 - i * 0.03);
-    const r = R * Math.sin(Math.PI * t);                  // out… and back in
-    const a = base + t * Math.PI * 1.6;
-    const x = Math.cos(a) * r, y = Math.sin(a) * r * 0.8;
-    // nose along the direction of travel
-    const dx = -Math.sin(a) * r + Math.cos(a) * R * Math.PI * Math.cos(Math.PI * t) * 0.35;
-    const dy = Math.cos(a) * r * 0.8 + Math.sin(a) * R * Math.PI * Math.cos(Math.PI * t) * 0.28;
-    const ang = Math.atan2(dy, dx) * 180 / Math.PI;
-    const s = 0.4 + 0.6 * Math.sin(Math.PI * t);
-    pl.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${ang}deg) scale(${s})`;
-    pl.style.opacity = t <= 0 || t >= 1 ? 0 : 1;
-  });
+// ═══ Hero: things fly off the teacher's stack ═══
+// Each piece has a depth (how strongly it moves) and cx (where it sits, % across),
+// so on scroll the left ones drift left, the right ones drift right, and all rise.
+const hero = $('.hero');
+const pieces = $$('.hero-art [data-depth]').map(el => ({ el, teacher: el.dataset.depth === 'teacher', d: parseFloat(el.dataset.depth) || 0, cx: parseFloat(el.dataset.cx) || 50 }));
+const aim = { mx: 0, my: 0, sy: 0 }, now = { mx: 0, my: 0, sy: 0 };
+let heroRaf = 0;
+function drawHero() {
+  heroRaf = 0;
+  let moving = false;
+  for (const k of ['mx', 'my', 'sy']) {
+    now[k] += (aim[k] - now[k]) * 0.14;
+    if (Math.abs(aim[k] - now[k]) > 0.002) moving = true; else now[k] = aim[k];
+  }
+  const { mx, my, sy } = now;
+  for (const p of pieces) {
+    if (p.teacher) { p.el.style.transform = `translate3d(${(mx * 6).toFixed(1)}px, ${(sy * 0.1).toFixed(1)}px, 0)`; continue; }
+    const spread = ((p.cx - 45) / 50) * sy * 0.14 * p.d;
+    const x = mx * 22 * p.d + spread;
+    const y = my * 16 * p.d - sy * 0.32 * p.d;
+    const r = sy * 0.035 * p.d * (p.cx > 45 ? 1 : -1) + mx * 3 * p.d;
+    p.el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) rotate(${r.toFixed(2)}deg)`;
+  }
+  if (moving) heroRaf = requestAnimationFrame(drawHero);
+}
+const nudgeHero = () => { if (!heroRaf) heroRaf = requestAnimationFrame(drawHero); };
+if (!reduce && hero) {
+  if (matchMedia('(pointer: fine)').matches) {
+    hero.addEventListener('pointermove', e => {
+      const b = hero.getBoundingClientRect();
+      aim.mx = ((e.clientX - b.left) / b.width) * 2 - 1;
+      aim.my = ((e.clientY - b.top) / b.height) * 2 - 1;
+      nudgeHero();
+    });
+    hero.addEventListener('pointerleave', () => { aim.mx = 0; aim.my = 0; nudgeHero(); });
+  }
 }
 
-// ═══ Parallax + pinned sections, one frame at a time ═══
-const layers = $$('.hero-art [data-speed]');
-const builder = $('.builder'), privacy = $('.privacy-story');
+// ═══ Hero drift + the pinned room, one frame at a time ═══
+const builder = $('.builder'), heroArt = $('.hero-art');
 const pinned = el => { const r = el.getBoundingClientRect(); return clamp(-r.top / (r.height - innerHeight)); };
 let ticking = false;
 function frame() {
   ticking = false;
-  const y = scrollY;
-  if (y < innerHeight * 1.2) layers.forEach(l => { l.style.transform = `translate3d(0, ${y * parseFloat(l.dataset.speed)}px, 0)`; });
+  // drift starts once the picture is well in view (right away on a laptop, lower down on a phone),
+  // and is scaled to the picture's size
+  if (heroArt) {
+    const top = heroArt.getBoundingClientRect().top + scrollY;
+    const k = Math.min(1, heroArt.clientWidth / 726);
+    const sy = clamp(scrollY - Math.max(0, top - innerHeight * 0.3), 0, innerHeight * 1.2) * k;
+    if (sy !== aim.sy) { aim.sy = sy; nudgeHero(); }
+  }
   drawBuilder(pinned(builder));
-  drawPlanes(pinned(privacy));
 }
 if (reduce) {
   drawBuilder(1);
-  drawPlanes(0.5);
 } else {
   addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }, { passive: true });
   addEventListener('resize', frame);

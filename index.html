@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Free Seating Chart Maker for Teachers — ClassMap</title>
-<meta name="description" content="Free seating chart maker for teachers. Build your room, set seating rules, and auto-assign seats that mix boys and girls and avoid repeat partners. Print or present. No account needed.">
+<title>ClassMap — Free Notes, Whiteboard and Seating Charts for Teachers</title>
+<meta name="description" content="Free, private classroom tools. ClassMap Notes for lesson plans, sub plans and an endless whiteboard, and a seating chart maker that follows your rules. No accounts, works offline.">
 <meta name="theme-color" content="#0E8A9E">
 <link rel="canonical" href="https://classmap.dev/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ClassMap">
 <meta property="og:url" content="https://classmap.dev/">
-<meta property="og:title" content="Free Seating Chart Maker for Teachers — ClassMap">
-<meta property="og:description" content="Free seating chart maker for teachers. Set your rules, mix groups, avoid repeat partners — then seat the whole class in one click.">
+<meta property="og:title" content="ClassMap — Free Notes, Whiteboard and Seating Charts for Teachers">
+<meta property="og:description" content="Plan lessons, sketch on an endless whiteboard and make seating charts that follow your rules. Free, private, and yours.">
 <meta property="og:image" content="https://classmap.dev/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -23,7 +23,7 @@
   "@type": "WebApplication",
   "name": "ClassMap",
   "url": "https://classmap.dev/",
-  "description": "Free seating chart maker for teachers. Build your room, set seating rules, mix groups and avoid repeat partners, then auto-assign seats. Print or present. Class lists stay on your device.",
+  "description": "Free classroom tools for teachers: ClassMap Notes for lesson plans and an endless whiteboard, and a seating chart maker that follows your rules. No accounts; everything stays on your device.",
   "applicationCategory": "EducationalApplication",
   "operatingSystem": "Any (web browser)",
   "browserRequirements": "Requires JavaScript",
@@ -41,101 +41,137 @@
 </head>
 <body class="home">
 
-<!-- ═══ Drawings used across the page (ink line art) ═══ -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-  <defs>
-    <symbol id="blossom" viewBox="-24 -24 48 48">
-      <g stroke="#2B1D1A" stroke-width="1.8" stroke-linejoin="round">
-        <ellipse cx="0" cy="-11" rx="8" ry="11" fill="#F25F6B"/>
-        <ellipse cx="0" cy="-11" rx="8" ry="11" fill="#F4707A" transform="rotate(72)"/>
-        <ellipse cx="0" cy="-11" rx="8" ry="11" fill="#F25F6B" transform="rotate(144)"/>
-        <ellipse cx="0" cy="-11" rx="8" ry="11" fill="#F4707A" transform="rotate(216)"/>
-        <ellipse cx="0" cy="-11" rx="8" ry="11" fill="#F25F6B" transform="rotate(288)"/>
-      </g>
-      <path d="M-3 -14 C -1 -9, 1 -9, 3 -14 M 10 -8 C 6 -5, 6 -2, 11 0" stroke="#B83A47" stroke-width="1.2" fill="none"/>
-      <circle r="5" fill="#FFE3A3" stroke="#2B1D1A" stroke-width="1.6"/>
-      <g fill="#2B1D1A"><circle cx="-2" cy="-1.5" r="0.9"/><circle cx="2" cy="-1" r="0.9"/><circle cx="0" cy="2" r="0.9"/></g>
-    </symbol>
-    <symbol id="bud" viewBox="-12 -20 24 32">
-      <path d="M0 10 C -9 2, -8 -10, 0 -17 C 8 -10, 9 2, 0 10 Z" fill="#F25F6B" stroke="#2B1D1A" stroke-width="1.8"/>
-      <path d="M0 9 C -2 0, -1 -9, 0 -15" stroke="#B83A47" stroke-width="1.2" fill="none"/>
-      <path d="M-6 6 C -3 12, 3 12, 6 6 L 0 4 Z" fill="#0B6A78" stroke="#2B1D1A" stroke-width="1.6"/>
-    </symbol>
-    <symbol id="leaf" viewBox="0 -14 44 28">
-      <path d="M1 0 C 10 -13, 30 -13, 43 0 C 30 13, 10 13, 1 0 Z" fill="#0B6A78" stroke="#2B1D1A" stroke-width="1.8" stroke-linejoin="round"/>
-      <path d="M3 0 C 15 -1, 28 -1, 40 0 M 14 -1 L 20 -7 M 24 -1 L 30 -7 M 18 0 L 24 6" stroke="#2B1D1A" stroke-width="1.1" fill="none" stroke-linecap="round"/>
-    </symbol>
-  </defs>
-</svg>
-
 <header class="nav" id="top">
   <a class="brand" href="./" aria-label="ClassMap home">
     <img class="brand-wren" src="/art/wren.webp" width="804" height="728" alt="">ClassMap
   </a>
   <nav aria-label="Main">
-    <a href="#how">How it works</a>
-    <a href="#try">Try it</a>
-    <a href="pixel/">Pixel art</a>
     <a href="notes/">Notes</a>
+    <a href="app/">Seating<span class="nav-long"> charts</span></a>
     <a href="guides/">Guides</a>
-    <a href="privacy/">Privacy</a>
-    <a href="contact/">Contact</a>
-    <a class="btn btn-light" href="app/">Open ClassMap</a>
+    <a class="nav-pixel" href="pixel/">Pixel</a>
   </nav>
 </header>
 
 <main>
-  <!-- ═══ HERO ═══ -->
+  <!-- ═══ HERO: one teal scene with the teacher and everything flying off her stack ═══ -->
   <section class="hero" aria-labelledby="hero-title">
     <div class="hero-text">
-      <p class="eyebrow">Free seating charts for teachers</p>
-      <h1 id="hero-title">Seating charts that follow <span class="ink-underline">your rules.</span></h1>
-      <p class="lede">Set up your room once. Tell ClassMap who shouldn’t sit together, who needs the front row, and how to mix your groups. Then seat the whole class in one click.</p>
-      <div class="cta-row">
-        <a class="btn btn-coral" href="app/">Open ClassMap, it’s free <span aria-hidden="true">→</span></a>
-        <span class="cta-note">No account · works offline · class lists stay on your device</span>
+      <p class="eyebrow">made with classrooms in mind</p>
+      <h1 id="hero-title">Notes, whiteboards and seating charts. <span class="h1-coral">Free, private, and yours.</span></h1>
+      <p class="lede">Plan lessons, sketch ideas on an endless whiteboard, and map your classroom. No accounts. Your work stays on your device, and it all works offline.</p>
+
+      <div class="app-cards">
+        <div class="app-card">
+          <div class="app-card-head">
+            <svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="3" width="28" height="34" rx="5" fill="#FFF8EC" stroke="#2B1D1A" stroke-width="2.5"/><path d="M11 12h16M11 18h12M11 24h14" stroke="#0E8A9E" stroke-width="2.5" stroke-linecap="round"/><rect x="24" y="22" width="13" height="13" rx="2" fill="#FDE68A" stroke="#2B1D1A" stroke-width="2"/></svg>
+            <h2>Notes</h2>
+          </div>
+          <p>Lesson plans, sub plans and a whiteboard in one notebook.</p>
+          <a class="btn btn-coral btn-small" href="notes/">Open Notes <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="app-card">
+          <div class="app-card-head">
+            <svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="3" width="34" height="34" rx="5" fill="#FFF8EC" stroke="#2B1D1A" stroke-width="2.5"/><rect x="8" y="9" width="9" height="7" rx="2" fill="#0E8A9E"/><rect x="23" y="9" width="9" height="7" rx="2" fill="#F25F6B"/><rect x="8" y="22" width="9" height="7" rx="2" fill="#F25F6B"/><rect x="23" y="22" width="9" height="7" rx="2" fill="#0E8A9E"/></svg>
+            <h2>Seating charts</h2>
+          </div>
+          <p>Draw your room, add your class, and seat everyone in one click.</p>
+          <a class="btn btn-teal btn-small" href="app/">Make a seating chart <span aria-hidden="true">→</span></a>
+        </div>
       </div>
+
+      <a class="pixel-sticker" href="pixel/">
+        <svg width="26" height="22" viewBox="0 0 13 11" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="4" height="1" fill="#2B1D1A"/><rect x="2" y="1" width="6" height="1" fill="#0E8A9E"/><rect x="1" y="2" width="8" height="4" fill="#0E8A9E"/><rect x="3" y="2" width="1" height="1" fill="#fff"/><rect x="0" y="3" width="1" height="1" fill="#F25F6B"/><rect x="3" y="4" width="4" height="2" fill="#3FE0D0"/><rect x="9" y="4" width="3" height="2" fill="#0E8A9E"/><rect x="2" y="6" width="7" height="1" fill="#0E8A9E"/><rect x="0" y="8" width="13" height="1" fill="#8A5A3B"/></svg>
+        <span>…and Pixel, for fun</span>
+      </a>
     </div>
 
+    <!-- the teacher in the middle; papers, planes and classroom things fly around her.
+         They drift apart as you scroll and lean toward the mouse (home.js). -->
     <div class="hero-art" aria-hidden="true">
-      <!-- blossom branch, top right, with the wren -->
-      <img class="layer branch" data-speed="-0.1" src="/art/branch.webp" width="1057" height="762" alt="">
-      <img class="layer wren-flying" data-speed="-0.1" src="/art/wren-fly.webp" width="700" height="578" alt="">
-      <img class="layer wren" data-speed="-0.1" src="/art/wren.webp" width="804" height="728" alt="">
-
-      <!-- the teacher, with papers and name cards flying up from her stack -->
-      <img class="layer teacher" data-speed="0.03" src="/art/teacher-hd.webp" width="568" height="1200" alt="">
-      <img class="layer fly f1" data-speed="0.18" src="/art/fly-1.webp" width="290" height="245" alt="">
-      <img class="layer fly f2" data-speed="0.3" src="/art/fly-2.webp" width="484" height="345" alt="">
-      <img class="layer fly f3" data-speed="0.12" src="/art/fly-3.webp" width="219" height="208" alt="">
-      <img class="layer fly f4" data-speed="0.24" src="/art/fly-4.webp" width="267" height="262" alt="">
-      <img class="layer fly f5" data-speed="0.36" src="/art/fly-5.webp" width="494" height="358" alt="">
-      <img class="layer fly f6" data-speed="0.2" src="/art/fly-6.webp" width="278" height="216" alt="">
-      <div class="layer card c1" data-speed="0.26"><b>Ava</b><span></span></div>
-      <div class="layer card c2" data-speed="0.34"><b>Noah</b><span></span></div>
-      <div class="layer card c3" data-speed="0.16"><b>Mia</b><span></span></div>
+      <div class="hl hl-teacher" data-depth="teacher"><img class="teacher" src="/art/teacher-hd.webp" width="568" height="1200" alt=""></div>
+      <div class="hl hl-apple" data-depth="0.7" data-cx="4"><div class="bob"><img src="/art/apple.webp" width="626" height="640" alt=""></div></div>
+      <div class="hl hl-star" data-depth="0.9" data-cx="22"><div class="bob"><img src="/art/star.webp" width="640" height="560" alt=""></div></div>
+      <div class="hl hl-clock" data-depth="0.8" data-cx="6"><div class="bob"><img src="/art/clock.webp" width="588" height="640" alt=""></div></div>
+      <div class="hl hl-fly3" data-depth="1.1" data-cx="24"><div class="bob"><img src="/art/fly-3.webp" width="219" height="208" alt=""></div></div>
+      <div class="hl hl-noah" data-depth="0.6" data-cx="4"><div class="bob"><div class="card"><b>Noah</b><span></span></div></div></div>
+      <div class="hl hl-fly1" data-depth="1.0" data-cx="18"><div class="bob"><img src="/art/fly-1.webp" width="290" height="245" alt=""></div></div>
+      <div class="hl hl-fly2" data-depth="1.2" data-cx="64"><div class="bob"><img src="/art/fly-2.webp" width="484" height="345" alt=""></div></div>
+      <div class="hl hl-calendar" data-depth="0.7" data-cx="88"><div class="bob"><img src="/art/calendar.webp" width="640" height="580" alt=""></div></div>
+      <div class="hl hl-fly5" data-depth="1.3" data-cx="76"><div class="bob"><img src="/art/fly-5.webp" width="494" height="358" alt=""></div></div>
+      <div class="hl hl-sticky" data-depth="0.8" data-cx="90"><div class="bob"><img src="/art/sticky.webp" width="640" height="632" alt=""><span class="sticky-text">Quiz Friday!</span></div></div>
+      <div class="hl hl-fly4" data-depth="1.0" data-cx="70"><div class="bob"><img src="/art/fly-4.webp" width="267" height="262" alt=""></div></div>
+      <div class="hl hl-seating" data-depth="0.6" data-cx="80"><div class="bob"><img src="/art/seating.webp" width="612" height="640" alt=""></div></div>
+      <div class="hl hl-fly6" data-depth="1.1" data-cx="96"><div class="bob"><img src="/art/fly-6.webp" width="278" height="216" alt=""></div></div>
+      <div class="hl hl-ava" data-depth="0.7" data-cx="84"><div class="bob"><div class="card"><b>Ava</b><span></span></div></div></div>
+      <div class="hl hl-mia" data-depth="0.8" data-cx="66"><div class="bob"><div class="card"><b>Mia</b><span></span></div></div></div>
+      <div class="hl hl-pencil" data-depth="0.9" data-cx="94"><div class="bob"><img src="/art/pencil.webp" width="489" height="640" alt=""></div></div>
     </div>
 
-    <!-- the chart unrolls across the bottom like a ribbon -->
     <svg class="ribbon" viewBox="0 0 1440 220" preserveAspectRatio="none" aria-hidden="true">
       <path d="M0 120 C 260 40, 520 40, 760 110 S 1200 200, 1440 120 L 1440 220 L 0 220 Z" fill="#3FE0D0" opacity="0.55"/>
-      <path d="M0 150 C 280 80, 560 70, 800 140 S 1220 220, 1440 150 L 1440 220 L 0 220 Z" fill="#FFF8EC"/>
+      <path d="M0 150 C 280 80, 560 70, 800 140 S 1220 220, 1440 150 L 1440 220 L 0 220 Z" fill="#FFFDF7"/>
       <path d="M0 150 C 280 80, 560 70, 800 140 S 1220 220, 1440 150" fill="none" stroke="#2B1D1A" stroke-width="3"/>
     </svg>
   </section>
 
-  <!-- ═══ THE ROOM BUILDS ITSELF (pinned while you scroll) ═══ -->
-  <section class="builder" id="how" aria-labelledby="how-title">
+  <!-- ═══ NOTES ═══ -->
+  <section class="notes-sec" id="notes" aria-labelledby="notes-title">
+    <div class="split">
+      <div class="split-copy reveal">
+        <p class="pill">ClassMap Notes</p>
+        <h2 class="big-title" id="notes-title">Your planning notebook and class whiteboard.</h2>
+        <p class="sec-lede">Write lesson plans, keep a weekly planner, and switch any page into an endless whiteboard for the projector. It keeps everything on this device.</p>
+        <div class="mini-grid">
+          <div class="mini"><h3>Teacher templates</h3><p>Lesson plan, weekly planner, sub plan and KWL chart.</p></div>
+          <div class="mini"><h3>Endless whiteboard</h3><p>Pen, shapes, sticky notes and mind maps, with a pen, a finger or a mouse.</p></div>
+          <div class="mini"><h3>Tables, kanban and more</h3><p>Checklists, maths and YouTube videos right in your notes.</p></div>
+          <div class="mini"><h3>One-click backups</h3><p>Save a copy as a file, with a reminder every two weeks.</p></div>
+        </div>
+        <div class="split-actions">
+          <a class="btn btn-coral" href="notes/">Open ClassMap Notes <span aria-hidden="true">→</span></a>
+          <a class="text-link" href="guides/classmap-notes/">Read the guide</a>
+        </div>
+      </div>
+
+      <div class="notes-app reveal" aria-hidden="true">
+        <div class="na-bar"><img src="/art/wren.webp" width="804" height="728" alt="">ClassMap <span>Notes</span><em>Lesson plan · Fractions</em></div>
+        <div class="na-body">
+          <div class="na-side">
+            <span>All docs</span><span>Journals</span>
+            <small>TEMPLATES</small>
+            <span class="on">Lesson plan</span><span>Weekly planner</span><span>Sub plan</span><span>KWL chart</span>
+          </div>
+          <div class="na-page">
+            <b class="na-title">Fractions, day 3</b>
+            <div class="na-callout">Goal: compare fractions with unlike denominators.</div>
+            <b class="na-h">Lesson steps</b>
+            <div class="na-table">
+              <i>Time</i><i>Step</i><i>Students</i>
+              <span>5 min</span><span>Warm-up</span><span>Number talk</span>
+              <span>15 min</span><span>Model</span><span>Fraction strips</span>
+              <span>15 min</span><span>Practice</span><span>Partner cards</span>
+            </div>
+            <div class="na-todo"><span><s>✓</s>Print exit tickets</span><span><s></s>Fraction strips for table 4</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SEATING CHARTS: the room builds itself (pinned while you scroll) ═══ -->
+  <section class="builder" id="seating" aria-labelledby="how-title">
     <div class="builder-sticky">
       <div class="builder-copy">
-        <h2 id="how-title">How it works</h2>
+        <p class="pill pill-coral">Seating charts</p>
+        <h2 id="how-title">Seating charts that follow your rules.</h2>
         <ol class="steps">
           <li data-step="0"><b>Build the room once.</b> Tables, seats, the board, doors and windows. Every new chart starts from the same room.</li>
           <li data-step="1"><b>Add your class.</b> Paste names from a spreadsheet or your school’s system, or import from Google Classroom.</li>
           <li data-step="2"><b>Set your rules.</b> “Keep Liam and Owen apart.” Front row, same group, spread out a tag. Type them in plain words if you like.</li>
           <li data-step="3"><b>Seat everyone in one click.</b> Every rule kept, groups mixed, no repeat partners. Print it or put it on the projector.</li>
         </ol>
-        <a class="btn btn-coral" href="app/">Try it with a sample class</a>
+        <a class="btn btn-teal" href="app/">Make a seating chart <span aria-hidden="true">→</span></a>
       </div>
       <div class="room-wrap" aria-hidden="true">
         <div class="room">
@@ -151,78 +187,6 @@
     </div>
   </section>
 
-  <!-- ═══ FEATURES (paper notes) ═══ -->
-  <section class="features" aria-label="What ClassMap does">
-    <h2 class="section-title">Everything a seating chart should do</h2>
-    <div class="notes">
-      <article class="note reveal">
-        <div class="note-icon" aria-hidden="true">⇄</div>
-        <h3>Rules that stick</h3>
-        <p>Keep two students apart, seat a student in the front row, or put two in the same group, or just type it: “Keep Liam and Owen apart.” Rules belong to the class, so every new chart follows them.</p>
-      </article>
-      <article class="note reveal">
-        <div class="note-icon" aria-hidden="true">▦</div>
-        <h3>Tables and groups</h3>
-        <p>Tables of any size, split into pairs, trios or solo seats. Draw your real room, any shape, or let ClassMap arrange it for you.</p>
-      </article>
-      <article class="note reveal">
-        <div class="note-icon" aria-hidden="true">⚖︎</div>
-        <h3>Fair mixing</h3>
-        <p>Mix boys and girls (or any groups you define) in every pair and table. Tag students like “IEP” or “Strong reader” to spread them out or pair them with a helper.</p>
-      </article>
-      <article class="note reveal">
-        <div class="note-icon" aria-hidden="true">↻</div>
-        <h3>New partners every time</h3>
-        <p>ClassMap remembers your last charts and avoids seating the same students together again, without breaking any of your rules.</p>
-      </article>
-      <article class="note reveal">
-        <div class="note-icon" aria-hidden="true">🎲</div>
-        <h3>Tools for every day</h3>
-        <p>Attendance on the chart, participation points, a name picker that gives everyone a turn, a group maker, a timer, and name tents to print.</p>
-      </article>
-      <article class="note reveal">
-        <div class="note-icon" aria-hidden="true">▶</div>
-        <h3>Print, present, hand off</h3>
-        <p>Print a clean chart, or a substitute version with your notes and rules. Put it on the projector so students find their seats. Works in English and Spanish.</p>
-      </article>
-    </div>
-  </section>
-
-  <!-- ═══ PRIVACY: the planes always come home ═══ -->
-  <section class="privacy-story" aria-labelledby="privacy-title">
-    <div class="ps-sticky">
-      <div class="ps-art" aria-hidden="true">
-        <svg class="laptop" viewBox="0 0 320 220">
-          <g stroke="#2B1D1A" stroke-width="3" stroke-linejoin="round">
-            <rect x="40" y="14" width="240" height="152" rx="10" fill="#FFF8EC"/>
-            <rect x="56" y="30" width="208" height="120" rx="4" fill="#DDF4F2"/>
-            <path d="M14 172 L306 172 L290 204 L30 204 Z" fill="#FFF8EC"/>
-            <path d="M130 172 L190 172 L184 182 L136 182 Z" fill="#DDF4F2" stroke-width="2"/>
-          </g>
-          <g fill="none" stroke="#2B1D1A" stroke-width="2">
-            <rect x="80" y="52" width="60" height="36" rx="6"/><rect x="180" y="52" width="60" height="36" rx="6"/>
-            <rect x="80" y="102" width="60" height="36" rx="6"/><rect x="180" y="102" width="60" height="36" rx="6"/>
-          </g>
-          <g fill="#F25F6B"><circle cx="96" cy="70" r="5"/><circle cx="124" cy="70" r="5"/><circle cx="196" cy="120" r="5"/><circle cx="224" cy="70" r="5"/></g>
-          <path d="M160 92 c -8 0 -12 6 -12 12 v 4 h 24 v -4 c 0 -6 -4 -12 -12 -12 z M152 104 v-4 a8 8 0 0 1 16 0 v4" fill="#FFF8EC" stroke="#2B1D1A" stroke-width="2"/>
-        </svg>
-        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
-        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
-        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
-        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
-        <img class="ps-plane" src="/art/plane-side.webp" width="320" height="98" alt="">
-      </div>
-      <div class="ps-copy">
-        <h2 id="privacy-title">Your class lists never leave your device.</h2>
-        <ul>
-          <li><b>No accounts, no ads, no tracking.</b> Everything is saved in your browser.</li>
-          <li><b>No AI, no cloud.</b> Even the Ask ClassMap helper runs right in your browser, so what you type stays with you.</li>
-          <li><b>Moving to another device?</b> <em>Send &amp; receive</em> is encrypted end to end and nothing is kept on a server. Or keep a copy in <em>your own</em> Google Drive.</li>
-        </ul>
-        <a class="text-link" href="privacy/">Read the privacy policy →</a>
-      </div>
-    </div>
-  </section>
 
   <!-- ═══ TRY IT RIGHT HERE ═══ -->
   <section class="try" id="try" aria-labelledby="try-title">
@@ -285,87 +249,73 @@ Jay Moore</textarea>
     </div>
   </section>
 
-  <!-- ═══ PIXEL ═══ -->
-  <section class="pixel-teaser" id="pixel" aria-labelledby="pixel-title">
-    <div class="pixel-copy reveal">
-      <p class="pixel-eyebrow">New · ClassMap Pixel</p>
-      <h2 class="section-title" id="pixel-title">Pixel art, made in class.</h2>
-      <p>A free pixel art and animation editor that runs right in the browser. Draw with an Apple Pencil, a finger or a mouse, animate frame by frame, and export GIFs, PNGs, sprite sheets or Aseprite files.</p>
-      <ul class="pixel-points">
-        <li>Layers, animation and tilemaps</li>
-        <li>Works offline, on iPads and Chromebooks</li>
-        <li>No accounts: the art stays on the device</li>
-      </ul>
-      <a class="btn btn-coral" href="pixel/">Open ClassMap Pixel <span aria-hidden="true">→</span></a>
-      <p class="pixel-tip"><b>Teacher tip:</b> a link like <code>classmap.dev/pixel/?new=1&amp;w=32&amp;h=32</code> opens a ready 32 × 32 canvas, so students can start drawing straight away.</p>
+
+  <!-- ═══ BETTER TOGETHER ═══ -->
+  <section class="together" aria-labelledby="together-title">
+    <p class="hand-eyebrow">better together</p>
+    <h2 class="big-title center" id="together-title">A sub day, sorted the night before.</h2>
+    <div class="together-grid">
+      <article class="time-card reveal"><p class="time">8:40 pm</p><h3>Write the sub plan in Notes</h3><p>The sub plan template puts what matters first: the schedule, each period’s plan, and who can help.</p></article>
+      <article class="time-card reveal"><p class="time">8:50 pm</p><h3>Print a substitute seating chart</h3><p>One page with the chart, your notes and your rules, so the sub knows who sits where.</p></article>
+      <article class="time-card reveal"><p class="time">7:30 am</p><h3>Leave both on the desk</h3><p>Chart on top, plan underneath. The sub knows every name from the first minute.</p></article>
     </div>
-    <div class="pixel-frame reveal"><svg class="pixel-art" viewBox="0 0 16 14" width="320" height="280" shape-rendering="crispEdges" role="img" aria-label="A little pixel-art bird on a branch"><rect x="4" y="1" width="4" height="1" fill="#2B1D1A"/><rect x="3" y="2" width="1" height="1" fill="#2B1D1A"/><rect x="4" y="2" width="4" height="1" fill="#0E8A9E"/><rect x="8" y="2" width="1" height="1" fill="#2B1D1A"/><rect x="2" y="3" width="1" height="1" fill="#2B1D1A"/><rect x="3" y="3" width="1" height="1" fill="#0E8A9E"/><rect x="4" y="3" width="1" height="1" fill="#FFFDF7"/><rect x="5" y="3" width="1" height="1" fill="#2B1D1A"/><rect x="6" y="3" width="4" height="1" fill="#0E8A9E"/><rect x="10" y="3" width="1" height="1" fill="#2B1D1A"/><rect x="1" y="4" width="2" height="1" fill="#2B1D1A"/><rect x="3" y="4" width="7" height="1" fill="#0E8A9E"/><rect x="10" y="4" width="1" height="1" fill="#2B1D1A"/><rect x="0" y="5" width="1" height="1" fill="#2B1D1A"/><rect x="1" y="5" width="2" height="1" fill="#F25F6B"/><rect x="3" y="5" width="1" height="1" fill="#2B1D1A"/><rect x="4" y="5" width="6" height="1" fill="#0E8A9E"/><rect x="10" y="5" width="2" height="1" fill="#2B1D1A"/><rect x="1" y="6" width="2" height="1" fill="#2B1D1A"/><rect x="3" y="6" width="8" height="1" fill="#0E8A9E"/><rect x="11" y="6" width="2" height="1" fill="#2B1D1A"/><rect x="2" y="7" width="1" height="1" fill="#2B1D1A"/><rect x="3" y="7" width="9" height="1" fill="#0E8A9E"/><rect x="12" y="7" width="2" height="1" fill="#2B1D1A"/><rect x="2" y="8" width="1" height="1" fill="#2B1D1A"/><rect x="3" y="8" width="1" height="1" fill="#0E8A9E"/><rect x="4" y="8" width="4" height="1" fill="#3FE0D0"/><rect x="8" y="8" width="5" height="1" fill="#0E8A9E"/><rect x="13" y="8" width="1" height="1" fill="#2B1D1A"/><rect x="3" y="9" width="1" height="1" fill="#2B1D1A"/><rect x="4" y="9" width="1" height="1" fill="#0E8A9E"/><rect x="5" y="9" width="4" height="1" fill="#3FE0D0"/><rect x="9" y="9" width="4" height="1" fill="#0E8A9E"/><rect x="13" y="9" width="1" height="1" fill="#2B1D1A"/><rect x="4" y="10" width="2" height="1" fill="#2B1D1A"/><rect x="6" y="10" width="4" height="1" fill="#0E8A9E"/><rect x="10" y="10" width="3" height="1" fill="#2B1D1A"/><rect x="6" y="11" width="1" height="1" fill="#2B1D1A"/><rect x="9" y="11" width="1" height="1" fill="#2B1D1A"/><rect x="2" y="12" width="12" height="1" fill="#8A5A3B"/><rect x="5" y="13" width="1" height="1" fill="#8A5A3B"/><rect x="10" y="13" width="1" height="1" fill="#8A5A3B"/></svg></div>
   </section>
 
-  <!-- ═══ NOTES ═══ -->
-  <section class="pixel-teaser notes-teaser" id="notes" aria-labelledby="notes-title">
-    <div class="pixel-copy reveal">
-      <p class="pixel-eyebrow">New · ClassMap Notes</p>
-      <h2 class="section-title" id="notes-title">Plans and a whiteboard, all in one notebook.</h2>
-      <p>Write lesson plans, keep a weekly planner, leave a sub plan that's easy to follow, and draw on an endless whiteboard. It runs in the browser and keeps everything on your device.</p>
-      <ul class="pixel-points">
-        <li>Templates: lesson plan, weekly planner, sub plan, KWL chart</li>
-        <li>Checklists, tables, kanban boards, maths and YouTube videos</li>
-        <li>No accounts: your notes stay on the device, and it works offline</li>
+  <!-- ═══ PRIVACY ═══ -->
+  <section class="privacy-band" aria-labelledby="privacy-title">
+    <div class="pb-inner">
+      <div class="pb-head">
+        <h2 id="privacy-title">Your work stays on your device.</h2>
+        <a class="text-link" href="privacy/">Read the privacy policy →</a>
+      </div>
+      <ul>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/><path d="M3 3l18 18"/></svg>No accounts</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>Stays on your device</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16a5 5 0 0 1 6 0"/><circle cx="12" cy="19.5" r="1"/></svg>Works offline</li>
+        <li><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Free, no ads</li>
       </ul>
-      <a class="btn btn-coral" href="notes/">Open ClassMap Notes <span aria-hidden="true">→</span></a>
-      <p class="pixel-tip"><b>New to it?</b> Read the short <a class="text-link" href="guides/classmap-notes/">ClassMap Notes guide</a>.</p>
     </div>
-    <div class="pixel-frame notes-frame reveal">
-      <svg class="notes-art" viewBox="0 0 320 280" width="320" height="280" role="img" aria-label="A notebook page with a lesson plan checklist and a sticky note">
-        <rect x="18" y="14" width="236" height="250" rx="14" fill="#FFFDF7" stroke="#2B1D1A" stroke-width="3"/>
-        <rect x="40" y="38" width="140" height="14" rx="4" fill="#2B1D1A"/>
-        <rect x="40" y="66" width="184" height="7" rx="3.5" fill="#E4D6BC"/>
-        <rect x="40" y="80" width="150" height="7" rx="3.5" fill="#E4D6BC"/>
-        <rect x="40" y="106" width="96" height="10" rx="3" fill="#0E8A9E"/>
-        <rect x="40" y="128" width="14" height="14" rx="3" fill="#FFFDF7" stroke="#2B1D1A" stroke-width="2.5"/>
-        <path d="M43 135 l3.5 3.5 l6 -7" fill="none" stroke="#F25F6B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        <rect x="64" y="131" width="120" height="8" rx="4" fill="#E4D6BC"/>
-        <rect x="40" y="154" width="14" height="14" rx="3" fill="#FFFDF7" stroke="#2B1D1A" stroke-width="2.5"/>
-        <path d="M43 161 l3.5 3.5 l6 -7" fill="none" stroke="#F25F6B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        <rect x="64" y="157" width="98" height="8" rx="4" fill="#E4D6BC"/>
-        <rect x="40" y="180" width="14" height="14" rx="3" fill="#FFFDF7" stroke="#2B1D1A" stroke-width="2.5"/>
-        <rect x="64" y="183" width="134" height="8" rx="4" fill="#E4D6BC"/>
-        <rect x="40" y="210" width="190" height="34" rx="6" fill="none" stroke="#CFBC9B" stroke-width="2"/>
-        <path d="M103 210 v34 M166 210 v34" stroke="#CFBC9B" stroke-width="2"/>
-        <g transform="rotate(7 250 92)">
-          <rect x="196" y="44" width="104" height="96" rx="6" fill="#FDE68A" stroke="#2B1D1A" stroke-width="3"/>
-          <path d="M214 76 q18 -12 36 0 t36 0" fill="none" stroke="#2B1D1A" stroke-width="3" stroke-linecap="round"/>
-          <path d="M214 100 q14 -9 28 0" fill="none" stroke="#2B1D1A" stroke-width="3" stroke-linecap="round"/>
-        </g>
-      </svg>
+  </section>
+
+  <!-- ═══ PIXEL (just for fun) ═══ -->
+  <section class="pixel-strip" id="pixel" aria-labelledby="pixel-title">
+    <svg class="pixel-bird" viewBox="0 0 16 14" width="96" height="84" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="1" width="4" height="1" fill="#2B1D1A"/><rect x="3" y="2" width="6" height="1" fill="#0E8A9E"/><rect x="2" y="3" width="8" height="5" fill="#0E8A9E"/><rect x="4" y="3" width="1" height="1" fill="#FFFDF7"/><rect x="5" y="3" width="1" height="1" fill="#2B1D1A"/><rect x="0" y="5" width="2" height="1" fill="#F25F6B"/><rect x="10" y="5" width="2" height="2" fill="#0E8A9E"/><rect x="12" y="7" width="2" height="1" fill="#0E8A9E"/><rect x="4" y="6" width="5" height="2" fill="#3FE0D0"/><rect x="3" y="8" width="8" height="2" fill="#0E8A9E"/><rect x="2" y="12" width="12" height="1" fill="#8A5A3B"/><rect x="5" y="10" width="1" height="2" fill="#2B1D1A"/><rect x="9" y="10" width="1" height="2" fill="#2B1D1A"/></svg>
+    <div class="pixel-copy">
+      <h2 id="pixel-title">Need a break? Make some pixel art.</h2>
+      <p>ClassMap Pixel is a little drawing and animation app, for anyone. Students love it on a Friday.</p>
     </div>
+    <a class="btn btn-light" href="pixel/">Open Pixel <span aria-hidden="true">→</span></a>
   </section>
 
   <!-- ═══ GUIDES ═══ -->
-  <section class="guides-teaser" aria-labelledby="guides-title">
-    <h2 class="section-title" id="guides-title">Seating chart guides</h2>
+  <section class="guides-teaser" id="guides" aria-labelledby="guides-title">
+    <h2 class="big-title center" id="guides-title">Guides for teachers</h2>
     <div class="guide-grid">
+      <a class="guide-card reveal" href="guides/classmap-notes/"><h3>ClassMap Notes: a guide for teachers</h3><p>Templates, the whiteboard, and keeping a backup.</p></a>
       <a class="guide-card reveal" href="guides/how-to-make-a-seating-chart/"><h3>How to make a seating chart</h3><p>Set up the room, place the students who need specific seats, then fill and mix.</p></a>
-      <a class="guide-card reveal" href="guides/classroom-seating-arrangements/"><h3>Classroom seating arrangements</h3><p>Rows, pairs, U-shape, table groups and stadium, with diagrams.</p></a>
-      <a class="guide-card reveal" href="guides/boy-girl-seating-chart/"><h3>Boy-girl seating chart</h3><p>Checkerboard rows, mixed tables, and uneven numbers.</p></a>
+      <a class="guide-card reveal" href="guides/seating-chart-for-substitute-teachers/"><h3>Seating chart for a substitute</h3><p>What to include: names, the board and door, students to keep apart, and today’s notes.</p></a>
     </div>
     <p class="more"><a class="text-link" href="guides/">All guides →</a></p>
   </section>
 
   <!-- ═══ CLOSING ═══ -->
   <section class="closing" id="about" aria-labelledby="about-title">
-    <img class="closing-branch" src="/art/branch.webp" width="1057" height="762" alt="" aria-hidden="true" loading="lazy">
-    <h2 id="about-title">Made for real classrooms.</h2>
-    <p>ClassMap is a free, independent tool for making classroom seating charts. There are no ads, no accounts and no tracking. It works offline, on laptops, tablets and phones, and new features come from what teachers ask for.</p>
-    <a class="btn btn-coral" href="app/">Open ClassMap, it’s free <span aria-hidden="true">→</span></a>
+    <img class="closing-sprig" src="/art/sprig.webp" width="560" height="584" alt="" aria-hidden="true" loading="lazy">
+    <img class="closing-wren" src="/art/wren-fly.webp" width="700" height="578" alt="" aria-hidden="true" loading="lazy">
+    <h2 class="big-title" id="about-title">Made for real classrooms.</h2>
+    <p>ClassMap is free and independent. No ads, no accounts, no tracking, and new features come from what teachers ask for.</p>
+    <div class="closing-actions">
+      <a class="btn btn-coral" href="notes/">Open Notes</a>
+      <a class="btn btn-teal" href="app/">Make a seating chart</a>
+    </div>
   </section>
 </main>
 
 <footer class="footer">
-  <span>© <span id="year">2026</span> ClassMap</span>
-  <a href="pixel/">ClassMap Pixel</a>
+  <span class="footer-copy">© <span id="year">2026</span> ClassMap</span>
   <a href="notes/">ClassMap Notes</a>
+  <a href="app/">Seating charts</a>
+  <a href="pixel/">ClassMap Pixel</a>
   <a href="guides/">Guides</a>
   <a href="privacy/">Privacy policy</a>
   <a href="contact/">Contact</a>
